@@ -34,9 +34,10 @@
 */
 
 /* Includes ------------------------------------------------------------------*/
+#include "usbd_config.h"
+#include "usbd_descriptors.h"
 #include "usbd_core.h"
-#include "usbd_desc.h"
-#include "usbd_conf.h"
+#include "usbd_msc.h"
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
   * @{
   */
@@ -145,6 +146,26 @@ __ALIGN_BEGIN uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] __ALIGN_END =
   #pragma data_alignment=4   
 #endif
 __ALIGN_BEGIN uint8_t USBD_StrDesc[USBD_MAX_STR_DESC_SIZ] __ALIGN_END;
+
+
+/* USB Mass storage Standard Inquiry Data */
+const int8_t  STORAGE_Inquirydata_FS[] = { //36
+
+  /* LUN 0 */
+  0x00,
+  0x80,
+  0x02,
+  0x02,
+  (STANDARD_INQUIRY_DATA_LEN - 5),
+  0x00,
+  0x00,
+  0x00,
+  'S', 'T', 'M', ' ', ' ', ' ', ' ', ' ', /* Manufacturer : 8 bytes */
+  'P', 'r', 'o', 'd', 'u', 'c', 't', ' ', /* Product      : 16 Bytes */
+  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+  '0', '.', '0' ,'1',                     /* Version      : 4 Bytes */
+};
+
 /**
   * @}
   */ 
@@ -195,14 +216,7 @@ uint8_t *  USBD_FS_LangIDStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *leng
 */
 uint8_t *  USBD_FS_ProductStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *length)
 {
-//  if(speed == 0)
-//  {
-//    USBD_GetString (USBD_PRODUCT_STRING_FS, USBD_StrDesc, length);
-//  }
-//  else
-//  {
-    USBD_GetString (USBD_PRODUCT_STRING_FS, USBD_StrDesc, length);    
-//  }
+  USBD_GetString (USBD_PRODUCT_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;
 }
 
@@ -228,14 +242,7 @@ uint8_t *  USBD_FS_ManufacturerStrDescriptor( USBD_SpeedTypeDef speed , uint16_t
 */
 uint8_t *  USBD_FS_SerialStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *length)
 {
-  if(speed  == USBD_SPEED_HIGH)
-  {    
-    USBD_GetString (USBD_SERIALNUMBER_STRING_FS, USBD_StrDesc, length);
-  }
-  else
-  {
-    USBD_GetString (USBD_SERIALNUMBER_STRING_FS, USBD_StrDesc, length);    
-  }
+  USBD_GetString (USBD_SERIALNUMBER_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;
 }
 
@@ -248,14 +255,7 @@ uint8_t *  USBD_FS_SerialStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *leng
 */
 uint8_t *  USBD_FS_ConfigStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *length)
 {
-  if(speed  == USBD_SPEED_HIGH)
-  {  
-    USBD_GetString (USBD_CONFIGURATION_STRING_FS, USBD_StrDesc, length);
-  }
-  else
-  {
-    USBD_GetString (USBD_CONFIGURATION_STRING_FS, USBD_StrDesc, length); 
-  }
+  USBD_GetString (USBD_CONFIGURATION_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;  
 }
 
@@ -268,14 +268,7 @@ uint8_t *  USBD_FS_ConfigStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *leng
 */
 uint8_t *  USBD_FS_InterfaceStrDescriptor( USBD_SpeedTypeDef speed , uint16_t *length)
 {
-  if(speed == 0)
-  {
-    USBD_GetString (USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
-  }
-  else
-  {
-    USBD_GetString (USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
-  }
+  USBD_GetString (USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;  
 }
 /**

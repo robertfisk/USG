@@ -191,6 +191,7 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd)
  USB_DevInit(hpcd->Instance, hpcd->Init);
  
  hpcd->State= HAL_PCD_STATE_READY;
+ __HAL_UNLOCK(hpcd);
  
  USB_DevDisconnect (hpcd->Instance);  
  return HAL_OK;
@@ -1128,7 +1129,7 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
   
   len32b = (len + 3) / 4;
  
-  while  ( (USBx_INEP(epnum)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV) > len32b &&
+  while  ( (USBx_INEP(epnum)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV) > len32b &&	/* SHOULD THIS BE ">=" ??????? */
           ep->xfer_count < ep->xfer_len &&
             ep->xfer_len != 0)
   {
@@ -1147,11 +1148,12 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
     ep->xfer_count += len;
   }
   
-  if(len <= 0)
-  {
+  if(len <= 0)		//SHOULD THIS BE "if (ep->xfer_count >= ep->xfer_len)" ???????
+  {					//or just move USB_WritePacket up below the while check???????
     fifoemptymsk = 0x1 << epnum;
     USBx_DEVICE->DIEPEMPMSK &= ~fifoemptymsk;
     
+    HAL_PCD_BufferFreedCallBack(hpcd);
   }
   
   return HAL_OK;  

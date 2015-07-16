@@ -74,6 +74,7 @@
   * @{
   */ 
 extern USBD_DescriptorsTypeDef FS_Desc;
+extern const int8_t  STORAGE_Inquirydata_FS[];
 /**
   * @}
   */ 

@@ -42,7 +42,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_msc.h"
-
+#include "downstream_interface_def.h"
+#include "downstream_spi.h"
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -106,6 +107,8 @@ uint8_t  *USBD_MSC_GetOtherSpeedCfgDesc (uint16_t *length);
 
 uint8_t  *USBD_MSC_GetDeviceQualifierDescriptor (uint16_t *length);
 
+uint8_t USBD_MSC_BufferFreed(USBD_HandleTypeDef *pdev);
+
 
 /**
   * @}
@@ -128,7 +131,8 @@ USBD_ClassTypeDef  USBD_MSC =
   USBD_MSC_DataOut,
   NULL, /*SOF */ 
   NULL,  
-  NULL,     
+  NULL,
+  USBD_MSC_BufferFreed,
   USBD_MSC_GetHSCfgDesc,
   USBD_MSC_GetFSCfgDesc,  
   USBD_MSC_GetOtherSpeedCfgDesc,
@@ -181,7 +185,7 @@ __ALIGN_BEGIN uint8_t USBD_MSC_CfgHSDesc[USB_MSC_CONFIG_DESC_SIZ]  __ALIGN_END =
 
 /* USB Mass storage device Configuration Descriptor */
 /*   All Descriptors (Configuration, Interface, Endpoint, Class, Vendor */
-uint8_t USBD_MSC_CfgFSDesc[USB_MSC_CONFIG_DESC_SIZ]  __ALIGN_END =
+__ALIGN_BEGIN uint8_t USBD_MSC_CfgFSDesc[USB_MSC_CONFIG_DESC_SIZ]  __ALIGN_END =
 {
   
   0x09,   /* bLength: Configuation Descriptor size */
@@ -226,7 +230,7 @@ uint8_t USBD_MSC_CfgFSDesc[USB_MSC_CONFIG_DESC_SIZ]  __ALIGN_END =
 __ALIGN_BEGIN uint8_t USBD_MSC_OtherSpeedCfgDesc[USB_MSC_CONFIG_DESC_SIZ]   __ALIGN_END  =
 {
   
-  0x09,   /* bLength: Configuation Descriptor size */
+  0x09,   /* bLength: Configuration Descriptor size */
   USB_DESC_TYPE_OTHER_SPEED_CONFIGURATION,   
   USB_MSC_CONFIG_DESC_SIZ,
   
@@ -337,7 +341,8 @@ uint8_t  USBD_MSC_Init (USBD_HandleTypeDef *pdev,
   else
   {
     /* Init the BOT  layer */
-    MSC_BOT_Init(pdev); 
+    MSC_BOT_Init(pdev);
+    ((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
     ret = 0;
   }
   
@@ -398,7 +403,7 @@ uint8_t  USBD_MSC_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
          (req->wLength == 1) &&
          ((req->bmRequest & 0x80) == 0x80))
       {
-        hmsc->max_lun = ((USBD_StorageTypeDef *)pdev->pUserData)->GetMaxLun();
+        hmsc->max_lun = (UPSTREAM_LUN_NBR - 1);
         USBD_CtlSendData (pdev,
                           (uint8_t *)&hmsc->max_lun,
                           1);
@@ -530,6 +535,18 @@ uint8_t  USBD_MSC_DataOut (USBD_HandleTypeDef *pdev,
   return 0;
 }
 
+
+uint8_t USBD_MSC_BufferFreed(USBD_HandleTypeDef *pdev)
+{
+	if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet != NULL)
+	{
+		Downstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
+		((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
+	}
+	return 0;
+}
+
+
 /**
 * @brief  USBD_MSC_GetHSCfgDesc 
 *         return configuration descriptor
@@ -577,20 +594,6 @@ uint8_t  *USBD_MSC_GetDeviceQualifierDescriptor (uint16_t *length)
   return USBD_MSC_DeviceQualifierDesc;
 }
 
-/**
-* @brief  USBD_MSC_RegisterStorage
-* @param  fops: storage callback
-* @retval status
-*/
-uint8_t  USBD_MSC_RegisterStorage  (USBD_HandleTypeDef   *pdev, 
-                                    USBD_StorageTypeDef *fops)
-{
-  if(fops != NULL)
-  {
-    pdev->pUserData= fops;
-  }
-  return 0;
-}
 
 /**
   * @}

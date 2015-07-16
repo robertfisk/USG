@@ -41,38 +41,50 @@
 /* USER CODE END 0 */
 /* External variables --------------------------------------------------------*/
 
-extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
+extern PCD_HandleTypeDef	hpcd_USB_OTG_FS;
+extern DMA_HandleTypeDef	spiTxDmaHandle;
+extern DMA_HandleTypeDef	spiRxDmaHandle;
+
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
 /******************************************************************************/
 
-/**
-* @brief This function handles USB On The Go FS global interrupt.
-*/
-void OTG_FS_IRQHandler(void)
-{
-	STAT_LED_PORT->BSRR = STAT_LED_BSRR_ON;		//blink STAT LED while processing interrupt
-	HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
-	STAT_LED_PORT->BSRR = STAT_LED_BSRR_OFF;
-}
-
-/**
-* @brief This function handles System tick timer.
-*/
 void SysTick_Handler(void)
 {
-  /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
-  //HAL_SYSTICK_IRQHandler();
-  /* USER CODE BEGIN SysTick_IRQn 1 */
 
-  /* USER CODE END SysTick_IRQn 1 */
 }
 
-/* USER CODE BEGIN 1 */
+/////////////////////////
+//All interrupts in this section must be at the same priority.
+//They interact with each other, and calls are not thread-safe
+//when different interrupt priorities are used.
+/////////////////////////
+void OTG_FS_IRQHandler(void)
+{
+	STAT_LED_ON;		//blink STAT LED while processing interrupt
+	HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+	STAT_LED_OFF;
+}
 
-/* USER CODE END 1 */
+void DMA2_Stream2_IRQHandler(void)
+{
+	HAL_DMA_IRQHandler(&spiRxDmaHandle);
+}
+
+void DMA2_Stream3_IRQHandler(void)
+{
+	HAL_DMA_IRQHandler(&spiTxDmaHandle);
+}
+
+void EXTI3_IRQHandler(void)
+{
+	__HAL_GPIO_EXTI_CLEAR_IT(3);
+	Downstream_TxOkInterrupt();
+}
+/////////////////////////
+/////////////////////////
+
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

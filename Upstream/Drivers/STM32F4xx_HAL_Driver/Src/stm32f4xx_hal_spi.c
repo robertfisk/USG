@@ -222,6 +222,7 @@ HAL_StatusTypeDef HAL_SPI_Init(SPI_HandleTypeDef *hspi)
 
   hspi->ErrorCode = HAL_SPI_ERROR_NONE;
   hspi->State = HAL_SPI_STATE_READY;
+  __HAL_UNLOCK(hspi);
   
   return HAL_OK;
 }

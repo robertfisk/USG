@@ -70,6 +70,9 @@
   * @{
   */ 
 
+USBD_HandleTypeDef			*MSC_BOT_pdev;
+USBD_MSC_BOT_HandleTypeDef	*MSC_BOT_hmsc;
+
 /**
   * @}
   */ 
@@ -111,8 +114,6 @@ void MSC_BOT_Init (USBD_HandleTypeDef  *pdev)
   
   hmsc->scsi_sense_tail = 0;
   hmsc->scsi_sense_head = 0;
-  
-  ((USBD_StorageTypeDef *)pdev->pUserData)->Init(0);
   
   USBD_LL_FlushEP(pdev, MSC_EPOUT_ADDR);
   USBD_LL_FlushEP(pdev, MSC_EPIN_ADDR);
@@ -171,24 +172,32 @@ void MSC_BOT_DataIn (USBD_HandleTypeDef  *pdev,
   switch (hmsc->bot_state)
   {
   case USBD_BOT_DATA_IN:
-    if(SCSI_ProcessCmd(pdev,
-                        hmsc->cbw.bLUN,
-                        &hmsc->cbw.CB[0]) < 0)
-    {
-      MSC_BOT_SendCSW (pdev, USBD_CSW_CMD_FAILED);
-    }
+	MSC_BOT_pdev = pdev;
+    SCSI_ProcessCmd(pdev,
+					hmsc->cbw.bLUN,
+					&hmsc->cbw.CB[0],
+					MSC_BOT_DataIn_Callback);
     break;
     
   case USBD_BOT_SEND_DATA:
   case USBD_BOT_LAST_DATA_IN:
     MSC_BOT_SendCSW (pdev, USBD_CSW_CMD_PASSED);
-    
     break;
     
   default:
     break;
   }
 }
+
+
+void MSC_BOT_DataIn_Callback(int8_t result)
+{
+	if (result < 0)
+	{
+		MSC_BOT_SendCSW (MSC_BOT_pdev, USBD_CSW_CMD_FAILED);
+	}
+}
+
 /**
 * @brief  MSC_BOT_DataOut
 *         Process MSC OUT data
@@ -209,18 +218,25 @@ void MSC_BOT_DataOut (USBD_HandleTypeDef  *pdev,
     
   case USBD_BOT_DATA_OUT:
     
-    if(SCSI_ProcessCmd(pdev,
-                        hmsc->cbw.bLUN,
-                        &hmsc->cbw.CB[0]) < 0)
-    {
-      MSC_BOT_SendCSW (pdev, USBD_CSW_CMD_FAILED);
-    }
-
+    MSC_BOT_pdev = pdev;
+    SCSI_ProcessCmd(pdev,
+                    hmsc->cbw.bLUN,
+                    &hmsc->cbw.CB[0],
+					MSC_BOT_DataOut_Callback);
     break;
     
   default:
     break;
   }
+}
+
+
+void MSC_BOT_DataOut_Callback(int8_t result)
+{
+	if (result < 0)
+	{
+		MSC_BOT_SendCSW (MSC_BOT_pdev, USBD_CSW_CMD_FAILED);
+	}
 }
 
 /**
@@ -254,39 +270,50 @@ static void  MSC_BOT_CBW_Decode (USBD_HandleTypeDef  *pdev)
   }
   else
   {
-    if(SCSI_ProcessCmd(pdev,
-                       hmsc->cbw.bLUN,
-                       &hmsc->cbw.CB[0]) < 0)
-    {
-      if(hmsc->bot_state == USBD_BOT_NO_DATA)
-      {
-       MSC_BOT_SendCSW (pdev,
-                         USBD_CSW_CMD_FAILED); 
-      }
-      else
-      {
-        MSC_BOT_Abort(pdev);
-      }
-    }
-    /*Burst xfer handled internally*/
-    else if ((hmsc->bot_state != USBD_BOT_DATA_IN) && 
-             (hmsc->bot_state != USBD_BOT_DATA_OUT) &&
-             (hmsc->bot_state != USBD_BOT_LAST_DATA_IN)) 
-    {
-      if (hmsc->bot_data_length > 0)
-      {
-        MSC_BOT_SendData(pdev,
-                         hmsc->bot_data, 
-                         hmsc->bot_data_length);
-      }
-      else if (hmsc->bot_data_length == 0) 
-      {
-        MSC_BOT_SendCSW (pdev,
-                         USBD_CSW_CMD_PASSED);
-      }
-    }
+	MSC_BOT_pdev = pdev;
+	MSC_BOT_hmsc = hmsc;
+    SCSI_ProcessCmd(pdev,
+				    hmsc->cbw.bLUN,
+				    &hmsc->cbw.CB[0],
+				    MSC_BOT_CBW_Decode_Callback);
   }
 }
+
+
+void MSC_BOT_CBW_Decode_Callback(int8_t result)
+{
+	if (result < 0)
+	{
+	  if(MSC_BOT_hmsc->bot_state == USBD_BOT_NO_DATA)
+	  {
+	   MSC_BOT_SendCSW (MSC_BOT_pdev,
+						 USBD_CSW_CMD_FAILED);
+	  }
+	  else
+	  {
+		MSC_BOT_Abort(MSC_BOT_pdev);
+	  }
+	}
+	/*Burst xfer handled internally*/
+	else if ((MSC_BOT_hmsc->bot_state != USBD_BOT_DATA_IN) &&
+			 (MSC_BOT_hmsc->bot_state != USBD_BOT_DATA_OUT) &&
+			 (MSC_BOT_hmsc->bot_state != USBD_BOT_LAST_DATA_IN))
+	{
+	  if (MSC_BOT_hmsc->bot_data_length > 0)
+	  {
+		MSC_BOT_SendData(MSC_BOT_pdev,
+				MSC_BOT_hmsc->bot_data,
+				MSC_BOT_hmsc->bot_data_length);
+	  }
+	  else if (MSC_BOT_hmsc->bot_data_length == 0)
+	  {
+		MSC_BOT_SendCSW (MSC_BOT_pdev,
+						 USBD_CSW_CMD_PASSED);
+	  }
+	}
+}
+
+
 
 /**
 * @brief  MSC_BOT_SendData

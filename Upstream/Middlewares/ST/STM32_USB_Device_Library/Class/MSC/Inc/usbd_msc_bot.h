@@ -113,7 +113,6 @@ USBD_MSC_BOT_CSWTypeDef;
 /** @defgroup USBD_CORE_Exported_Types
   * @{
   */
-
 /**
   * @}
   */ 
@@ -125,9 +124,12 @@ void MSC_BOT_Reset (USBD_HandleTypeDef  *pdev);
 void MSC_BOT_DeInit (USBD_HandleTypeDef  *pdev);
 void MSC_BOT_DataIn (USBD_HandleTypeDef  *pdev, 
                      uint8_t epnum);
-
 void MSC_BOT_DataOut (USBD_HandleTypeDef  *pdev, 
                       uint8_t epnum);
+
+void MSC_BOT_DataIn_Callback(int8_t result);
+void MSC_BOT_DataOut_Callback(int8_t result);
+void MSC_BOT_CBW_Decode_Callback(int8_t result);
 
 void MSC_BOT_SendCSW (USBD_HandleTypeDef  *pdev,
                              uint8_t CSW_Status);

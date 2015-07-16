@@ -233,6 +233,8 @@ void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd);
 void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd);
+void HAL_PCD_BufferFreedCallBack(PCD_HandleTypeDef *hpcd);
+
 /**
   * @}
   */

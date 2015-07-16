@@ -47,8 +47,11 @@
 /*   The preemption priority for the IRQn channel.
 *         This parameter can be a value between 0 and 15
 *         A lower priority value indicates a higher priority. */
+
 #define INT_PRIORITY_SYSTICK	2
-#define INT_PRIORITY_OTG_FS		10
+#define INT_PRIORITY_SPI_DMA	10			//SPI interacts heavily with USB_OTG,
+#define INT_PRIORITY_OTG_FS		10			//so set them at the same priority.
+
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */

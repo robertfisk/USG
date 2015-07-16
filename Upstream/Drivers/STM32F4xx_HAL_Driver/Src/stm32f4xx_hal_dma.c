@@ -259,6 +259,7 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
 
   /* Initialize the DMA state */
   hdma->State = HAL_DMA_STATE_READY;
+  __HAL_UNLOCK(hdma);
 
   return HAL_OK;
 }

@@ -49,7 +49,7 @@
   * @{
   */ 
 
-#define SENSE_LIST_DEEPTH                           4
+#define SENSE_LIST_DEPTH                            4
 
 /* SCSI Commands */
 #define SCSI_FORMAT_UNIT                            0x04
@@ -99,15 +99,15 @@
 
 
 #define INVALID_CDB                                 0x20
-#define INVALID_FIELED_IN_COMMAND                   0x24
+#define INVALID_FIELD_IN_COMMAND                    0x24
 #define PARAMETER_LIST_LENGTH_ERROR                 0x1A
 #define INVALID_FIELD_IN_PARAMETER_LIST             0x26
 #define ADDRESS_OUT_OF_RANGE                        0x21
 #define MEDIUM_NOT_PRESENT                          0x3A
-#define MEDIUM_HAVE_CHANGED                         0x28
+#define MEDIUM_HAS_CHANGED                          0x28
 #define WRITE_PROTECTED                             0x27 
-#define UNRECOVERED_READ_ERROR			    0x11
-#define WRITE_FAULT				    0x03 
+#define UNRECOVERED_READ_ERROR                      0x11
+#define WRITE_FAULT                                 0x03
 
 #define READ_FORMAT_CAPACITY_DATA_LEN               0x0C
 #define READ_CAPACITY10_DATA_LEN                    0x08
@@ -145,6 +145,10 @@ typedef struct _SENSE_ITEM {
     char *pData;
   } w;
 } USBD_SCSI_SenseTypeDef; 
+
+
+typedef void (*SCSI_ProcessCmdCallbackTypeDef)(int8_t result);
+
 /**
   * @}
   */ 
@@ -167,9 +171,10 @@ typedef struct _SENSE_ITEM {
 /** @defgroup USBD_SCSI_Exported_FunctionsPrototype
   * @{
   */ 
-int8_t SCSI_ProcessCmd(USBD_HandleTypeDef  *pdev,
+void SCSI_ProcessCmd(USBD_HandleTypeDef  *pdev,
                            uint8_t lun, 
-                           uint8_t *cmd);
+                           uint8_t *cmd,
+						   SCSI_ProcessCmdCallbackTypeDef process_cmd_callback);
 
 void   SCSI_SenseCode(USBD_HandleTypeDef  *pdev,
                       uint8_t lun, 

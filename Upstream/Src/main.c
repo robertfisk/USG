@@ -33,6 +33,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <downstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "usb_device.h"
 #include "board_config.h"
@@ -40,16 +41,13 @@
 
 
 /* Private variables ---------------------------------------------------------*/
-CRC_HandleTypeDef hcrc;
-SPI_HandleTypeDef hspi1;
 
 
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_CRC_Init(void);
-static void MX_SPI1_Init(void);
+static void GPIO_Init(void);
+
 
 
 int main(void)
@@ -63,10 +61,12 @@ int main(void)
   SystemClock_Config();
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_CRC_Init();
-  MX_SPI1_Init();
-  MX_USB_DEVICE_Init();
+  GPIO_Init();
+  USB_Device_Init();
+
+  Downstream_InitInterface();
+
+
 
   while (1)
   {
@@ -107,33 +107,6 @@ void SystemClock_Config(void)
 }
 
 
-/* CRC init function */
-void MX_CRC_Init(void)
-{
-  hcrc.Instance = CRC;
-  hcrc.State = HAL_CRC_STATE_RESET;
-  HAL_CRC_Init(&hcrc);
-}
-
-
-/* SPI1 init function */
-void MX_SPI1_Init(void)
-{
-  hspi1.Instance = SPI1;
-  hspi1.State = HAL_SPI_STATE_RESET;
-  hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLED;
-  hspi1.Init.CRCPolynomial = SPI_CRC_DEFAULTPOLYNOMIAL;
-  HAL_SPI_Init(&hspi1);
-}
 
 /** Configure pins as 
         * Analog 
@@ -142,7 +115,7 @@ void MX_SPI1_Init(void)
         * EVENT_OUT
         * EXTI
 */
-void MX_GPIO_Init(void)
+void GPIO_Init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -177,7 +150,7 @@ void MX_GPIO_Init(void)
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
-	STAT_LED_PORT->BSRR = STAT_LED_BSRR_OFF;
+	STAT_LED_PORT->BSRR = STAT_LED_OFF;
 }
 
 /* USER CODE BEGIN 4 */

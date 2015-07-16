@@ -260,7 +260,7 @@ USBD_StatusTypeDef USBD_ClrClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
+USBD_StatusTypeDef USBD_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 {
 
   USBD_ParseSetupRequest(&pdev->request, psetup);
@@ -296,7 +296,7 @@ USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 * @param  epnum: endpoint index
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata)
+USBD_StatusTypeDef USBD_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata)
 {
   USBD_EndpointTypeDef    *pep;
   
@@ -340,7 +340,7 @@ USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum
 * @param  epnum: endpoint index
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev ,uint8_t epnum, uint8_t *pdata)
+USBD_StatusTypeDef USBD_DataInStage(USBD_HandleTypeDef *pdev ,uint8_t epnum, uint8_t *pdata)
 {
   USBD_EndpointTypeDef    *pep;
     
@@ -394,13 +394,13 @@ USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev ,uint8_t epnum, 
 }
 
 /**
-* @brief  USBD_LL_Reset 
+* @brief  USBD_Reset
 *         Handle Reset event
 * @param  pdev: device instance
 * @retval status
 */
 
-USBD_StatusTypeDef USBD_LL_Reset(USBD_HandleTypeDef  *pdev)
+USBD_StatusTypeDef USBD_Reset(USBD_HandleTypeDef  *pdev)
 {
   /* Open EP0 OUT */
   USBD_LL_OpenEP(pdev,
@@ -431,12 +431,12 @@ USBD_StatusTypeDef USBD_LL_Reset(USBD_HandleTypeDef  *pdev)
 
 
 /**
-* @brief  USBD_LL_Reset 
+* @brief  USBD_SetSpeed
 *         Handle Reset event
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_SetSpeed(USBD_HandleTypeDef  *pdev, USBD_SpeedTypeDef speed)
+USBD_StatusTypeDef USBD_SetSpeed(USBD_HandleTypeDef  *pdev, USBD_SpeedTypeDef speed)
 {
   pdev->dev_speed = speed;
   return USBD_OK;
@@ -449,7 +449,7 @@ USBD_StatusTypeDef USBD_LL_SetSpeed(USBD_HandleTypeDef  *pdev, USBD_SpeedTypeDef
 * @retval status
 */
 
-USBD_StatusTypeDef USBD_LL_Suspend(USBD_HandleTypeDef  *pdev)
+USBD_StatusTypeDef USBD_Suspend(USBD_HandleTypeDef  *pdev)
 {
   pdev->dev_old_state =  pdev->dev_state;
   pdev->dev_state  = USBD_STATE_SUSPENDED;
@@ -463,7 +463,7 @@ USBD_StatusTypeDef USBD_LL_Suspend(USBD_HandleTypeDef  *pdev)
 * @retval status
 */
 
-USBD_StatusTypeDef USBD_LL_Resume(USBD_HandleTypeDef  *pdev)
+USBD_StatusTypeDef USBD_Resume(USBD_HandleTypeDef  *pdev)
 {
   pdev->dev_state = pdev->dev_old_state;  
   return USBD_OK;
@@ -476,7 +476,7 @@ USBD_StatusTypeDef USBD_LL_Resume(USBD_HandleTypeDef  *pdev)
 * @retval status
 */
 
-USBD_StatusTypeDef USBD_LL_SOF(USBD_HandleTypeDef  *pdev)
+USBD_StatusTypeDef USBD_SOF(USBD_HandleTypeDef  *pdev)
 {
   if(pdev->dev_state == USBD_STATE_CONFIGURED)
   {
@@ -494,7 +494,7 @@ USBD_StatusTypeDef USBD_LL_SOF(USBD_HandleTypeDef  *pdev)
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum)
+USBD_StatusTypeDef USBD_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum)
 {
   return USBD_OK;
 }
@@ -505,7 +505,7 @@ USBD_StatusTypeDef USBD_LL_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t ep
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum)
+USBD_StatusTypeDef USBD_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum)
 {
   return USBD_OK;
 }
@@ -516,7 +516,7 @@ USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t e
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_DevConnected(USBD_HandleTypeDef  *pdev)
+USBD_StatusTypeDef USBD_DevConnected(USBD_HandleTypeDef  *pdev)
 {
   return USBD_OK;
 }
@@ -527,13 +527,19 @@ USBD_StatusTypeDef USBD_LL_DevConnected(USBD_HandleTypeDef  *pdev)
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef USBD_LL_DevDisconnected(USBD_HandleTypeDef  *pdev)
+USBD_StatusTypeDef USBD_DevDisconnected(USBD_HandleTypeDef  *pdev)
 {
   /* Free Class Resources */
   pdev->dev_state = USBD_STATE_DEFAULT;
   pdev->pClass->DeInit(pdev, pdev->dev_config);  
    
   return USBD_OK;
+}
+
+USBD_StatusTypeDef USBD_BufferFreed(USBD_HandleTypeDef *pdev)
+{
+	pdev->pClass->FreeDataBuffer(pdev);
+	return USBD_OK;
 }
 /**
 * @}

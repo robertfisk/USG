@@ -34,7 +34,7 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_conf.h"
+#include <usbd_config.h>
 #include "usbd_def.h"
 #include "usbd_ioreq.h"
 #include "usbd_ctlreq.h"
@@ -80,7 +80,7 @@
 /** @defgroup USBD_CORE_Exported_Variables
   * @{
   */ 
-#define USBD_SOF          USBD_LL_SOF
+
 /**
   * @}
   */ 
@@ -98,21 +98,24 @@ USBD_StatusTypeDef USBD_RunTestMode (USBD_HandleTypeDef  *pdev);
 USBD_StatusTypeDef USBD_SetClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx);
 USBD_StatusTypeDef USBD_ClrClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx);
 
-USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup);
-USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata);
-USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata);
+USBD_StatusTypeDef USBD_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup);
+USBD_StatusTypeDef USBD_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata);
+USBD_StatusTypeDef USBD_DataInStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata);
 
-USBD_StatusTypeDef USBD_LL_Reset(USBD_HandleTypeDef  *pdev);
-USBD_StatusTypeDef USBD_LL_SetSpeed(USBD_HandleTypeDef  *pdev, USBD_SpeedTypeDef speed);
-USBD_StatusTypeDef USBD_LL_Suspend(USBD_HandleTypeDef  *pdev);
-USBD_StatusTypeDef USBD_LL_Resume(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_Reset(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_SetSpeed(USBD_HandleTypeDef  *pdev, USBD_SpeedTypeDef speed);
+USBD_StatusTypeDef USBD_Suspend(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_Resume(USBD_HandleTypeDef  *pdev);
 
-USBD_StatusTypeDef USBD_LL_SOF(USBD_HandleTypeDef  *pdev);
-USBD_StatusTypeDef USBD_LL_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum);
-USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum);
+USBD_StatusTypeDef USBD_SOF(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum);
+USBD_StatusTypeDef USBD_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum);
 
-USBD_StatusTypeDef USBD_LL_DevConnected(USBD_HandleTypeDef  *pdev);
-USBD_StatusTypeDef USBD_LL_DevDisconnected(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_DevConnected(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_DevDisconnected(USBD_HandleTypeDef  *pdev);
+
+USBD_StatusTypeDef USBD_BufferFreed(USBD_HandleTypeDef *pdev);
+
 
 /* USBD Low Level Driver */
 USBD_StatusTypeDef  USBD_LL_Init (USBD_HandleTypeDef *pdev);
