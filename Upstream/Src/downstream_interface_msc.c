@@ -20,6 +20,7 @@ uint64_t										BlockStart;
 uint32_t										BlockCount;
 uint32_t										ByteCount;
 DownstreamPacketTypeDef*						ReadStreamPacket;
+uint8_t											ReadStreamBusy;
 
 
 static void DownstreamInterface_TestReadyReplyCallback(DownstreamPacketTypeDef* replyPacket);
@@ -109,10 +110,9 @@ HAL_StatusTypeDef DownstreamInterface_BeginRead(DownstreamInterfaceMSCCallbackTy
 {
 	DownstreamPacketTypeDef* freePacket;
 	HAL_StatusTypeDef tempResult;
-	uint64_t* workDammit;
-	uint32_t* prettyPlease;
 
 	ReadStreamPacket = NULL;			//Prepare for GetStreamDataPacket's use
+	ReadStreamBusy = 0;
 
 	TestReadyCallback = callback;
 	BlockStart = readBlockStart;
@@ -123,10 +123,9 @@ HAL_StatusTypeDef DownstreamInterface_BeginRead(DownstreamInterfaceMSCCallbackTy
 	freePacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_BEGIN_READ;
-	workDammit = (uint64_t*)&(freePacket->Data[0]);
-	*workDammit = BlockStart;
-	prettyPlease = (uint32_t*)&(freePacket->Data[8]);
-	*prettyPlease = BlockCount;
+	*(uint64_t*)&(freePacket->Data[0]) = BlockStart;
+	*(uint32_t*)&(freePacket->Data[8]) = BlockCount;
+
 	tempResult = Downstream_SendPacket(freePacket);
 	if (tempResult != HAL_OK)
 	{
@@ -140,8 +139,13 @@ HAL_StatusTypeDef DownstreamInterface_GetStreamDataPacket(DownstreamInterfaceMSC
 {
 	GetStreamDataCallback = callback;
 
-	//We have a callback address. Do we have a stored packet?
-	if (ReadStreamPacket)
+	if (ReadStreamBusy != 0)
+	{
+		return HAL_OK;
+	}
+	ReadStreamBusy = 1;
+
+	if (ReadStreamPacket && GetStreamDataCallback)		//Do we have a stored packet and an address to send it?
 	{
 		DownstreamInterface_GetStreamDataPacketCallback(ReadStreamPacket);	//Send it now!
 		ReadStreamPacket = NULL;
@@ -152,6 +156,7 @@ HAL_StatusTypeDef DownstreamInterface_GetStreamDataPacket(DownstreamInterfaceMSC
 
 void DownstreamInterface_GetStreamDataPacketCallback(DownstreamPacketTypeDef* replyPacket)
 {
+	ReadStreamBusy = 0;
 	if (GetStreamDataCallback == NULL)
 	{
 		ReadStreamPacket = replyPacket;		//We used up our callback already, so save this one for later.
@@ -163,11 +168,14 @@ void DownstreamInterface_GetStreamDataPacketCallback(DownstreamPacketTypeDef* re
 		 (replyPacket->Length > ByteCount))
 	{
 		GetStreamDataCallback(HAL_ERROR, NULL);
+		return;
 	}
-	else
+
+	ByteCount -= replyPacket->Length;
+	GetStreamDataCallback(HAL_OK, replyPacket);	//usb_msc_scsi will use this packet, so don't release now
+	if (ByteCount > 0)
 	{
-		ByteCount -= replyPacket->Length;
-		GetStreamDataCallback(HAL_OK, replyPacket);	//usb_msc_scsi will use this packet, so don't release now
+		DownstreamInterface_GetStreamDataPacket(NULL);	//Try to get the next packet now, before USB asks for it
 	}
 }
 

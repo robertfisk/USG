@@ -104,6 +104,7 @@
 							</tool>
 							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.printsize.1355233875" name="Cross ARM GNU Print Size" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.printsize">
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.printsize.format.371297331" name="Size format" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.printsize.format" value="ilg.gnuarmeclipse.managedbuild.cross.option.printsize.format.berkeley" valueType="enumerated"/>
+								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.printsize.totals.306060728" name="Show totals" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.printsize.totals" value="false" valueType="boolean"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
