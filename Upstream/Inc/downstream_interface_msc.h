@@ -14,7 +14,8 @@
 
 typedef void (*DownstreamInterfaceMSCCallbackTypeDef)(HAL_StatusTypeDef result);
 typedef void (*DownstreamInterfaceMSCCallbackPacketTypeDef)(HAL_StatusTypeDef result,
-															DownstreamPacketTypeDef* downstreamPacket);
+															DownstreamPacketTypeDef* downstreamPacket,
+															uint16_t dataLength);
 typedef void (*DownstreamInterfaceMSCCallbackUintPacketTypeDef)(HAL_StatusTypeDef result,
 																uint32_t result_uint[],
 																DownstreamPacketTypeDef* downstreamPacket);

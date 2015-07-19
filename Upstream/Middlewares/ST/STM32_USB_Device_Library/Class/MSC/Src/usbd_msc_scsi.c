@@ -112,7 +112,8 @@ void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
 									 DownstreamPacketTypeDef* packetToUse);
 void SCSI_Read10BeginCallback(HAL_StatusTypeDef result);
 void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
-							  DownstreamPacketTypeDef* downstreamPacket);
+							  DownstreamPacketTypeDef* downstreamPacket,
+							  uint16_t dataLength);
 void SCSI_Write10BeginCallback(HAL_StatusTypeDef result);
 void SCSI_Write10FreePacketCallback(DownstreamPacketTypeDef* freePacket);
 
@@ -599,7 +600,10 @@ static void SCSI_Read10(void)
 	}
 
 	//hmsc->bot_state is already USBD_BOT_DATA_IN
-	DownstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback);
+	if (DownstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
+	{
+		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
+	}
 }
 
 
@@ -618,17 +622,14 @@ void SCSI_Read10BeginCallback(HAL_StatusTypeDef result)
 
 	if (DownstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
-		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
-					   SCSI_ProcessCmd_lun,
-					   NOT_READY,
-					   MEDIUM_NOT_PRESENT);
-		SCSI_ProcessCmd_callback(-1);
+		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
 	}
 }
 
 
 void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
-							  DownstreamPacketTypeDef* downstreamPacket)
+							  DownstreamPacketTypeDef* downstreamPacket,
+							  uint16_t dataLength)
 {
 	if (result != HAL_OK)
 	{
@@ -640,15 +641,18 @@ void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
 		return;
 	}
 
+	if (SCSI_ProcessCmd_hmsc->bot_packet != NULL)
+		while (1);			/////////////////////////////////////////!
+
 	SCSI_ProcessCmd_hmsc->bot_packet = downstreamPacket;
 	SCSI_ProcessCmd_hmsc->bot_data = downstreamPacket->Data;
 	USBD_LL_Transmit (SCSI_ProcessCmd_pdev,
 					  MSC_EPIN_ADDR,
 					  SCSI_ProcessCmd_hmsc->bot_data,
-					  downstreamPacket->Length);
+					  dataLength);
 
 	/* case 6 : Hi = Di */
-	SCSI_ProcessCmd_hmsc->csw.dDataResidue -= downstreamPacket->Length;
+	SCSI_ProcessCmd_hmsc->csw.dDataResidue -= dataLength;
 
 	if (SCSI_ProcessCmd_hmsc->csw.dDataResidue == 0)
 	{

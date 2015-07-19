@@ -136,10 +136,13 @@ DownstreamPacketTypeDef* Downstream_GetFreePacketImmediately(void)
 //Used by USB interface classes, and by our internal RX code.
 void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
 {
+	FreePacketCallbackTypeDef tempCallback;
+
 	if (PendingFreePacketCallback != NULL)
 	{
-		PendingFreePacketCallback(packetToRelease);
-		PendingFreePacketCallback = NULL;
+		tempCallback = PendingFreePacketCallback;	//In extreme situations, running this callback can trigger another request for a free packet,
+		PendingFreePacketCallback = NULL;			//thereby causing GetFreePacket to freak out. So we need to clear the callback indicator first.
+		tempCallback(packetToRelease);
 	}
 	else
 	{
@@ -234,7 +237,7 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 	{
 		if ((PendingFreePacketCallback != NULL) && (NextTxPacket == NULL))
 		{
-			SPI_INTERFACE_FREAKOUT_VOID;
+			//SPI_INTERFACE_FREAKOUT_VOID;		///////////////////////////////////////!
 		}
 
 		Downstream_ReleasePacket(CurrentWorkingPacket);

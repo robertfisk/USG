@@ -36,6 +36,8 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "board_config.h"
+#include "downstream_spi.h"
+
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -70,18 +72,24 @@ void OTG_FS_IRQHandler(void)
 
 void DMA2_Stream2_IRQHandler(void)
 {
+	SPI_DMA_ACTIVE_ON;
 	HAL_DMA_IRQHandler(&spiRxDmaHandle);
+	SPI_DMA_ACTIVE_OFF;
 }
 
 void DMA2_Stream3_IRQHandler(void)
 {
+	SPI_DMA_ACTIVE_ON;
 	HAL_DMA_IRQHandler(&spiTxDmaHandle);
+	SPI_DMA_ACTIVE_OFF;
 }
 
 void EXTI3_IRQHandler(void)
 {
+	SPI_DMA_ACTIVE_ON;
 	__HAL_GPIO_EXTI_CLEAR_IT(3);
 	Downstream_TxOkInterrupt();
+	SPI_DMA_ACTIVE_OFF;
 }
 /////////////////////////
 /////////////////////////

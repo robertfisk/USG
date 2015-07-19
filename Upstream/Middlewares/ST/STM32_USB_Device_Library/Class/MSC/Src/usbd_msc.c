@@ -153,7 +153,7 @@ __ALIGN_BEGIN uint8_t USBD_MSC_CfgHSDesc[USB_MSC_CONFIG_DESC_SIZ]  __ALIGN_END =
   0x01,   /* bConfigurationValue: */
   0x04,   /* iConfiguration: */
   0xC0,   /* bmAttributes: */
-  0x32,   /* MaxPower 100 mA */
+  0xFA,   /* MaxPower 500 mA */
   
   /********************  Mass Storage interface ********************/
   0x09,   /* bLength: Interface Descriptor size */
@@ -538,10 +538,13 @@ uint8_t  USBD_MSC_DataOut (USBD_HandleTypeDef *pdev,
 
 uint8_t USBD_MSC_BufferFreed(USBD_HandleTypeDef *pdev)
 {
-	if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet != NULL)
+	if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData) != NULL)
 	{
-		Downstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
-		((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
+		if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet != NULL)
+		{
+			Downstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
+			((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
+		}
 	}
 	return 0;
 }

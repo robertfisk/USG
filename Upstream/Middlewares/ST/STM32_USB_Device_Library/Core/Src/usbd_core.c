@@ -103,10 +103,8 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev, USBD_DescriptorsTypeDef *
   }
   
   /* Unlink previous class*/
-//  if(pdev->pClass != NULL)
-//  {
     pdev->pClass = NULL;
-//  }
+    pdev->pClassData = NULL;
   
   /* Assign USBD Descriptors */
   if(pdesc != NULL)

@@ -120,7 +120,10 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	//Configure downstream request pin and interrupt
 	GPIO_InitStruct.Pin = DOWNSTREAM_TX_OK_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT | GPIO_MODE_IT_FALLING;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
+
+	//GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;	////////////////////////////////////////////////!
+
 	HAL_GPIO_Init(DOWNSTREAM_TX_OK_PORT, &GPIO_InitStruct);
 	HAL_NVIC_SetPriority(EXTI3_IRQn, INT_PRIORITY_SPI_DMA, 0);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);

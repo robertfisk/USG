@@ -1129,27 +1129,26 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
   
   len32b = (len + 3) / 4;
  
-  while  ( (USBx_INEP(epnum)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV) > len32b &&	/* SHOULD THIS BE ">=" ??????? */
+  while  ( (USBx_INEP(epnum)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV) >= len32b &&  /* Changed from ">" */
           ep->xfer_count < ep->xfer_len &&
             ep->xfer_len != 0)
   {
-    /* Write the FIFO */
+	/* Write the FIFO */
+	USB_WritePacket(USBx, ep->xfer_buff, epnum, len, hpcd->Init.dma_enable);
+
+	ep->xfer_buff  += len;
+	ep->xfer_count += len;
+
     len = ep->xfer_len - ep->xfer_count;
-    
     if (len > ep->maxpacket)
     {
       len = ep->maxpacket;
     }
     len32b = (len + 3) / 4;
-    
-    USB_WritePacket(USBx, ep->xfer_buff, epnum, len, hpcd->Init.dma_enable); 
-    
-    ep->xfer_buff  += len;
-    ep->xfer_count += len;
   }
   
-  if(len <= 0)		//SHOULD THIS BE "if (ep->xfer_count >= ep->xfer_len)" ???????
-  {					//or just move USB_WritePacket up below the while check???????
+  if (len <= 0)
+  {
     fifoemptymsk = 0x1 << epnum;
     USBx_DEVICE->DIEPEMPMSK &= ~fifoemptymsk;
     

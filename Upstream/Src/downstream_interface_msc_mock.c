@@ -1,8 +1,12 @@
 /*
- * downstream_interface_msc.c
+ * downstream_interface_msc_mock.c
  *
- *  Created on: 4/07/2015
+ *  Created on: 17/07/2015
  *      Author: Robert Fisk
+ *
+ *      This file replaces downstream_interface_msc.c to allow operational
+ *      testing of Upstream, without Downstream in place and communicating
+ *      over SPI. It still attempts to write downstream packets out the SPI port.
  */
 
 
@@ -46,22 +50,23 @@ HAL_StatusTypeDef DownstreamInterface_TestReady(DownstreamInterfaceMSCCallbackTy
 	{
 		return tempResult;
 	}
-	return Downstream_GetPacket(DownstreamInterface_TestReadyReplyCallback);
+	//return Downstream_GetPacket(DownstreamInterface_TestReadyReplyCallback);
+	return Downstream_GetFreePacket(DownstreamInterface_TestReadyReplyCallback);
 }
 
 void DownstreamInterface_TestReadyReplyCallback(DownstreamPacketTypeDef* replyPacket)
 {
-	if ((replyPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + 1)) ||
-		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
-		(replyPacket->Data[0] != HAL_OK))
-	{
-		Downstream_ReleasePacket(replyPacket);
-		TestReadyCallback(HAL_ERROR);
-		return;
-	}
+//	if ((replyPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + 1)) ||
+//		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
+//		(replyPacket->Data[0] != HAL_OK))
+//	{
+//		Downstream_ReleasePacket(replyPacket);
+//		TestReadyCallback(HAL_ERROR);
+//		return;
+//	}
 
-	Downstream_ReleasePacket(replyPacket);
-	TestReadyCallback(HAL_OK);
+		Downstream_ReleasePacket(replyPacket);
+		TestReadyCallback(HAL_OK);
 }
 
 
@@ -82,21 +87,24 @@ HAL_StatusTypeDef DownstreamInterface_GetCapacity(DownstreamInterfaceMSCCallback
 	{
 		return tempResult;
 	}
-	return Downstream_GetPacket(DownstreamInterface_GetCapacityReplyCallback);
+	//return Downstream_GetPacket(DownstreamInterface_GetCapacityReplyCallback);
+	return Downstream_GetFreePacket(DownstreamInterface_GetCapacityReplyCallback);
 }
 
 void DownstreamInterface_GetCapacityReplyCallback(DownstreamPacketTypeDef* replyPacket)
 {
 	uint32_t uint[2];
 
-	if ((replyPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + 8) ||
-	    (replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG)))
-	{
-		GetCapacityCallback(HAL_ERROR, NULL, NULL);
-		return;
-	}
+//	if ((replyPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + 8) ||
+//	    (replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG)))
+//	{
+//		GetCapacityCallback(HAL_ERROR, NULL, NULL);
+//	}
 
-	uint[0] = *(uint32_t*)&(replyPacket->Data[0]);
+	*(uint32_t*)&(replyPacket->Data[0]) = 262144;		//* 512B = 128MB
+	*(uint32_t*)&(replyPacket->Data[4]) = 512;
+
+	uint[0] = *(uint32_t*)&(replyPacket->Data[0]);		/////////check indexing!!!
 	uint[1] = *(uint32_t*)&(replyPacket->Data[4]);
 	GetCapacityCallback(HAL_OK, uint, replyPacket);		//usb_msc_scsi will use this packet, so don't release now
 }
@@ -131,7 +139,8 @@ HAL_StatusTypeDef DownstreamInterface_BeginRead(DownstreamInterfaceMSCCallbackTy
 	{
 		TestReadyCallback(tempResult);
 	}
-	return Downstream_GetPacket(DownstreamInterface_TestReadyReplyCallback);	//Re-use TestReadyReplyCallback because it does exactly what we want!
+	//return Downstream_GetPacket(DownstreamInterface_TestReadyReplyCallback);	//Re-use TestReadyReplyCallback because it does exactly what we want!
+	return Downstream_GetFreePacket(DownstreamInterface_TestReadyReplyCallback);
 }
 
 
@@ -152,7 +161,8 @@ HAL_StatusTypeDef DownstreamInterface_GetStreamDataPacket(DownstreamInterfaceMSC
 		ReadStreamPacket = NULL;
 		return HAL_OK;				//Our callback will call us again, so we don't need to get a packet in this case.
 	}
-	return Downstream_GetPacket(DownstreamInterface_GetStreamDataPacketCallback);
+	//return Downstream_GetPacket(DownstreamInterface_GetStreamDataPacketCallback);
+	return Downstream_GetFreePacket(DownstreamInterface_GetStreamDataPacketCallback);
 }
 
 void DownstreamInterface_GetStreamDataPacketCallback(DownstreamPacketTypeDef* replyPacket)
@@ -166,13 +176,15 @@ void DownstreamInterface_GetStreamDataPacketCallback(DownstreamPacketTypeDef* re
 		return;
 	}
 
-	if (((replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) == 0) ||		//Any 'command' reply (as opposed to 'data' reply) is an automatic fail here
-		 (replyPacket->Length <= DOWNSTREAM_PACKET_HEADER_LEN) ||			//Should be at least one data byte in the reply.
-		 (replyPacket->Length > ByteCount))
-	{
-		GetStreamDataCallback(HAL_ERROR, NULL);
-		return;
-	}
+//	if (((replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) == 0) ||		//Any 'command' reply (as opposed to 'data' reply) is an automatic fail here
+//		 (replyPacket->Length <= DOWNSTREAM_PACKET_HEADER_LEN) ||			//Should be at least one data byte in the reply.
+//		 (replyPacket->Length > ByteCount))
+//	{
+//		GetStreamDataCallback(HAL_ERROR, NULL);
+//		return;
+//	}
+
+	replyPacket->Length = MIN((ByteCount + DOWNSTREAM_PACKET_HEADER_LEN), (MSC_MEDIA_PACKET + DOWNSTREAM_PACKET_HEADER_LEN));
 
 	dataLength = replyPacket->Length - DOWNSTREAM_PACKET_HEADER_LEN;
 	ByteCount -= dataLength;
@@ -208,19 +220,20 @@ HAL_StatusTypeDef DownstreamInterface_BeginWrite(DownstreamInterfaceMSCCallbackT
 	{
 		TestReadyCallback(tempResult);
 	}
-	return Downstream_GetPacket(DownstreamInterface_BeginWriteReplyCallback);
+	//return Downstream_GetPacket(DownstreamInterface_BeginWriteReplyCallback);
+	return Downstream_GetFreePacket(DownstreamInterface_BeginWriteReplyCallback);
 }
 
 void DownstreamInterface_BeginWriteReplyCallback(DownstreamPacketTypeDef* replyPacket)
 {
-	if ((replyPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + 1)) ||
-		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
-		((replyPacket->Data[0] != HAL_OK) && (replyPacket->Data[0] != HAL_BUSY)))
-	{
-		Downstream_ReleasePacket(replyPacket);
-		TestReadyCallback(HAL_ERROR);
-		return;
-	}
+//	if ((replyPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + 1)) ||
+//		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
+//		((replyPacket->Data[0] != HAL_OK) && (replyPacket->Data[0] != HAL_BUSY)))
+//	{
+//		Downstream_ReleasePacket(replyPacket);
+//		TestReadyCallback(HAL_ERROR);
+//		return;
+//	}
 
 	Downstream_ReleasePacket(replyPacket);
 	TestReadyCallback(replyPacket->Data[0]);
