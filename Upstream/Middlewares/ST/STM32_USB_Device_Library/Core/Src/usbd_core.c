@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file    usbd_core.c
   * @author  MCD Application Team
-  * @version V2.3.0
-  * @date    04-November-2014
+  * @version V2.4.1
+  * @date    19-June-2015
   * @brief   This file provides all the USBD core functions.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
+  * <h2><center>&copy; COPYRIGHT 2015 STMicroelectronics</center></h2>
   *
   * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
   * You may not use this file except in compliance with the License.
@@ -357,6 +357,12 @@ USBD_StatusTypeDef USBD_DataInStage(USBD_HandleTypeDef *pdev ,uint8_t epnum, uin
                                   pep->rem_length);
       }
       else
+        
+        /* Prepare endpoint for premature end of transfer */
+        USBD_LL_PrepareReceive (pdev,
+                                0,
+                                NULL,
+                                0);  
       { /* last packet is MPS multiple, so send ZLP packet */
         if((pep->total_length % pep->maxpacket == 0) &&
            (pep->total_length >= pep->maxpacket) &&
@@ -367,6 +373,12 @@ USBD_StatusTypeDef USBD_DataInStage(USBD_HandleTypeDef *pdev ,uint8_t epnum, uin
           pdev->ep0_data_len = 0;
         }
         else
+          
+        /* Prepare endpoint for premature end of transfer */
+        USBD_LL_PrepareReceive (pdev,
+                                0,
+                                NULL,
+                                0);
         {
           if((pdev->pClass->EP0_TxSent != NULL)&&
              (pdev->dev_state == USBD_STATE_CONFIGURED))

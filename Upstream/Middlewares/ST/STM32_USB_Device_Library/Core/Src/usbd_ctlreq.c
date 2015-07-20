@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file    usbd_req.c
   * @author  MCD Application Team
-  * @version V2.3.0
-  * @date    04-November-2014 
+  * @version V2.4.1
+  * @date    19-June-2015 
   * @brief   This file provides the standard USB requests following chapter 9.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
+  * <h2><center>&copy; COPYRIGHT 2015 STMicroelectronics</center></h2>
   *
   * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
   * You may not use this file except in compliance with the License.
@@ -212,6 +212,14 @@ USBD_StatusTypeDef  USBD_StdEPReq (USBD_HandleTypeDef *pdev , USBD_SetupReqTyped
   USBD_EndpointTypeDef   *pep;
   ep_addr  = LOBYTE(req->wIndex);   
   
+  /* Check if it is a class request */
+  if ((req->bmRequest & 0x60) == 0x20)
+  {
+    pdev->pClass->Setup (pdev, req);
+    
+    return USBD_OK;
+  }
+  
   switch (req->bRequest) 
   {
     
@@ -328,7 +336,12 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev ,
   
     
   switch (req->wValue >> 8)
-  {
+  { 
+#if (USBD_LPM_ENABLED == 1)
+  case USB_DESC_TYPE_BOS:
+    pbuf = pdev->pDesc->GetBOSDescriptor(pdev->dev_speed, &len);
+    break;
+#endif    
   case USB_DESC_TYPE_DEVICE:
     pbuf = pdev->pDesc->GetDeviceDescriptor(pdev->dev_speed, &len);
     break;

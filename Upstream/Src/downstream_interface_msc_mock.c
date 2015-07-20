@@ -20,8 +20,6 @@
 DownstreamInterfaceMSCCallbackTypeDef 			TestReadyCallback;
 DownstreamInterfaceMSCCallbackUintPacketTypeDef	GetCapacityCallback;
 DownstreamInterfaceMSCCallbackPacketTypeDef		GetStreamDataCallback;
-uint64_t										BlockStart;
-uint32_t										BlockCount;
 uint32_t										ByteCount;
 DownstreamPacketTypeDef*						ReadStreamPacket;
 uint8_t											ReadStreamBusy;
@@ -104,7 +102,7 @@ void DownstreamInterface_GetCapacityReplyCallback(DownstreamPacketTypeDef* reply
 	*(uint32_t*)&(replyPacket->Data[0]) = 262144;		//* 512B = 128MB
 	*(uint32_t*)&(replyPacket->Data[4]) = 512;
 
-	uint[0] = *(uint32_t*)&(replyPacket->Data[0]);		/////////check indexing!!!
+	uint[0] = *(uint32_t*)&(replyPacket->Data[0]);
 	uint[1] = *(uint32_t*)&(replyPacket->Data[4]);
 	GetCapacityCallback(HAL_OK, uint, replyPacket);		//usb_msc_scsi will use this packet, so don't release now
 }
@@ -123,16 +121,14 @@ HAL_StatusTypeDef DownstreamInterface_BeginRead(DownstreamInterfaceMSCCallbackTy
 	ReadStreamBusy = 0;
 
 	TestReadyCallback = callback;
-	BlockStart = readBlockStart;
-	BlockCount = readBlockCount;
 	ByteCount = readByteCount;
 	freePacket = Downstream_GetFreePacketImmediately();
 
 	freePacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_BEGIN_READ;
-	*(uint64_t*)&(freePacket->Data[0]) = BlockStart;
-	*(uint32_t*)&(freePacket->Data[8]) = BlockCount;
+	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
+	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
 
 	tempResult = Downstream_SendPacket(freePacket);
 	if (tempResult != HAL_OK)
@@ -205,15 +201,13 @@ HAL_StatusTypeDef DownstreamInterface_BeginWrite(DownstreamInterfaceMSCCallbackT
 	HAL_StatusTypeDef tempResult;
 
 	TestReadyCallback = callback;
-	BlockStart = readBlockStart;
-	BlockCount = readBlockCount;
 	freePacket = Downstream_GetFreePacketImmediately();
 
 	freePacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_BEGIN_WRITE;
-	*(uint64_t*)&(freePacket->Data[0]) = BlockStart;
-	*(uint32_t*)&(freePacket->Data[8]) = BlockCount;
+	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
+	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
 
 	tempResult = Downstream_SendPacket(freePacket);
 	if (tempResult != HAL_OK)
