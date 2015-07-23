@@ -78,10 +78,19 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    SPI1_NSS_DEASSERT;
     GPIO_InitStruct.Pin = SPI1_NSS_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    SPI1_NSS_DEASSERT;
+    HAL_GPIO_Init(SPI1_NSS_PORT, &GPIO_InitStruct);
+
+	//Configure downstream request pin and interrupt
+	GPIO_InitStruct.Pin = DOWNSTREAM_TX_OK_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT | GPIO_MODE_IT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(DOWNSTREAM_TX_OK_PORT, &GPIO_InitStruct);
+	HAL_NVIC_SetPriority(EXTI3_IRQn, INT_PRIORITY_SPI_DMA, 0);
+	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
 	//Prepare Tx DMA stream
 	hspi->hdmatx = &spiTxDmaHandle;
@@ -116,17 +125,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	HAL_DMA_Init(&spiRxDmaHandle);
 	HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, INT_PRIORITY_SPI_DMA, 0);
 	HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
-
-	//Configure downstream request pin and interrupt
-	GPIO_InitStruct.Pin = DOWNSTREAM_TX_OK_PIN;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT | GPIO_MODE_IT_FALLING;
-
-	//GPIO_InitStruct.Pull = GPIO_PULLUP;
-	GPIO_InitStruct.Pull = GPIO_PULLDOWN;	////////////////////////////////////////////////!
-
-	HAL_GPIO_Init(DOWNSTREAM_TX_OK_PORT, &GPIO_InitStruct);
-	HAL_NVIC_SetPriority(EXTI3_IRQn, INT_PRIORITY_SPI_DMA, 0);
-	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
   }
 }
 

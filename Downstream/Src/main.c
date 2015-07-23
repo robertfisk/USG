@@ -33,20 +33,15 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "usb_host.h"
+#include "board_config.h"
 
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 DMA_HandleTypeDef hdma_spi1_rx;
 DMA_HandleTypeDef hdma_spi1_tx;
 
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
 
-/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -55,53 +50,32 @@ static void MX_DMA_Init(void);
 static void MX_SPI1_Init(void);
 void MX_USB_HOST_Process(void);
 
-/* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
 
-/* USER CODE END PFP */
-
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   /* MCU Configuration----------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_SPI1_Init();
-  MX_USB_HOST_Init();
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_SPI1_Init();
+	MX_USB_HOST_Init();
 
-  /* USER CODE BEGIN 2 */
 
-  /* USER CODE END 2 */
+	while (1)
+	{
+		MX_USB_HOST_Process();
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-  /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
-
-  /* USER CODE BEGIN 3 */
-
-  }
-  /* USER CODE END 3 */
-
+	}
 }
+
 
 /** System Clock Configuration
 */
@@ -123,7 +97,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 7;
-  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) while (1);
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1
                               |RCC_CLOCKTYPE_PCLK2;
@@ -131,18 +105,15 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
-
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) while (1);
 
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
 }
+
 
 /* SPI1 init function */
 void MX_SPI1_Init(void)
 {
-
   hspi1.Instance = SPI1;
   hspi1.Init.Mode = SPI_MODE_SLAVE;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
@@ -156,8 +127,8 @@ void MX_SPI1_Init(void)
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLED;
   hspi1.Init.CRCPolynomial = 10;
   HAL_SPI_Init(&hspi1);
-
 }
+
 
 /** 
   * Enable DMA controller clock
@@ -184,12 +155,58 @@ void MX_DMA_Init(void)
 */
 void MX_GPIO_Init(void)
 {
+	GPIO_InitTypeDef GPIO_InitStruct;
 
-  /* GPIO Ports Clock Enable */
-  __GPIOH_CLK_ENABLE();
-  __GPIOA_CLK_ENABLE();
-  __GPIOB_CLK_ENABLE();
+	/* GPIO Ports Clock Enable */
+	//__GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_GPIOE_CLK_ENABLE();
+	__HAL_RCC_GPIOF_CLK_ENABLE();
+	__HAL_RCC_GPIOG_CLK_ENABLE();
 
+	//Bulk initialise all ports as inputs with pullups active,
+	//excluding JTAG pins which must remain as AF0!
+	GPIO_InitStruct.Pin = (GPIO_PIN_All & ~(PA_JTMS | PA_JTCK | PA_JTDI));
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+	GPIO_InitStruct.Alternate = 0;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = (GPIO_PIN_All & ~(PB_JTDO | PB_NJTRST));
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = GPIO_PIN_All;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+	//USB VBUS pins are analog input
+	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Pin = USB_FS_VBUS_PIN;
+	HAL_GPIO_Init(USB_FS_VBUS_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = USB_HS_VBUS_PIN;
+	HAL_GPIO_Init(USB_HS_VBUS_PORT, &GPIO_InitStruct);
+
+	//Enable USB_FS power
+	USB_FS_VBUSON_PORT->BSRR = (USB_FS_VBUSON_PIN << BSRR_SHIFT_HIGH);
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Pin = USB_FS_VBUSON_PIN;
+	HAL_GPIO_Init(USB_FS_VBUSON_PORT, &GPIO_InitStruct);
+
+	//Disable USB_HS power
+	USB_HS_VBUSON_PORT->BSRR = (USB_HS_VBUSON_PIN << BSRR_SHIFT_LOW);
+	GPIO_InitStruct.Pin = USB_HS_VBUSON_PIN;
+	HAL_GPIO_Init(USB_HS_VBUSON_PORT, &GPIO_InitStruct);
+
+	//STAT_LED is output
+	STAT_LED_OFF;
+	GPIO_InitStruct.Pin = STAT_LED_PIN;
+	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
 }
 
 /* USER CODE BEGIN 4 */

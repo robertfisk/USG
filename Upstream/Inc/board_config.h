@@ -23,8 +23,8 @@
 
 #define STAT_LED_PIN			GPIO_PIN_12
 #define STAT_LED_PORT			GPIOC
-#define STAT_LED_ON				STAT_LED_PORT->BSRR = (STAT_LED_PIN << BSRR_SHIFT_LOW)	//Stat LED is active-low
-#define STAT_LED_OFF			STAT_LED_PORT->BSRR = (STAT_LED_PIN << BSRR_SHIFT_HIGH)
+#define STAT_LED_ON				(STAT_LED_PORT->BSRR = (STAT_LED_PIN << BSRR_SHIFT_LOW))	//Stat LED is active-low
+#define STAT_LED_OFF			(STAT_LED_PORT->BSRR = (STAT_LED_PIN << BSRR_SHIFT_HIGH))
 
 #define SPI_DMA_ACTIVE_PIN		GPIO_PIN_5		/////////Temporary indicator of SPI & DMA activity
 #define SPI_DMA_ACTIVE_PORT		GPIOB

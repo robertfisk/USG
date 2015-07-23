@@ -266,7 +266,7 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
   /*Configure the SysTick IRQ priority */
-  HAL_NVIC_SetPriority(SysTick_IRQn, TickPriority ,0);
+  //HAL_NVIC_SetPriority(SysTick_IRQn, TickPriority ,0);
 
   /* Return function status */
   return HAL_OK;
