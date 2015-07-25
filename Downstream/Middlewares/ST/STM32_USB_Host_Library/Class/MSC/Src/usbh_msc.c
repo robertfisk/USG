@@ -396,9 +396,9 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
           {
             MSC_Handle->unit[MSC_Handle->current_lun].state_changed = 0;
           }         
-            MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_REQUEST_SENSE; 
-            MSC_Handle->unit[MSC_Handle->current_lun].error = MSC_NOT_READY;
-            MSC_Handle->unit[MSC_Handle->current_lun].prev_ready_state = USBH_FAIL;
+          MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_REQUEST_SENSE;
+          MSC_Handle->unit[MSC_Handle->current_lun].error = MSC_NOT_READY;
+          MSC_Handle->unit[MSC_Handle->current_lun].prev_ready_state = USBH_FAIL;
         }
         else if(ready_status == USBH_UNRECOVERED_ERROR)
         {

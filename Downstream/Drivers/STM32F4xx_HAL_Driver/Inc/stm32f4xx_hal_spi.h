@@ -272,6 +272,9 @@ typedef struct __SPI_HandleTypeDef
   */
 #define SPI_CRCCALCULATION_DISABLE     ((uint32_t)0x00000000)
 #define SPI_CRCCALCULATION_ENABLE      SPI_CR1_CRCEN
+
+#define SPI_CRC_DEFAULTPOLYNOMIAL		0x07
+
 /**
   * @}
   */

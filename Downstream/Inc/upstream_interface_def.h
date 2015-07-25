@@ -1,24 +1,22 @@
 /*
- * interface_def.h
+ * upstream_interface_def.h
  *
- *  Created on: 22/06/2015
+ *  Created on: 24/07/2015
  *      Author: Robert Fisk
  */
 
-#ifndef INC_DOWNSTREAM_INTERFACE_DEF_H_
-#define INC_DOWNSTREAM_INTERFACE_DEF_H_
+#ifndef INC_UPSTREAM_INTERFACE_DEF_H_
+#define INC_UPSTREAM_INTERFACE_DEF_H_
 
 
 //***************
 // Attention!
-// Keep this file synchronised with upstream_interface_def.h
-// in the Downstream project.
+// Keep this file synchronised with downstream_interface_def.h
+// in the Upstream project.
 //***************
 
 
-//Upstream only supports one LUN.
-//Downstream may support > 1 LUN and only report the first active one to upstream.
-#define UPSTREAM_LUN_NBR			1
+
 #define COMMAND_CLASS_DATA_FLAG		0x80
 #define COMMAND_CLASS_MASK			((uint8_t)(~COMMAND_CLASS_DATA_FLAG))
 
@@ -43,4 +41,5 @@ typedef enum
 InterfaceCommandMscTypeDef;
 
 
-#endif /* INC_DOWNSTREAM_INTERFACE_DEF_H_ */
+
+#endif /* INC_UPSTREAM_INTERFACE_DEF_H_ */

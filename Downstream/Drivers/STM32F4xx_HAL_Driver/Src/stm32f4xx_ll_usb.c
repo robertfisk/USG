@@ -337,7 +337,7 @@ HAL_StatusTypeDef USB_DevInit (USB_OTG_GlobalTypeDef *USBx, USB_OTG_CfgTypeDef c
   * @param  USBx : Selected device
   * @param  num : FIFO number
   *         This parameter can be a value from 1 to 15
-            15 means Flush all Tx FIFOs
+            16 means Flush all Tx FIFOs
   * @retval HAL status
   */
 HAL_StatusTypeDef USB_FlushTxFifo (USB_OTG_GlobalTypeDef *USBx, uint32_t num )

@@ -243,7 +243,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     /* Send first packet */        
     USBH_BulkReceiveData (phost,
                           MSC_Handle->hbot.pbuf, 
-                          MSC_Handle->InEpSize , 
+                          MSC_Handle->InEpSize , 		//Todo: Possible buffer overflow here?
                           MSC_Handle->InPipe);
     
     MSC_Handle->hbot.state  = BOT_DATA_IN_WAIT;
@@ -273,7 +273,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
         /* Send next packet */        
         USBH_BulkReceiveData (phost,
                               MSC_Handle->hbot.pbuf, 
-                              MSC_Handle->InEpSize , 
+                              MSC_Handle->InEpSize ,  	//Todo: Possible buffer overflow here?
                               MSC_Handle->InPipe);
         
       }
@@ -308,7 +308,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     
     USBH_BulkSendData (phost,
                        MSC_Handle->hbot.pbuf, 
-                       MSC_Handle->OutEpSize , 
+                       MSC_Handle->OutEpSize ,		//??????????
                        MSC_Handle->OutPipe,
                        1);
     
@@ -337,7 +337,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
       {
         USBH_BulkSendData (phost,
                            MSC_Handle->hbot.pbuf, 
-                           MSC_Handle->OutEpSize , 
+                           MSC_Handle->OutEpSize , 		//?????????????
                            MSC_Handle->OutPipe,
                            1);
       }

@@ -49,8 +49,10 @@ typedef enum {
   APPLICATION_DISCONNECT,
 }ApplicationTypeDef;
 		
-void MX_USB_HOST_Init(void);
-void MX_USB_HOST_Process(void);
+
+void USB_Host_Init(void);
+void USB_Host_Process(void);
+
 
 #ifdef __cplusplus
 }

@@ -32,8 +32,11 @@
 */
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
+#include "interrupts.h"
+
 
 HCD_HandleTypeDef hhcd_USB_OTG_FS;
+
 
 /*******************************************************************************
                        LL Driver Callbacks (HCD -> USB Host Library)
@@ -43,22 +46,13 @@ HCD_HandleTypeDef hhcd_USB_OTG_FS;
 void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd)
 {
   GPIO_InitTypeDef GPIO_InitStruct;
+
   if(hhcd->Instance==USB_OTG_FS)
   {
-  /* USER CODE BEGIN USB_OTG_FS_MspInit 0 */
-
-  /* USER CODE END USB_OTG_FS_MspInit 0 */
-  
     /**USB_OTG_FS GPIO Configuration    
-    PA9     ------> USB_OTG_FS_VBUS
     PA11     ------> USB_OTG_FS_DM
     PA12     ------> USB_OTG_FS_DP 
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_9;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
     GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -70,21 +64,16 @@ void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd)
     __USB_OTG_FS_CLK_ENABLE();
 
     /* Peripheral interrupt init*/
-    HAL_NVIC_SetPriority(OTG_FS_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(OTG_FS_IRQn, INT_PRIORITY_OTG_FS, 0);
     HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
-  /* USER CODE BEGIN USB_OTG_FS_MspInit 1 */
-
-  /* USER CODE END USB_OTG_FS_MspInit 1 */
   }
 }
+
 
 void HAL_HCD_MspDeInit(HCD_HandleTypeDef* hhcd)
 {
   if(hhcd->Instance==USB_OTG_FS)
   {
-  /* USER CODE BEGIN USB_OTG_FS_MspDeInit 0 */
-
-  /* USER CODE END USB_OTG_FS_MspDeInit 0 */
     /* Peripheral clock disable */
     __USB_OTG_FS_CLK_DISABLE();
   
@@ -93,14 +82,10 @@ void HAL_HCD_MspDeInit(HCD_HandleTypeDef* hhcd)
     PA11     ------> USB_OTG_FS_DM
     PA12     ------> USB_OTG_FS_DP 
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_12);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
 
     /* Peripheral interrupt Deinit*/
     HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
-
-  /* USER CODE BEGIN USB_OTG_FS_MspDeInit 1 */
-
-  /* USER CODE END USB_OTG_FS_MspDeInit 1 */
   }
 }
 
@@ -228,17 +213,17 @@ USBH_SpeedTypeDef USBH_LL_GetSpeed  (USBH_HandleTypeDef *phost)
     speed = USBH_SPEED_HIGH;
     break;
     
-  case 1 : 
-    speed = USBH_SPEED_FULL;    
-    break;
+//  case 1 :
+//    speed = USBH_SPEED_FULL;
+//    break;
     
   case 2 : 
     speed = USBH_SPEED_LOW;    
     break;
 	
-  default:  
-   speed = USBH_SPEED_FULL;    
-    break;  
+//  default:
+//   speed = USBH_SPEED_FULL;
+//    break;
   }
   return  speed;
 }
@@ -391,28 +376,21 @@ USBH_URBStateTypeDef  USBH_LL_GetURBState (USBH_HandleTypeDef *phost, uint8_t pi
   */
 USBH_StatusTypeDef  USBH_LL_DriverVBUS (USBH_HandleTypeDef *phost, uint8_t state)
 { 
- /* USER CODE BEGIN 0 */ 
- /* USER CODE END 0 */
-  if(state == 0)
-  {
-    /* Drive high Charge pump */
-    /* USER CODE BEGIN 1 */ 
-    /* ToDo: Add IOE driver control */	
-    if (phost->id == HOST_FS) {    
-    }
-    /* USER CODE END 1 */ 
-  }
-  else
-  {
-    /* Drive low Charge pump */
-    /* USER CODE BEGIN 2 */
-    /* ToDo: Add IOE driver control */	
-    if (phost->id == HOST_FS) {    
-    }
-    /* USER CODE END 2 */
-  }
-  HAL_Delay(200);
-  return USBH_OK;  
+	//Our VBUS is permanently on, so don't bother with this...
+
+//	if (phost->id == HOST_FS)
+//	{
+//		if(state == 0)
+//		{
+//			//VBUS off
+//		}
+//		else
+//		{
+//			//VBUS on
+//		}
+//	}
+//	HAL_Delay(200);
+	return USBH_OK;
 }
 
 /**

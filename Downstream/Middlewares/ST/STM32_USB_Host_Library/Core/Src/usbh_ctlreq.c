@@ -140,10 +140,21 @@ USBH_StatusTypeDef USBH_Get_CfgDesc(USBH_HandleTypeDef *phost,
 {
   USBH_StatusTypeDef status;
   uint8_t *pData;
+
 #if (USBH_KEEP_CFG_DESCRIPTOR == 1)  
   pData = phost->device.CfgDesc_Raw;
+
+  if (length > USBH_MAX_SIZE_CONFIGURATION)
+  {
+	  length = USBH_MAX_SIZE_CONFIGURATION;
+  }
 #else
   pData = phost->device.Data;
+
+  if (length > USBH_MAX_DATA_BUFFER)
+  {
+	  length = USBH_MAX_DATA_BUFFER;
+  }
 #endif  
   if((status = USBH_GetDescriptor(phost,
                                   USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,                          
@@ -151,7 +162,6 @@ USBH_StatusTypeDef USBH_Get_CfgDesc(USBH_HandleTypeDef *phost,
                                   pData,
                                   length)) == USBH_OK)
   {
-    
     /* Commands successfully sent and Response Received  */       
     USBH_ParseCfgDesc (&phost->device.CfgDesc,
                        pData,
@@ -392,7 +402,9 @@ static void USBH_ParseCfgDesc (USBH_CfgDescTypeDef* cfg_desc,
     ptr = USB_LEN_CFG_DESC;
     pif = (USBH_InterfaceDescTypeDef *)0;
     
-    
+    //***************
+    //Todo: This does not check for malformed descriptors. Needs hardening!
+    //***************
     while ((if_ix < USBH_MAX_NUM_INTERFACES ) && (ptr < cfg_desc->wTotalLength))
     {
       pdesc = USBH_GetNextDesc((uint8_t *)pdesc, &ptr);

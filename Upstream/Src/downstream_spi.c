@@ -13,7 +13,7 @@
 
 
 
-SPI_HandleTypeDef			hspi1;
+SPI_HandleTypeDef			Hspi1;
 DownstreamPacketTypeDef		DownstreamPacket0;
 DownstreamPacketTypeDef		DownstreamPacket1;
 DownstreamPacketTypeDef*	CurrentWorkingPacket;
@@ -53,20 +53,20 @@ void Downstream_InitInterface(void)
 
 void SPI1_Init(void)
 {
-	hspi1.Instance = SPI1;
-	hspi1.State = HAL_SPI_STATE_RESET;
-	hspi1.Init.Mode = SPI_MODE_MASTER;
-	hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-	hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-	hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-	hspi1.Init.NSS = SPI_NSS_SOFT;
-	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;	//42MHz APB2 / 32 = 1.3Mbaud
-	hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-	hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
-	hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLED;
-	hspi1.Init.CRCPolynomial = SPI_CRC_DEFAULTPOLYNOMIAL;
-	HAL_SPI_Init(&hspi1);
+	Hspi1.Instance = SPI1;
+	Hspi1.State = HAL_SPI_STATE_RESET;
+	Hspi1.Init.Mode = SPI_MODE_MASTER;
+	Hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+	Hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+	Hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+	Hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+	Hspi1.Init.NSS = SPI_NSS_SOFT;
+	Hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;	//42MHz APB2 / 32 = 1.3Mbaud
+	Hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	Hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
+	Hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLED;
+	Hspi1.Init.CRCPolynomial = SPI_CRC_DEFAULTPOLYNOMIAL;
+	HAL_SPI_Init(&Hspi1);
 }
 
 
@@ -313,7 +313,7 @@ void Downstream_TxOkInterrupt(void)
 	case INTERFACE_STATE_TX_SIZE_WAIT:
 		DownstreamInterfaceState = INTERFACE_STATE_TX_SIZE;
 		SPI1_NSS_ASSERT;
-		if (HAL_SPI_Transmit_DMA(&hspi1,
+		if (HAL_SPI_Transmit_DMA(&Hspi1,
 								 (uint8_t*)&CurrentWorkingPacket->Length,
 								 2) != HAL_OK)
 		{
@@ -324,7 +324,7 @@ void Downstream_TxOkInterrupt(void)
 	case INTERFACE_STATE_TX_PACKET_WAIT:
 		DownstreamInterfaceState = INTERFACE_STATE_TX_PACKET;
 		SPI1_NSS_ASSERT;
-		if ((HAL_SPI_Transmit_DMA(&hspi1,
+		if ((HAL_SPI_Transmit_DMA(&Hspi1,
 								  &CurrentWorkingPacket->CommandClass,
 								  CurrentWorkingPacket->Length)) != HAL_OK)
 		{
@@ -339,7 +339,7 @@ void Downstream_TxOkInterrupt(void)
 	case INTERFACE_STATE_RX_PACKET_WAIT:
 		DownstreamInterfaceState = INTERFACE_STATE_RX_PACKET;
 		SPI1_NSS_ASSERT;
-		if ((HAL_SPI_Receive_DMA(&hspi1,
+		if ((HAL_SPI_Receive_DMA(&Hspi1,
 								 &CurrentWorkingPacket->CommandClass,
 								 (CurrentWorkingPacket->Length + 1))) != HAL_OK)	//"When the CRC feature is enabled the pData Length must be Size + 1"
 		{
@@ -365,7 +365,7 @@ void Downstream_BeginPacketReception(DownstreamPacketTypeDef* freePacket)
 	CurrentWorkingPacket = freePacket;
 	CurrentWorkingPacket->Length = 0;		//Our RX buffer is used by HAL_SPI_Receive_DMA as dummy TX data, we set Length to 0 so downstream will know this is a dummy packet.
 	SPI1_NSS_ASSERT;
-	if (HAL_SPI_Receive_DMA(&hspi1,
+	if (HAL_SPI_Receive_DMA(&Hspi1,
 							(uint8_t*)&CurrentWorkingPacket->Length,
 							(2 + 1)) != HAL_OK)		//"When the CRC feature is enabled the pData Length must be Size + 1"
 	{

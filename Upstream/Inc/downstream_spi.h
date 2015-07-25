@@ -63,7 +63,7 @@ typedef struct
 	uint16_t			Length __ALIGN_END;			//Packet length includes CommandClass, Command, and Data
 	uint8_t				CommandClass;
 	uint8_t				Command;
-	uint8_t				Data[USB_HS_MAX_PACKET_SIZE];	//Should (must?) be word-aligned, for USB copy routine
+	uint8_t				Data[MSC_MEDIA_PACKET];		//Should (must?) be word-aligned, for USB copy routine
 	uint8_t				RxCrc;
 }
 DownstreamPacketTypeDef;

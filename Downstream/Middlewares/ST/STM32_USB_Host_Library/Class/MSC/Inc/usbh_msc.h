@@ -152,7 +152,7 @@ MSC_HandleTypeDef;
 /* MSC Class Codes */
 #define USB_MSC_CLASS                                   0x08
 
-/* Interface Descriptor field values for HID Boot Protocol */
+/* Interface Descriptor field values for MSC Protocol */
 #define MSC_BOT                                        0x50 
 #define MSC_TRANSPARENT                                0x06     
 /**

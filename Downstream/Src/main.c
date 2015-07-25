@@ -34,27 +34,19 @@
 #include "stm32f4xx_hal.h"
 #include "usb_host.h"
 #include "board_config.h"
-
-
-/* Private variables ---------------------------------------------------------*/
-SPI_HandleTypeDef hspi1;
-DMA_HandleTypeDef hdma_spi1_rx;
-DMA_HandleTypeDef hdma_spi1_tx;
+#include "upstream_spi.h"
 
 
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_SPI1_Init(void);
-void MX_USB_HOST_Process(void);
+static void GPIO_Init(void);
 
 
 
 int main(void)
 {
-  /* MCU Configuration----------------------------------------------------------*/
+	/* MCU Configuration----------------------------------------------------------*/
 
 	/* Configure the system clock */
 	SystemClock_Config();
@@ -63,15 +55,14 @@ int main(void)
 	HAL_Init();
 
 	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_SPI1_Init();
-	MX_USB_HOST_Init();
+	GPIO_Init();
+	USB_Host_Init();
 
+	Upstream_InitInterface();
 
 	while (1)
 	{
-		MX_USB_HOST_Process();
+		USB_Host_Process();
 
 	}
 }
@@ -111,49 +102,9 @@ void SystemClock_Config(void)
 }
 
 
-/* SPI1 init function */
-void MX_SPI1_Init(void)
-{
-  hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_SLAVE;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLED;
-  hspi1.Init.CRCPolynomial = 10;
-  HAL_SPI_Init(&hspi1);
-}
 
 
-/** 
-  * Enable DMA controller clock
-  */
-void MX_DMA_Init(void) 
-{
-  /* DMA controller clock enable */
-  __DMA2_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
-  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
-
-}
-
-/** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-*/
-void MX_GPIO_Init(void)
+void GPIO_Init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -209,9 +160,7 @@ void MX_GPIO_Init(void)
 	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
 }
 
-/* USER CODE BEGIN 4 */
 
-/* USER CODE END 4 */
 
 #ifdef USE_FULL_ASSERT
 

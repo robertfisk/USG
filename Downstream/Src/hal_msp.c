@@ -34,10 +34,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "interrupts.h"
+#include "board_config.h"
 
 
-extern DMA_HandleTypeDef hdma_spi1_rx;
-extern DMA_HandleTypeDef hdma_spi1_tx;
+DMA_HandleTypeDef hdma_spi1_rx;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 
 
@@ -50,23 +51,30 @@ void HAL_MspInit(void)
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 {
-
   GPIO_InitTypeDef GPIO_InitStruct;
+
   if(hspi->Instance==SPI1)
   {
     __SPI1_CLK_ENABLE();
+    __DMA2_CLK_ENABLE();
   
-    /**SPI1 GPIO Configuration    
+    /**SPI1 GPIO Configuration
+    PA4     ------> SPI_NSS
     PA5     ------> SPI1_SCK
     PA6     ------> SPI1_MISO
     PA7     ------> SPI1_MOSI 
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
+    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    UPSTREAM_TX_REQUEST_DEASSERT;
+    GPIO_InitStruct.Pin = UPSTREAM_TX_REQUEST_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(UPSTREAM_TX_REQUEST_PORT, &GPIO_InitStruct);
 
     /* Peripheral DMA init*/
     hdma_spi1_rx.Instance = DMA2_Stream2;
@@ -79,11 +87,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     hdma_spi1_rx.Init.Mode = DMA_NORMAL;
     hdma_spi1_rx.Init.Priority = DMA_PRIORITY_MEDIUM;
     hdma_spi1_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    hdma_spi1_rx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-    hdma_spi1_rx.Init.MemBurst = DMA_MBURST_SINGLE;
-    hdma_spi1_rx.Init.PeriphBurst = DMA_PBURST_SINGLE;
     HAL_DMA_Init(&hdma_spi1_rx);
-
     __HAL_LINKDMA(hspi,hdmarx,hdma_spi1_rx);
 
     hdma_spi1_tx.Instance = DMA2_Stream3;
@@ -96,16 +100,17 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     hdma_spi1_tx.Init.Mode = DMA_NORMAL;
     hdma_spi1_tx.Init.Priority = DMA_PRIORITY_MEDIUM;
     hdma_spi1_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    hdma_spi1_tx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-    hdma_spi1_tx.Init.MemBurst = DMA_MBURST_SINGLE;
-    hdma_spi1_tx.Init.PeriphBurst = DMA_PBURST_SINGLE;
     HAL_DMA_Init(&hdma_spi1_tx);
-
     __HAL_LINKDMA(hspi,hdmatx,hdma_spi1_tx);
 
+    /* DMA interrupt init */
+    HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, INT_PRIORITY_SPI_DMA, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+    HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, INT_PRIORITY_SPI_DMA, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
   }
-
 }
+
 
 void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 {
