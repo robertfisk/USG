@@ -37,7 +37,7 @@
 #include "usbd_msc_bot.h"
 #include "usbd_msc_scsi.h"
 #include "usbd_ioreq.h"
-#include "downstream_spi.h"
+#include <upstream_spi.h>
 
 /** @addtogroup USBD_MSC_BOT
   * @{
@@ -80,7 +80,7 @@ typedef struct
   uint8_t                    bot_status;
   uint16_t                   bot_data_length;
   uint8_t*                   bot_data;
-  DownstreamPacketTypeDef*	 bot_packet;			//Not NULL indicates we currently own a downstream packet buffer, and should free it when we are done.
+  UpstreamPacketTypeDef*	 bot_packet;			//Not NULL indicates we currently own an upstream packet buffer, and should free it when we are done.
   USBD_MSC_BOT_CBWTypeDef    cbw;
   USBD_MSC_BOT_CSWTypeDef    csw;
   

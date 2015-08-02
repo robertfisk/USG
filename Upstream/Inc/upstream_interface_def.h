@@ -5,13 +5,13 @@
  *      Author: Robert Fisk
  */
 
-#ifndef INC_DOWNSTREAM_INTERFACE_DEF_H_
-#define INC_DOWNSTREAM_INTERFACE_DEF_H_
+#ifndef INC_UPSTREAM_INTERFACE_DEF_H_
+#define INC_UPSTREAM_INTERFACE_DEF_H_
 
 
 //***************
 // Attention!
-// Keep this file synchronised with upstream_interface_def.h
+// Keep this file synchronised with downstream_interface_def.h
 // in the Downstream project.
 //***************
 
@@ -43,4 +43,4 @@ typedef enum
 InterfaceCommandMscTypeDef;
 
 
-#endif /* INC_DOWNSTREAM_INTERFACE_DEF_H_ */
+#endif /* INC_UPSTREAM_INTERFACE_DEF_H_ */

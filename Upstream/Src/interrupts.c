@@ -33,10 +33,10 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include <interrupts.h>
+#include <upstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "board_config.h"
-#include "downstream_spi.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -88,7 +88,7 @@ void EXTI3_IRQHandler(void)
 {
 	SPI_DMA_ACTIVE_ON;
 	__HAL_GPIO_EXTI_CLEAR_IT(3);
-	Downstream_TxOkInterrupt();
+	Upstream_TxOkInterrupt();
 	SPI_DMA_ACTIVE_OFF;
 }
 /////////////////////////

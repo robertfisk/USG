@@ -41,9 +41,9 @@
   */ 
 
 /* Includes ------------------------------------------------------------------*/
+#include <upstream_interface_def.h>
+#include <upstream_spi.h>
 #include "usbd_msc.h"
-#include "downstream_interface_def.h"
-#include "downstream_spi.h"
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -542,7 +542,7 @@ uint8_t USBD_MSC_BufferFreed(USBD_HandleTypeDef *pdev)
 	{
 		if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet != NULL)
 		{
-			Downstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
+			Upstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
 			((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
 		}
 	}

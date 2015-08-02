@@ -1,12 +1,12 @@
 /*
- * downstream_spi.c
+ * upstream_spi.c
  *
  *  Created on: 21/06/2015
  *      Author: Robert Fisk
  */
 
-#include <downstream_spi.h>
-#include "downstream_interface_def.h"
+#include <upstream_interface_def.h>
+#include <upstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "usbd_def.h"
 #include "board_config.h"
@@ -14,12 +14,12 @@
 
 
 SPI_HandleTypeDef			Hspi1;
-DownstreamPacketTypeDef		DownstreamPacket0;
-DownstreamPacketTypeDef		DownstreamPacket1;
-DownstreamPacketTypeDef*	CurrentWorkingPacket;
-DownstreamPacketTypeDef*	NextTxPacket;			//Indicates we have a pending TX packet
+UpstreamPacketTypeDef		UpstreamPacket0;
+UpstreamPacketTypeDef		UpstreamPacket1;
+UpstreamPacketTypeDef*		CurrentWorkingPacket;
+UpstreamPacketTypeDef*		NextTxPacket;			//Indicates we have a pending TX packet
 
-InterfaceStateTypeDef				DownstreamInterfaceState;
+InterfaceStateTypeDef				UpstreamInterfaceState;
 FreePacketCallbackTypeDef			PendingFreePacketCallback;	//Indicates someone is waiting for a packet buffer to become available
 SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback;		//Indicates someone is waiting for a received packet
 
@@ -28,18 +28,18 @@ uint8_t						SentCommand;
 
 
 static void SPI1_Init(void);
-static HAL_StatusTypeDef Downstream_CheckBeginPacketReception(void);
-static void Downstream_BeginPacketReception(DownstreamPacketTypeDef* freePacket);
+static HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void);
+static void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket);
 
 
 
-void Downstream_InitInterface(void)
+void Upstream_InitSPI(void)
 {
-	DownstreamInterfaceState = INTERFACE_STATE_RESET;
+	UpstreamInterfaceState = UPSTREAM_INTERFACE_RESET;
 
 	SPI1_Init();
-	DownstreamPacket0.Busy = NOT_BUSY;
-	DownstreamPacket1.Busy = NOT_BUSY;
+	UpstreamPacket0.Busy = NOT_BUSY;
+	UpstreamPacket1.Busy = NOT_BUSY;
 	NextTxPacket = NULL;
 	PendingFreePacketCallback = NULL;
 	ReceivePacketCallback = NULL;
@@ -47,7 +47,7 @@ void Downstream_InitInterface(void)
 	//Todo: check connection to downstream, await client USB insertion
 
 	while (!DOWNSTREAM_TX_OK_ACTIVE);
-	DownstreamInterfaceState = INTERFACE_STATE_IDLE;
+	UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
 }
 
 
@@ -72,11 +72,11 @@ void SPI1_Init(void)
 
 
 //Used by USB interface classes, and by our internal RX code.
-HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback)
+HAL_StatusTypeDef Upstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 {
 	//Sanity checks
-	if 	((DownstreamInterfaceState < INTERFACE_STATE_IDLE) ||
-		 (DownstreamInterfaceState > INTERFACE_STATE_RX_PACKET))
+	if 	((UpstreamInterfaceState < UPSTREAM_INTERFACE_IDLE) ||
+		 (UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_PACKET))
 	{
 		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
 	}
@@ -88,16 +88,16 @@ HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 	}
 
 	//Check if there is a free buffer now
-	if (DownstreamPacket0.Busy == NOT_BUSY)
+	if (UpstreamPacket0.Busy == NOT_BUSY)
 	{
-		DownstreamPacket0.Busy = BUSY;
-		callback(&DownstreamPacket0);
+		UpstreamPacket0.Busy = BUSY;
+		callback(&UpstreamPacket0);
 		return HAL_OK;
 	}
-	if (DownstreamPacket1.Busy == NOT_BUSY)
+	if (UpstreamPacket1.Busy == NOT_BUSY)
 	{
-		DownstreamPacket1.Busy = BUSY;
-		callback(&DownstreamPacket1);
+		UpstreamPacket1.Busy = BUSY;
+		callback(&UpstreamPacket1);
 		return HAL_OK;
 	}
 
@@ -107,25 +107,25 @@ HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 }
 
 
-DownstreamPacketTypeDef* Downstream_GetFreePacketImmediately(void)
+UpstreamPacketTypeDef* Upstream_GetFreePacketImmediately(void)
 {
 	//Sanity checks
-	if 	((DownstreamInterfaceState < INTERFACE_STATE_IDLE) ||
-		 (DownstreamInterfaceState > INTERFACE_STATE_RX_PACKET))
+	if 	((UpstreamInterfaceState < UPSTREAM_INTERFACE_IDLE) ||
+		 (UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_PACKET))
 	{
 		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
 	}
 
 	//We are expecting a free buffer now
-	if (DownstreamPacket0.Busy == NOT_BUSY)
+	if (UpstreamPacket0.Busy == NOT_BUSY)
 	{
-		DownstreamPacket0.Busy = BUSY;
-		return &DownstreamPacket0;
+		UpstreamPacket0.Busy = BUSY;
+		return &UpstreamPacket0;
 	}
-	if (DownstreamPacket1.Busy == NOT_BUSY)
+	if (UpstreamPacket1.Busy == NOT_BUSY)
 	{
-		DownstreamPacket1.Busy = BUSY;
-		return &DownstreamPacket1;
+		UpstreamPacket1.Busy = BUSY;
+		return &UpstreamPacket1;
 	}
 
 	//Should not happen:
@@ -134,9 +134,15 @@ DownstreamPacketTypeDef* Downstream_GetFreePacketImmediately(void)
 
 
 //Used by USB interface classes, and by our internal RX code.
-void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
+void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease)
 {
 	FreePacketCallbackTypeDef tempCallback;
+
+	if ((packetToRelease != &UpstreamPacket0) &&
+		(packetToRelease != &UpstreamPacket1))
+	{
+		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
+	}
 
 	if (PendingFreePacketCallback != NULL)
 	{
@@ -154,30 +160,27 @@ void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
 //Used by USB interface classes only.
 //OK to call when still transmitting another packet.
 //Not OK to call when receiving or waiting for downstream reply.
-HAL_StatusTypeDef Downstream_SendPacket(DownstreamPacketTypeDef* packetToWrite)
+HAL_StatusTypeDef Upstream_SendPacket(UpstreamPacketTypeDef* packetToWrite)
 {
 	//Sanity checks
-	if ((packetToWrite != &DownstreamPacket0) &&
-		(packetToWrite != &DownstreamPacket1))
+	if ((packetToWrite != &UpstreamPacket0) &&
+		(packetToWrite != &UpstreamPacket1))
 	{
 		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
 	}
 	if ((packetToWrite->Busy != BUSY) ||
-		(packetToWrite->Length < DOWNSTREAM_PACKET_LEN_MIN) ||
-		(packetToWrite->Length > DOWNSTREAM_PACKET_LEN))
+		(packetToWrite->Length < UPSTREAM_PACKET_LEN_MIN) ||
+		(packetToWrite->Length > UPSTREAM_PACKET_LEN))
 	{
 		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
 	}
 
-	//Cancel any outstanding receive request
-	ReceivePacketCallback = NULL;
-
-	switch (DownstreamInterfaceState)
+	switch (UpstreamInterfaceState)
 	{
-	case INTERFACE_STATE_TX_SIZE_WAIT:
-	case INTERFACE_STATE_TX_SIZE:
-	case INTERFACE_STATE_TX_PACKET_WAIT:
-	case INTERFACE_STATE_TX_PACKET:
+	case UPSTREAM_INTERFACE_TX_SIZE_WAIT:
+	case UPSTREAM_INTERFACE_TX_SIZE:
+	case UPSTREAM_INTERFACE_TX_PACKET_WAIT:
+	case UPSTREAM_INTERFACE_TX_PACKET:
 		if (NextTxPacket != NULL)
 		{
 			SPI_INTERFACE_FREAKOUT_HAL_ERROR;
@@ -185,21 +188,21 @@ HAL_StatusTypeDef Downstream_SendPacket(DownstreamPacketTypeDef* packetToWrite)
 		NextTxPacket = packetToWrite;
 		break;
 
-	case INTERFACE_STATE_RX_SIZE_WAIT:
-	case INTERFACE_STATE_RX_SIZE:
-	case INTERFACE_STATE_RX_PACKET_WAIT:
-	case INTERFACE_STATE_RX_PACKET:
+	case UPSTREAM_INTERFACE_RX_SIZE_WAIT:
+	case UPSTREAM_INTERFACE_RX_SIZE:
+	case UPSTREAM_INTERFACE_RX_PACKET_WAIT:
+	case UPSTREAM_INTERFACE_RX_PACKET:
 		//We can't let the size/packet sequence get out of sync.
 		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
 
-	case INTERFACE_STATE_IDLE:
-		DownstreamInterfaceState = INTERFACE_STATE_TX_SIZE_WAIT;
+	case UPSTREAM_INTERFACE_IDLE:
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE_WAIT;
 		CurrentWorkingPacket = packetToWrite;
 		SentCommandClass = CurrentWorkingPacket->CommandClass;
 		SentCommand = CurrentWorkingPacket->Command;
 		if (DOWNSTREAM_TX_OK_ACTIVE)
 		{
-			Downstream_TxOkInterrupt();		//Manually trigger edge interrupt processing if the line was already asserted
+			Upstream_TxOkInterrupt();		//Manually trigger edge interrupt processing if the line was already asserted
 		}
 		break;
 
@@ -217,56 +220,57 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	SPI1_NSS_DEASSERT;
 
-	if ((DownstreamInterfaceState != INTERFACE_STATE_TX_SIZE) &&
-		(DownstreamInterfaceState != INTERFACE_STATE_TX_PACKET))
+	if ((UpstreamInterfaceState != UPSTREAM_INTERFACE_TX_SIZE) &&
+		(UpstreamInterfaceState != UPSTREAM_INTERFACE_TX_PACKET))
 	{
 		SPI_INTERFACE_FREAKOUT_VOID;
 	}
 
-	if (DownstreamInterfaceState == INTERFACE_STATE_TX_SIZE)
+	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_TX_SIZE)
 	{
-		DownstreamInterfaceState = INTERFACE_STATE_TX_PACKET_WAIT;
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET_WAIT;
 		if (DOWNSTREAM_TX_OK_ACTIVE)
 		{
-			Downstream_TxOkInterrupt();
+			Upstream_TxOkInterrupt();
 		}
 		return;
 	}
 
-	if (DownstreamInterfaceState == INTERFACE_STATE_TX_PACKET)
+	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_TX_PACKET)
 	{
 		if ((PendingFreePacketCallback != NULL) && (NextTxPacket == NULL))
 		{
 			//SPI_INTERFACE_FREAKOUT_VOID;		///////////////////////////////////////!
 		}
 
-		Downstream_ReleasePacket(CurrentWorkingPacket);
+		Upstream_ReleasePacket(CurrentWorkingPacket);
 		if (NextTxPacket != NULL)
 		{
-			//NextTxPacket has already passed the checks in SendDownstreamPacket.
+			//NextTxPacket has already passed the checks in SendUpstreamPacket.
 			//So we just need to pass it to HAL_SPI_Transmit_DMA.
-			DownstreamInterfaceState = INTERFACE_STATE_TX_SIZE_WAIT;
+			UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE_WAIT;
 			CurrentWorkingPacket = NextTxPacket;
 			NextTxPacket = NULL;
 			if (DOWNSTREAM_TX_OK_ACTIVE)
 			{
-				Downstream_TxOkInterrupt();
+				Upstream_TxOkInterrupt();
 			}
 			return;
 		}
 
-		DownstreamInterfaceState = INTERFACE_STATE_IDLE;
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
 		if (ReceivePacketCallback != NULL)
 		{
-			Downstream_CheckBeginPacketReception();
+			Upstream_CheckBeginPacketReception();
 		}
 	}
 }
 
 
 //Used by USB interface classes.
-//Ok to call when transmitting, receiving, or waiting for downstream.
-HAL_StatusTypeDef Downstream_GetPacket(SpiPacketReceivedCallbackTypeDef callback)
+//Ok to call when idle or transmitting.
+//Not OK to call when receiving or waiting for downstream reply.
+HAL_StatusTypeDef Upstream_GetPacket(SpiPacketReceivedCallbackTypeDef callback)
 {
 	if (ReceivePacketCallback != NULL)
 	{
@@ -274,30 +278,30 @@ HAL_StatusTypeDef Downstream_GetPacket(SpiPacketReceivedCallbackTypeDef callback
 	}
 
 	ReceivePacketCallback = callback;
-	return Downstream_CheckBeginPacketReception();
+	return Upstream_CheckBeginPacketReception();
 }
 
 
 //Internal use only.
-HAL_StatusTypeDef Downstream_CheckBeginPacketReception(void)
+HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void)
 {
-	if ((DownstreamInterfaceState < INTERFACE_STATE_IDLE) ||
-		(DownstreamInterfaceState > INTERFACE_STATE_RX_PACKET))
+	if ((UpstreamInterfaceState < UPSTREAM_INTERFACE_IDLE) ||
+		(UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_SIZE_WAIT))
 	{
 		SPI_INTERFACE_FREAKOUT_HAL_ERROR;
 	}
 
-	if (DownstreamInterfaceState == INTERFACE_STATE_IDLE)
+	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_IDLE)
 	{
-		DownstreamInterfaceState = INTERFACE_STATE_RX_SIZE_WAIT;
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_SIZE_WAIT;
 	}
 
-	if (DownstreamInterfaceState == INTERFACE_STATE_RX_SIZE_WAIT)
+	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_SIZE_WAIT)
 	{
 		if (DOWNSTREAM_TX_OK_ACTIVE)
 		{
-			//DownstreamTxOkInterrupt();
-			Downstream_GetFreePacket(Downstream_BeginPacketReception);		//Take a shortcut here :)
+			//UpstreamTxOkInterrupt();
+			Upstream_GetFreePacket(Upstream_BeginPacketReception);		//Take a shortcut here :)
 		}
 	}
 	return HAL_OK;
@@ -306,12 +310,12 @@ HAL_StatusTypeDef Downstream_CheckBeginPacketReception(void)
 
 //This is called by EXTI3 falling edge interrupt,
 //indicating that downstream is ready for next transaction.
-void Downstream_TxOkInterrupt(void)
+void Upstream_TxOkInterrupt(void)
 {
-	switch (DownstreamInterfaceState)
+	switch (UpstreamInterfaceState)
 	{
-	case INTERFACE_STATE_TX_SIZE_WAIT:
-		DownstreamInterfaceState = INTERFACE_STATE_TX_SIZE;
+	case UPSTREAM_INTERFACE_TX_SIZE_WAIT:
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE;
 		SPI1_NSS_ASSERT;
 		if (HAL_SPI_Transmit_DMA(&Hspi1,
 								 (uint8_t*)&CurrentWorkingPacket->Length,
@@ -321,8 +325,8 @@ void Downstream_TxOkInterrupt(void)
 		}
 		break;
 
-	case INTERFACE_STATE_TX_PACKET_WAIT:
-		DownstreamInterfaceState = INTERFACE_STATE_TX_PACKET;
+	case UPSTREAM_INTERFACE_TX_PACKET_WAIT:
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET;
 		SPI1_NSS_ASSERT;
 		if ((HAL_SPI_Transmit_DMA(&Hspi1,
 								  &CurrentWorkingPacket->CommandClass,
@@ -332,12 +336,12 @@ void Downstream_TxOkInterrupt(void)
 		}
 		break;
 
-	case INTERFACE_STATE_RX_SIZE_WAIT:
-		Downstream_GetFreePacket(Downstream_BeginPacketReception);
+	case UPSTREAM_INTERFACE_RX_SIZE_WAIT:
+		Upstream_GetFreePacket(Upstream_BeginPacketReception);
 		break;
 
-	case INTERFACE_STATE_RX_PACKET_WAIT:
-		DownstreamInterfaceState = INTERFACE_STATE_RX_PACKET;
+	case UPSTREAM_INTERFACE_RX_PACKET_WAIT:
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET;
 		SPI1_NSS_ASSERT;
 		if ((HAL_SPI_Receive_DMA(&Hspi1,
 								 &CurrentWorkingPacket->CommandClass,
@@ -355,13 +359,13 @@ void Downstream_TxOkInterrupt(void)
 
 //Internal use only.
 //Called when we want to receive downstream packet, and a packet buffer has become free.
-void Downstream_BeginPacketReception(DownstreamPacketTypeDef* freePacket)
+void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket)
 {
-	if (DownstreamInterfaceState != INTERFACE_STATE_RX_SIZE_WAIT)
+	if (UpstreamInterfaceState != UPSTREAM_INTERFACE_RX_SIZE_WAIT)
 	{
 		SPI_INTERFACE_FREAKOUT_VOID;
 	}
-	DownstreamInterfaceState = INTERFACE_STATE_RX_SIZE;
+	UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_SIZE;
 	CurrentWorkingPacket = freePacket;
 	CurrentWorkingPacket->Length = 0;		//Our RX buffer is used by HAL_SPI_Receive_DMA as dummy TX data, we set Length to 0 so downstream will know this is a dummy packet.
 	SPI1_NSS_ASSERT;
@@ -382,30 +386,30 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 
 	SPI1_NSS_DEASSERT;
 
-	if ((DownstreamInterfaceState != INTERFACE_STATE_RX_SIZE) &&
-		(DownstreamInterfaceState != INTERFACE_STATE_RX_PACKET))
+	if ((UpstreamInterfaceState != UPSTREAM_INTERFACE_RX_SIZE) &&
+		(UpstreamInterfaceState != UPSTREAM_INTERFACE_RX_PACKET))
 	{
 		SPI_INTERFACE_FREAKOUT_VOID;
 	}
 
-	if (DownstreamInterfaceState == INTERFACE_STATE_RX_SIZE)
+	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_SIZE)
 	{
-		if ((CurrentWorkingPacket->Length < DOWNSTREAM_PACKET_LEN_MIN) ||
-			(CurrentWorkingPacket->Length > DOWNSTREAM_PACKET_LEN))
+		if ((CurrentWorkingPacket->Length < UPSTREAM_PACKET_LEN_MIN) ||
+			(CurrentWorkingPacket->Length > UPSTREAM_PACKET_LEN))
 		{
 			SPI_INTERFACE_FREAKOUT_VOID;
 		}
-		DownstreamInterfaceState = INTERFACE_STATE_RX_PACKET_WAIT;
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET_WAIT;
 		if (DOWNSTREAM_TX_OK_ACTIVE)
 		{
-			Downstream_TxOkInterrupt();
+			Upstream_TxOkInterrupt();
 		}
 		return;
 	}
 
-	if (DownstreamInterfaceState == INTERFACE_STATE_RX_PACKET)
+	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_PACKET)
 	{
-		DownstreamInterfaceState = INTERFACE_STATE_IDLE;
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
 		if ((SentCommandClass != (CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK)) ||
 			(SentCommand != CurrentWorkingPacket->Command))
 		{

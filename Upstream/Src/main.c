@@ -33,7 +33,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include <downstream_spi.h>
+#include <upstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "usb_device.h"
 #include "board_config.h"
@@ -64,7 +64,7 @@ int main(void)
   GPIO_Init();
   USB_Device_Init();
 
-  Downstream_InitInterface();
+  Upstream_InitSPI();
 
 
   while (1)

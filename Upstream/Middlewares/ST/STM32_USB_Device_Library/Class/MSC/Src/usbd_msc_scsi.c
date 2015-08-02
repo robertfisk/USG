@@ -26,14 +26,14 @@
   */ 
 
 /* Includes ------------------------------------------------------------------*/
+#include <upstream_interface_def.h>
+#include <upstream_interface_msc.h>
+#include <upstream_spi.h>
 #include "usbd_msc_bot.h"
 #include "usbd_msc_scsi.h"
 #include "usbd_msc.h"
 #include "usbd_msc_data.h"
 #include "usbd_descriptors.h"
-#include "downstream_interface_def.h"
-#include "downstream_interface_msc.h"
-#include "downstream_spi.h"
 
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
@@ -106,16 +106,16 @@ static int8_t SCSI_CheckAddressRange (uint32_t blk_offset , uint16_t blk_nbr);
 void SCSI_TestUnitReadyCallback(HAL_StatusTypeDef result);
 void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
 								 uint32_t result_uint[],
-								 DownstreamPacketTypeDef* downstreamPacket);
+								 UpstreamPacketTypeDef* upstreamPacket);
 void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
 									 uint32_t result_uint[],
-									 DownstreamPacketTypeDef* packetToUse);
+									 UpstreamPacketTypeDef* packetToUse);
 void SCSI_Read10BeginCallback(HAL_StatusTypeDef result);
 void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
-							  DownstreamPacketTypeDef* downstreamPacket,
+							  UpstreamPacketTypeDef* upstreamPacket,
 							  uint16_t dataLength);
 void SCSI_Write10BeginCallback(HAL_StatusTypeDef result);
-void SCSI_Write10FreePacketCallback(DownstreamPacketTypeDef* freePacket);
+void SCSI_Write10FreePacketCallback(UpstreamPacketTypeDef* freePacket);
 
 
 /**
@@ -234,7 +234,7 @@ void SCSI_TestUnitReady(void)
 	  return;
   }
 
-  if (DownstreamInterface_TestReady(SCSI_TestUnitReadyCallback) != HAL_OK)
+  if (UpstreamInterface_TestReady(SCSI_TestUnitReadyCallback) != HAL_OK)
   {
 	  SCSI_TestUnitReadyCallback(HAL_ERROR);
   }
@@ -273,9 +273,9 @@ static void SCSI_Inquiry(void)
 {
 	uint8_t* pPage;
 	uint16_t len;
-	DownstreamPacketTypeDef* freePacket;
+	UpstreamPacketTypeDef* freePacket;
 
-	freePacket = Downstream_GetFreePacketImmediately();
+	freePacket = Upstream_GetFreePacketImmediately();
 	SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
 	SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
 
@@ -314,7 +314,7 @@ static void SCSI_Inquiry(void)
 */
 static void SCSI_ReadCapacity10(void)
 {
-	if (DownstreamInterface_GetCapacity(SCSI_ReadCapacity10Callback) != HAL_OK)
+	if (UpstreamInterface_GetCapacity(SCSI_ReadCapacity10Callback) != HAL_OK)
 	{
 		SCSI_ReadCapacity10Callback(HAL_ERROR, NULL, NULL);
 	}
@@ -323,7 +323,7 @@ static void SCSI_ReadCapacity10(void)
 
 void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
 								 uint32_t result_uint[],
-								 DownstreamPacketTypeDef* downstreamPacket)
+								 UpstreamPacketTypeDef* upstreamPacket)
 {
 	if (result != HAL_OK)
 	{
@@ -335,8 +335,8 @@ void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
 		return;
 	}
 
-	SCSI_ProcessCmd_hmsc->bot_packet = downstreamPacket;
-	SCSI_ProcessCmd_hmsc->bot_data = downstreamPacket->Data;
+	SCSI_ProcessCmd_hmsc->bot_packet = upstreamPacket;
+	SCSI_ProcessCmd_hmsc->bot_data = upstreamPacket->Data;
 
 	SCSI_ProcessCmd_hmsc->scsi_blk_nbr = result_uint[0];
 	SCSI_ProcessCmd_hmsc->scsi_blk_size = result_uint[1];
@@ -364,7 +364,7 @@ void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
 */
 static void SCSI_ReadFormatCapacity(void)
 {
-	if (DownstreamInterface_GetCapacity(SCSI_ReadFormatCapacityCallback) != HAL_OK)
+	if (UpstreamInterface_GetCapacity(SCSI_ReadFormatCapacityCallback) != HAL_OK)
 	{
 		SCSI_ReadFormatCapacityCallback(HAL_ERROR, NULL, NULL);
 	}
@@ -373,7 +373,7 @@ static void SCSI_ReadFormatCapacity(void)
 
 void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
 									 uint32_t result_uint[],
-									 DownstreamPacketTypeDef* packetToUse)
+									 UpstreamPacketTypeDef* packetToUse)
 {
 	if (result != HAL_OK)
 	{
@@ -416,9 +416,9 @@ void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
 static void SCSI_ModeSense6 (void)
 {
 	uint16_t len = 8;
-	DownstreamPacketTypeDef* freePacket;
+	UpstreamPacketTypeDef* freePacket;
 
-	freePacket = Downstream_GetFreePacketImmediately();
+	freePacket = Upstream_GetFreePacketImmediately();
 	SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
 	SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
 
@@ -442,9 +442,9 @@ static void SCSI_ModeSense6 (void)
 static void SCSI_ModeSense10(void)
 {
 	uint16_t len = 8;
-	DownstreamPacketTypeDef* freePacket;
+	UpstreamPacketTypeDef* freePacket;
 
-	freePacket = Downstream_GetFreePacketImmediately();
+	freePacket = Upstream_GetFreePacketImmediately();
 	SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
 	SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
 
@@ -469,9 +469,9 @@ static void SCSI_ModeSense10(void)
 static void SCSI_RequestSense(void)
 {
 	uint8_t i;
-	DownstreamPacketTypeDef* freePacket;
+	UpstreamPacketTypeDef* freePacket;
 
-	freePacket = Downstream_GetFreePacketImmediately();
+	freePacket = Upstream_GetFreePacketImmediately();
 	SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
 	SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
 
@@ -589,7 +589,7 @@ static void SCSI_Read10(void)
 		  return;
 		}
 
-		if (DownstreamInterface_BeginRead(SCSI_Read10BeginCallback,
+		if (UpstreamInterface_BeginRead(SCSI_Read10BeginCallback,
 										  SCSI_ProcessCmd_hmsc->scsi_blk_addr,
 										  SCSI_ProcessCmd_hmsc->scsi_blk_len,
 										  SCSI_ProcessCmd_hmsc->cbw.dDataLength) != HAL_OK)
@@ -600,7 +600,7 @@ static void SCSI_Read10(void)
 	}
 
 	//hmsc->bot_state is already USBD_BOT_DATA_IN
-	if (DownstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
+	if (UpstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
 		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
 	}
@@ -620,7 +620,7 @@ void SCSI_Read10BeginCallback(HAL_StatusTypeDef result)
 	}
 	SCSI_ProcessCmd_hmsc->bot_state = USBD_BOT_DATA_IN;
 
-	if (DownstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
+	if (UpstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
 		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
 	}
@@ -628,7 +628,7 @@ void SCSI_Read10BeginCallback(HAL_StatusTypeDef result)
 
 
 void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
-							  DownstreamPacketTypeDef* downstreamPacket,
+							  UpstreamPacketTypeDef* upstreamPacket,
 							  uint16_t dataLength)
 {
 	if (result != HAL_OK)
@@ -644,8 +644,8 @@ void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
 	if (SCSI_ProcessCmd_hmsc->bot_packet != NULL)
 		while (1);			/////////////////////////////////////////!
 
-	SCSI_ProcessCmd_hmsc->bot_packet = downstreamPacket;
-	SCSI_ProcessCmd_hmsc->bot_data = downstreamPacket->Data;
+	SCSI_ProcessCmd_hmsc->bot_packet = upstreamPacket;
+	SCSI_ProcessCmd_hmsc->bot_data = upstreamPacket->Data;
 	USBD_LL_Transmit (SCSI_ProcessCmd_pdev,
 					  MSC_EPIN_ADDR,
 					  SCSI_ProcessCmd_hmsc->bot_data,
@@ -716,7 +716,7 @@ static void SCSI_Write10(void)
 			return;
 		}
 
-		if (DownstreamInterface_BeginWrite(SCSI_Write10BeginCallback,
+		if (UpstreamInterface_BeginWrite(SCSI_Write10BeginCallback,
 										   SCSI_ProcessCmd_hmsc->scsi_blk_addr,
 										   SCSI_ProcessCmd_hmsc->scsi_blk_len) != HAL_OK)
 		{
@@ -728,7 +728,7 @@ static void SCSI_Write10(void)
 
 	//hmsc->bot_state is already USBD_BOT_DATA_OUT
 	dataLength = MIN(SCSI_ProcessCmd_hmsc->csw.dDataResidue, MSC_MEDIA_PACKET);
-	if (DownstreamInterface_PutStreamDataPacket(SCSI_ProcessCmd_hmsc->bot_packet,
+	if (UpstreamInterface_PutStreamDataPacket(SCSI_ProcessCmd_hmsc->bot_packet,
 												dataLength) != HAL_OK)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
@@ -748,7 +748,7 @@ static void SCSI_Write10(void)
 	}
 
 	/* Prepare EP to Receive next packet */
-	if (Downstream_GetFreePacket(SCSI_Write10FreePacketCallback) != HAL_OK)
+	if (Upstream_GetFreePacket(SCSI_Write10FreePacketCallback) != HAL_OK)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
 					   SCSI_ProcessCmd_lun,
@@ -782,7 +782,7 @@ void SCSI_Write10BeginCallback(HAL_StatusTypeDef result)
 
 	/* Prepare EP to receive first data packet */
 	SCSI_ProcessCmd_hmsc->bot_state = USBD_BOT_DATA_OUT;
-	if (Downstream_GetFreePacket(SCSI_Write10FreePacketCallback) != HAL_OK)
+	if (Upstream_GetFreePacket(SCSI_Write10FreePacketCallback) != HAL_OK)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
 					   SCSI_ProcessCmd_lun,
@@ -793,7 +793,7 @@ void SCSI_Write10BeginCallback(HAL_StatusTypeDef result)
 }
 
 
-void SCSI_Write10FreePacketCallback(DownstreamPacketTypeDef* freePacket)
+void SCSI_Write10FreePacketCallback(UpstreamPacketTypeDef* freePacket)
 {
 	SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
 	SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
