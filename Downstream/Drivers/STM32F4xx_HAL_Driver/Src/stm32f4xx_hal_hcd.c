@@ -611,7 +611,7 @@ __weak void HAL_HCD_HC_NotifyURBChange_Callback(HCD_HandleTypeDef *hhcd, uint8_t
  *
 @verbatim 
  ===============================================================================
-                      ##### Peripheral Control functions #####
+                      ##### Host Control functions #####
  ===============================================================================  
     [..]
     This subsection provides a set of functions allowing to control the HCD data 
@@ -1087,7 +1087,7 @@ static void HCD_RXQLVL_IRQHandler(HCD_HandleTypeDef *hhcd)
     if ((pktcnt > 0) && (hhcd->hc[channelnum].xfer_buff != (void  *)0))
     {  
       
-      USB_ReadPacket(hhcd->Instance, hhcd->hc[channelnum].xfer_buff, pktcnt);
+      USB_ReadPacket(hhcd->Instance, hhcd->hc[channelnum].xfer_buff, pktcnt);	//Todo: buffer overflow here!
       
       /*manage multiple Xfer */
       hhcd->hc[channelnum].xfer_buff += pktcnt;           

@@ -36,17 +36,10 @@
 #include "usb_host.h"
 #include "usbh_core.h"
 #include "usbh_msc.h"
+#include "downstream_statemachine.h"
 
 /* USB Host Core handle declaration */
 USBH_HandleTypeDef hUsbHostFS;
-ApplicationTypeDef App_state = APPLICATION_IDLE;
-
-
-
-/*
-* user callback declaration
-*/ 
-static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id);
 
 
 
@@ -54,7 +47,7 @@ static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id);
 void USB_Host_Init(void)
 {
   /* Init Host Library,Add Supported Class and Start the library*/
-  USBH_Init(&hUsbHostFS, USBH_UserProcess, HOST_FS);
+  USBH_Init(&hUsbHostFS, Downstream_HostUserCallback, HOST_FS);
 
   USBH_RegisterClass(&hUsbHostFS, USBH_MSC_CLASS);
 
@@ -70,39 +63,7 @@ void USB_Host_Process()
     USBH_Process(&hUsbHostFS); 						
 }
 
-/*
- * user callback definition
-*/ 
-static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id)
-{
 
-  switch(id)
-  { 
-  case HOST_USER_SELECT_CONFIGURATION:
-	  //usbh_core.c only stored the first configuration returned by the device,
-	  //so we don't really have a choice of configurations at this point!
-  break;
-    
-  case HOST_USER_DISCONNECTION:
-  App_state = APPLICATION_DISCONNECT;
-  break;
-    
-  case HOST_USER_CLASS_ACTIVE:
-  App_state = APPLICATION_READY;
-  break;
-
-  case HOST_USER_CONNECTION:
-  App_state = APPLICATION_START;
-  break;
-
-  default:
-  break; 
-  }
-}
-
-/**
-  * @}
-  */
 
 /**
   * @}

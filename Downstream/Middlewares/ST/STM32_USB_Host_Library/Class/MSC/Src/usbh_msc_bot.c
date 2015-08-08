@@ -240,7 +240,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     break;
     
   case BOT_DATA_IN:   
-    /* Send first packet */        
+    /* Get first packet */
     USBH_BulkReceiveData (phost,
                           MSC_Handle->hbot.pbuf, 
                           MSC_Handle->InEpSize , 		//Todo: Possible buffer overflow here?
@@ -270,7 +270,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
       /* More Data To be Received */
       if(MSC_Handle->hbot.cbw.field.DataTransferLength > 0)
       {
-        /* Send next packet */        
+        /* Get next packet */
         USBH_BulkReceiveData (phost,
                               MSC_Handle->hbot.pbuf, 
                               MSC_Handle->InEpSize ,  	//Todo: Possible buffer overflow here?

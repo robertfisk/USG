@@ -31,10 +31,10 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include <downstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "usb_host.h"
 #include "board_config.h"
-#include "upstream_spi.h"
 
 
 
@@ -58,7 +58,7 @@ int main(void)
 	GPIO_Init();
 	USB_Host_Init();
 
-	Upstream_InitInterface();
+	Downstream_InitSPI();
 
 	while (1)
 	{
