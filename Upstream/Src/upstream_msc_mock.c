@@ -1,38 +1,38 @@
 /*
- * upstream_interface_msc_mock.c
+ * upstream_msc_mock.c
  *
  *  Created on: 17/07/2015
  *      Author: Robert Fisk
  *
- *      This file replaces upstream_interface_msc.c to allow operational
- *      testing of Upstream, without Upstream in place and communicating
- *      over SPI. It still attempts to write downstream packets out the SPI port.
+ *      This file replaces upstream_msc.c to allow operational testing of Upstream,
+ *      without Upstream in place and communicating over SPI.
+ *      It still attempts to write downstream packets out the SPI port.
  */
 
 
 #include <upstream_interface_def.h>
-#include <upstream_interface_msc.h>
+#include <upstream_msc.h>
 #include <upstream_spi.h>
 #include "stm32f4xx_hal.h"
 
 
 //Stuff we need to save for our callbacks to use:
-UpstreamInterfaceMSCCallbackTypeDef 			TestReadyCallback;
-UpstreamInterfaceMSCCallbackUintPacketTypeDef	GetCapacityCallback;
-UpstreamInterfaceMSCCallbackPacketTypeDef		GetStreamDataCallback;
-uint32_t										ByteCount;
-UpstreamPacketTypeDef*						ReadStreamPacket;
-uint8_t											ReadStreamBusy;
+UpstreamMSCCallbackTypeDef 				TestReadyCallback;
+UpstreamMSCCallbackUintPacketTypeDef	GetCapacityCallback;
+UpstreamMSCCallbackPacketTypeDef		GetStreamDataCallback;
+uint32_t								ByteCount;
+UpstreamPacketTypeDef*					ReadStreamPacket;
+uint8_t									ReadStreamBusy;
 
 
-static void UpstreamInterface_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket);
-static void UpstreamInterface_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket);
-static void UpstreamInterface_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket);
-static void UpstreamInterface_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket);
 
 
 
-HAL_StatusTypeDef UpstreamInterface_TestReady(UpstreamInterfaceMSCCallbackTypeDef callback)
+HAL_StatusTypeDef Upstream_MSC_TestReady(UpstreamMSCCallbackTypeDef callback)
 {
 	UpstreamPacketTypeDef* freePacket;
 	HAL_StatusTypeDef tempResult;
@@ -43,16 +43,16 @@ HAL_StatusTypeDef UpstreamInterface_TestReady(UpstreamInterfaceMSCCallbackTypeDe
 	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN;
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_TEST_UNIT_READY;
-	tempResult = Upstream_SendPacket(freePacket);
+	tempResult = Upstream_TransmitPacket(freePacket);
 	if (tempResult != HAL_OK)
 	{
 		return tempResult;
 	}
-	//return Upstream_GetPacket(UpstreamInterface_TestReadyReplyCallback);
-	return Upstream_GetFreePacket(UpstreamInterface_TestReadyReplyCallback);
+	//return Upstream_GetPacket(Upstream_MSC_TestReadyReplyCallback);
+	return Upstream_GetFreePacket(Upstream_MSC_TestReadyReplyCallback);
 }
 
-void UpstreamInterface_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket)
+void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
 //	if ((replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + 1)) ||
 //		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
@@ -69,7 +69,7 @@ void UpstreamInterface_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket
 
 
 
-HAL_StatusTypeDef UpstreamInterface_GetCapacity(UpstreamInterfaceMSCCallbackUintPacketTypeDef callback)
+HAL_StatusTypeDef Upstream_MSC_GetCapacity(UpstreamMSCCallbackUintPacketTypeDef callback)
 {
 	UpstreamPacketTypeDef* freePacket;
 	HAL_StatusTypeDef tempResult;
@@ -80,16 +80,17 @@ HAL_StatusTypeDef UpstreamInterface_GetCapacity(UpstreamInterfaceMSCCallbackUint
 	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN;
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_GET_CAPACITY;
-	tempResult = Upstream_SendPacket(freePacket);
+	tempResult = Upstream_TransmitPacket(freePacket);
 	if (tempResult != HAL_OK)
 	{
 		return tempResult;
 	}
-	//return Upstream_GetPacket(UpstreamInterface_GetCapacityReplyCallback);
-	return Upstream_GetFreePacket(UpstreamInterface_GetCapacityReplyCallback);
+	//return Upstream_GetPacket(Upstream_MSC_GetCapacityReplyCallback);
+	return Upstream_GetFreePacket(Upstream_MSC_GetCapacityReplyCallback);
 }
 
-void UpstreamInterface_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
+
+void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
 	uint32_t uint[2];
 
@@ -109,10 +110,10 @@ void UpstreamInterface_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPack
 
 
 
-HAL_StatusTypeDef UpstreamInterface_BeginRead(UpstreamInterfaceMSCCallbackTypeDef callback,
-												uint64_t readBlockStart,
-												uint32_t readBlockCount,
-												uint32_t readByteCount)
+HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
+										 uint64_t readBlockStart,
+										 uint32_t readBlockCount,
+										 uint32_t readByteCount)
 {
 	UpstreamPacketTypeDef* freePacket;
 	HAL_StatusTypeDef tempResult;
@@ -130,18 +131,18 @@ HAL_StatusTypeDef UpstreamInterface_BeginRead(UpstreamInterfaceMSCCallbackTypeDe
 	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
 	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
 
-	tempResult = Upstream_SendPacket(freePacket);
+	tempResult = Upstream_TransmitPacket(freePacket);
 	if (tempResult != HAL_OK)
 	{
 		TestReadyCallback(tempResult);
 	}
-	//return Upstream_GetPacket(UpstreamInterface_TestReadyReplyCallback);	//Re-use TestReadyReplyCallback because it does exactly what we want!
-	return Upstream_GetFreePacket(UpstreamInterface_TestReadyReplyCallback);
+	//return Upstream_GetPacket(Upstream_MSC_TestReadyReplyCallback);	//Re-use TestReadyReplyCallback because it does exactly what we want!
+	return Upstream_GetFreePacket(Upstream_MSC_TestReadyReplyCallback);
 }
 
 
 
-HAL_StatusTypeDef UpstreamInterface_GetStreamDataPacket(UpstreamInterfaceMSCCallbackPacketTypeDef callback)
+HAL_StatusTypeDef Upstream_MSC_GetStreamDataPacket(UpstreamMSCCallbackPacketTypeDef callback)
 {
 	GetStreamDataCallback = callback;
 
@@ -153,15 +154,16 @@ HAL_StatusTypeDef UpstreamInterface_GetStreamDataPacket(UpstreamInterfaceMSCCall
 
 	if (ReadStreamPacket && GetStreamDataCallback)		//Do we have a stored packet and an address to send it?
 	{
-		UpstreamInterface_GetStreamDataPacketCallback(ReadStreamPacket);	//Send it now!
+		Upstream_MSC_GetStreamDataPacketCallback(ReadStreamPacket);	//Send it now!
 		ReadStreamPacket = NULL;
 		return HAL_OK;				//Our callback will call us again, so we don't need to get a packet in this case.
 	}
-	//return Upstream_GetPacket(UpstreamInterface_GetStreamDataPacketCallback);
-	return Upstream_GetFreePacket(UpstreamInterface_GetStreamDataPacketCallback);
+	//return Upstream_GetPacket(Upstream_MSC_GetStreamDataPacketCallback);
+	return Upstream_GetFreePacket(Upstream_MSC_GetStreamDataPacketCallback);
 }
 
-void UpstreamInterface_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket)
+
+void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket)
 {
 	uint16_t dataLength;
 
@@ -187,15 +189,15 @@ void UpstreamInterface_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyP
 	GetStreamDataCallback(HAL_OK, replyPacket, dataLength);	//usb_msc_scsi will use this packet, so don't release now
 	if (ByteCount > 0)
 	{
-		UpstreamInterface_GetStreamDataPacket(NULL);	//Try to get the next packet now, before USB asks for it
+		Upstream_MSC_GetStreamDataPacket(NULL);	//Try to get the next packet now, before USB asks for it
 	}
 }
 
 
 
-HAL_StatusTypeDef UpstreamInterface_BeginWrite(UpstreamInterfaceMSCCallbackTypeDef callback,
-												 uint64_t readBlockStart,
-												 uint32_t readBlockCount)
+HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
+										  uint64_t readBlockStart,
+										  uint32_t readBlockCount)
 {
 	UpstreamPacketTypeDef* freePacket;
 	HAL_StatusTypeDef tempResult;
@@ -209,16 +211,17 @@ HAL_StatusTypeDef UpstreamInterface_BeginWrite(UpstreamInterfaceMSCCallbackTypeD
 	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
 	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
 
-	tempResult = Upstream_SendPacket(freePacket);
+	tempResult = Upstream_TransmitPacket(freePacket);
 	if (tempResult != HAL_OK)
 	{
 		TestReadyCallback(tempResult);
 	}
-	//return Upstream_GetPacket(UpstreamInterface_BeginWriteReplyCallback);
-	return Upstream_GetFreePacket(UpstreamInterface_BeginWriteReplyCallback);
+	//return Upstream_GetPacket(Upstream_MSC_BeginWriteReplyCallback);
+	return Upstream_GetFreePacket(Upstream_MSC_BeginWriteReplyCallback);
 }
 
-void UpstreamInterface_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)
+
+void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
 //	if ((replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + 1)) ||
 //		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
@@ -235,11 +238,12 @@ void UpstreamInterface_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacke
 
 
 
-HAL_StatusTypeDef UpstreamInterface_PutStreamDataPacket(UpstreamPacketTypeDef* packetToSend,
-														  uint32_t dataLength)
+HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packetToSend,
+												   uint32_t dataLength)
 {
 	packetToSend->Length = dataLength + UPSTREAM_PACKET_HEADER_LEN;
 	packetToSend->CommandClass = COMMAND_CLASS_MASS_STORAGE | COMMAND_CLASS_DATA_FLAG;
 	packetToSend->Command = COMMAND_MSC_BEGIN_WRITE;
-	return Upstream_SendPacket(packetToSend);
+	return Upstream_TransmitPacket(packetToSend);
 }
+

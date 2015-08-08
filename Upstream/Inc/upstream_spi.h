@@ -17,18 +17,24 @@
 #define UPSTREAM_PACKET_LEN_MIN		(UPSTREAM_PACKET_HEADER_LEN)
 
 
-#define SPI_INTERFACE_FREAKOUT_VOID								\
+#define SPI_INTERFACE_FREAKOUT_RETURN_VOID						\
 	do {														\
 		while (1);												\
-		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/	\
+		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/		\
 		/*return;*/												\
 } while (0);
 
-#define SPI_INTERFACE_FREAKOUT_HAL_ERROR						\
+#define SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR					\
 	do {														\
 		while (1);												\
-		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/	\
+		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/		\
 		/*return HAL_ERROR;*/									\
+} while (0);
+
+#define SPI_INTERFACE_FREAKOUT_NO_RETURN						\
+	do {														\
+		while (1);												\
+		/*while (1);*/											\
 } while (0);
 
 
@@ -36,7 +42,7 @@
 typedef enum
 {
 	UPSTREAM_INTERFACE_RESET,
-	UPSTREAM_INTERFACE_WAITING_CLIENT,
+	UPSTREAM_INTERFACE_AWAITING_DEVICE,
 	UPSTREAM_INTERFACE_IDLE,
 	UPSTREAM_INTERFACE_TX_SIZE_WAIT,
 	UPSTREAM_INTERFACE_TX_SIZE,
@@ -47,14 +53,16 @@ typedef enum
 	UPSTREAM_INTERFACE_RX_PACKET_WAIT,
 	UPSTREAM_INTERFACE_RX_PACKET,
 	UPSTREAM_INTERFACE_ERROR
-} InterfaceStateTypeDef;
+}
+InterfaceStateTypeDef;
 
 
 typedef enum
 {
 	NOT_BUSY,
 	BUSY
-} PacketBusyTypeDef;
+}
+PacketBusyTypeDef;
 
 
 typedef struct
@@ -78,8 +86,8 @@ void Upstream_InitSPI(void);
 HAL_StatusTypeDef Upstream_GetFreePacket(FreePacketCallbackTypeDef callback);
 UpstreamPacketTypeDef* Upstream_GetFreePacketImmediately(void);
 void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease);
-HAL_StatusTypeDef Upstream_SendPacket(UpstreamPacketTypeDef* packetToWrite);
-HAL_StatusTypeDef Upstream_GetPacket(SpiPacketReceivedCallbackTypeDef callback);
+HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite);
+HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback);
 void Upstream_TxOkInterrupt(void);
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);

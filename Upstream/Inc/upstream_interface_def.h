@@ -1,5 +1,5 @@
 /*
- * interface_def.h
+ * upstream_interface_def.h
  *
  *  Created on: 22/06/2015
  *      Author: Robert Fisk
@@ -25,20 +25,26 @@
 
 typedef enum
 {
-	COMMAND_CLASS_INTERFACE		= 0,
-	COMMAND_CLASS_MASS_STORAGE	= 1,
-	COMMAND_CLASS_MAX 			= 2,
+	COMMAND_CLASS_INTERFACE,
+	COMMAND_CLASS_MASS_STORAGE
 }
 InterfaceCommandClassTypeDef;
 
 
 typedef enum
 {
-	COMMAND_MSC_TEST_UNIT_READY			= 0,	//Returns HAL_StatusTypeDef result
-	COMMAND_MSC_GET_CAPACITY			= 2,	//Returns uint32_t blk_nbr, uint32_t blk_size
-	COMMAND_MSC_BEGIN_READ				= 3,	//Returns HAL_StatusTypeDef result, then data stream
-	COMMAND_MSC_BEGIN_WRITE				= 4,	//Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
-	COMMAND_MSC_MAX						= 5,
+	COMMAND_INTERFACE_ECHO,				//Returns echo packet including all data
+	COMMAND_INTERFACE_NOTIFY_DEVICE		//Returns COMMAND_CLASS_*** byte when downstream USB device is connected
+}
+InterfaceCommandInterfaceTypeDef;
+
+
+typedef enum
+{
+	COMMAND_MSC_TEST_UNIT_READY,	//Returns HAL_StatusTypeDef result
+	COMMAND_MSC_GET_CAPACITY,		//Returns uint32_t blk_nbr, uint32_t blk_size
+	COMMAND_MSC_BEGIN_READ,			//Returns HAL_StatusTypeDef result, then data stream
+	COMMAND_MSC_BEGIN_WRITE,		//Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
 }
 InterfaceCommandMscTypeDef;
 

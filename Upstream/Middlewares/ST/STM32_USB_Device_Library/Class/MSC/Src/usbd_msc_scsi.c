@@ -27,7 +27,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <upstream_interface_def.h>
-#include <upstream_interface_msc.h>
+#include <upstream_msc.h>
 #include <upstream_spi.h>
 #include "usbd_msc_bot.h"
 #include "usbd_msc_scsi.h"
@@ -234,7 +234,7 @@ void SCSI_TestUnitReady(void)
 	  return;
   }
 
-  if (UpstreamInterface_TestReady(SCSI_TestUnitReadyCallback) != HAL_OK)
+  if (Upstream_MSC_TestReady(SCSI_TestUnitReadyCallback) != HAL_OK)
   {
 	  SCSI_TestUnitReadyCallback(HAL_ERROR);
   }
@@ -314,7 +314,7 @@ static void SCSI_Inquiry(void)
 */
 static void SCSI_ReadCapacity10(void)
 {
-	if (UpstreamInterface_GetCapacity(SCSI_ReadCapacity10Callback) != HAL_OK)
+	if (Upstream_MSC_GetCapacity(SCSI_ReadCapacity10Callback) != HAL_OK)
 	{
 		SCSI_ReadCapacity10Callback(HAL_ERROR, NULL, NULL);
 	}
@@ -364,7 +364,7 @@ void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
 */
 static void SCSI_ReadFormatCapacity(void)
 {
-	if (UpstreamInterface_GetCapacity(SCSI_ReadFormatCapacityCallback) != HAL_OK)
+	if (Upstream_MSC_GetCapacity(SCSI_ReadFormatCapacityCallback) != HAL_OK)
 	{
 		SCSI_ReadFormatCapacityCallback(HAL_ERROR, NULL, NULL);
 	}
@@ -589,7 +589,7 @@ static void SCSI_Read10(void)
 		  return;
 		}
 
-		if (UpstreamInterface_BeginRead(SCSI_Read10BeginCallback,
+		if (Upstream_MSC_BeginRead(SCSI_Read10BeginCallback,
 										  SCSI_ProcessCmd_hmsc->scsi_blk_addr,
 										  SCSI_ProcessCmd_hmsc->scsi_blk_len,
 										  SCSI_ProcessCmd_hmsc->cbw.dDataLength) != HAL_OK)
@@ -600,7 +600,7 @@ static void SCSI_Read10(void)
 	}
 
 	//hmsc->bot_state is already USBD_BOT_DATA_IN
-	if (UpstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
+	if (Upstream_MSC_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
 		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
 	}
@@ -620,7 +620,7 @@ void SCSI_Read10BeginCallback(HAL_StatusTypeDef result)
 	}
 	SCSI_ProcessCmd_hmsc->bot_state = USBD_BOT_DATA_IN;
 
-	if (UpstreamInterface_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
+	if (Upstream_MSC_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
 		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
 	}
@@ -716,7 +716,7 @@ static void SCSI_Write10(void)
 			return;
 		}
 
-		if (UpstreamInterface_BeginWrite(SCSI_Write10BeginCallback,
+		if (Upstream_MSC_BeginWrite(SCSI_Write10BeginCallback,
 										   SCSI_ProcessCmd_hmsc->scsi_blk_addr,
 										   SCSI_ProcessCmd_hmsc->scsi_blk_len) != HAL_OK)
 		{
@@ -728,7 +728,7 @@ static void SCSI_Write10(void)
 
 	//hmsc->bot_state is already USBD_BOT_DATA_OUT
 	dataLength = MIN(SCSI_ProcessCmd_hmsc->csw.dDataResidue, MSC_MEDIA_PACKET);
-	if (UpstreamInterface_PutStreamDataPacket(SCSI_ProcessCmd_hmsc->bot_packet,
+	if (Upstream_MSC_PutStreamDataPacket(SCSI_ProcessCmd_hmsc->bot_packet,
 												dataLength) != HAL_OK)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
