@@ -25,6 +25,8 @@ typedef enum
 {
 	COMMAND_CLASS_INTERFACE,
 	COMMAND_CLASS_MASS_STORAGE,
+	//...
+	COMMAND_CLASS_ERROR
 }
 InterfaceCommandClassTypeDef;
 
