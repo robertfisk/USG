@@ -36,6 +36,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
 #include "usbh_msc_bot.h"
+#include "downstream_spi.h"
+
 
 /** @addtogroup USBH_LIB
   * @{
@@ -137,8 +139,11 @@ typedef struct
   BOT_CBWTypeDef             cbw;
   uint8_t                    Reserved1;
   BOT_CSWTypeDef             csw; 
-  uint8_t                    Reserved2[3];  
-  uint8_t                    *pbuf;
+  uint8_t                    Reserved2[3];
+  uint8_t*                   pbuf;
+  DownstreamPacketTypeDef*	 bot_packet;
+  uint16_t					 bot_packet_bytes_remaining;
+  uint16_t					 this_URB_size;
 } 
 BOT_HandleTypeDef;
 

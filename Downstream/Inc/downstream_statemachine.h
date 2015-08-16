@@ -26,6 +26,7 @@ typedef enum
 
 void Downstream_InitStateMachine(void);
 void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id);
+void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
 void Downstream_PacketProcessor_ErrorReply(DownstreamPacketTypeDef* replyPacket);
 void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket);
 

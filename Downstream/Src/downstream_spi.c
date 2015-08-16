@@ -15,6 +15,7 @@ SPI_HandleTypeDef			Hspi1;
 DownstreamPacketTypeDef		DownstreamPacket0;
 DownstreamPacketTypeDef		DownstreamPacket1;
 DownstreamPacketTypeDef*	CurrentWorkingPacket;
+DownstreamPacketTypeDef*	NextTxPacket;
 
 InterfaceStateTypeDef				DownstreamInterfaceState;
 FreePacketCallbackTypeDef			PendingFreePacketCallback;	//Indicates someone is waiting for a packet buffer to become available
@@ -34,7 +35,7 @@ void Downstream_InitSPI(void)
 
 	DownstreamPacket0.Busy = NOT_BUSY;
 	DownstreamPacket1.Busy = NOT_BUSY;
-	//NextTxPacket = NULL;
+	NextTxPacket = NULL;
 	PendingFreePacketCallback = NULL;
 	ReceivePacketCallback = NULL;
 
@@ -147,7 +148,7 @@ void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
 
 //Used by Downstream state machine (and USB classes?).
 //Ok to call when idle or transmitting.
-//Not OK to call when receiving or waiting for downstream reply.
+//Not OK to call when receiving or awaiting reception.
 HAL_StatusTypeDef Downstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback)
 {
 	if (ReceivePacketCallback != NULL)
@@ -248,7 +249,8 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 
 
 //Used by Downstream state machine (and USB classes?).
-//Call when idle only.
+//Call when idle or transmitting.
+//It doesn't make sense to call when receiving or awaiting reception.
 HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWrite)
 {
 	//Sanity checks
@@ -263,30 +265,42 @@ HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWri
 	{
 		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
 	}
-
-	if (DownstreamInterfaceState != DOWNSTREAM_INTERFACE_IDLE)
+	if (NextTxPacket != NULL)
 	{
 		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
 	}
 
-	DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_SIZE_WAIT;
-	CurrentWorkingPacket = packetToWrite;
-	if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
-							 	 	(uint8_t*)&CurrentWorkingPacket->Length,
-									(uint8_t*)&CurrentWorkingPacket->Length,
-									2 + 1) != HAL_OK)		//"When the CRC feature is enabled the pRxData Length must be Size + 1"
+	switch (DownstreamInterfaceState)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+	case DOWNSTREAM_INTERFACE_TX_SIZE_WAIT:
+	case DOWNSTREAM_INTERFACE_TX_PACKET_WAIT:
+		NextTxPacket = packetToWrite;
+		break;
+
+	case DOWNSTREAM_INTERFACE_IDLE:
+		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_SIZE_WAIT;
+		CurrentWorkingPacket = packetToWrite;
+		if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+										(uint8_t*)&CurrentWorkingPacket->Length,
+										(uint8_t*)&CurrentWorkingPacket->Length,
+										2 + 1) != HAL_OK)		//"When the CRC feature is enabled the pRxData Length must be Size + 1"
+		{
+			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		}
+		UPSTREAM_TX_REQUEST_ASSERT;
+		break;
+
+	default:
+		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
 	}
 
-	UPSTREAM_TX_REQUEST_ASSERT;
 	return HAL_OK;
 }
 
 
 //Called at the end of the SPI TxRx DMA transfer,
 //at DMA2 interrupt priority. Assume *hspi points to our hspi1.
-//We use TxRx while sending our reply packet to check if Upstream was trying
+//We use TxRx to send our reply packet to check if Upstream was trying
 //to send us a packet at the same time.
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
@@ -326,8 +340,26 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
 	}
 
-	DownstreamInterfaceState = DOWNSTREAM_INTERFACE_IDLE;
 	Downstream_ReleasePacket(CurrentWorkingPacket);
+	if (NextTxPacket != NULL)
+	{
+		//NextTxPacket has already passed the checks in Downstream_TransmitPacket.
+		//So we just need to pass it to HAL_SPI_Transmit_DMA.
+		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_SIZE_WAIT;
+		CurrentWorkingPacket = NextTxPacket;
+		NextTxPacket = NULL;
+		if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+											(uint8_t*)&CurrentWorkingPacket->Length,
+											(uint8_t*)&CurrentWorkingPacket->Length,
+											2 + 1) != HAL_OK)		//"When the CRC feature is enabled the pRxData Length must be Size + 1"
+		{
+			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		}
+		UPSTREAM_TX_REQUEST_ASSERT;
+		return;
+	}
+
+	DownstreamInterfaceState = DOWNSTREAM_INTERFACE_IDLE;
 	if (ReceivePacketCallback != NULL)
 	{
 		Downstream_CheckPreparePacketReception();

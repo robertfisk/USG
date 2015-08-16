@@ -159,7 +159,8 @@ void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease)
 
 //Used by USB interface classes only.
 //OK to call when still transmitting another packet.
-//Not OK to call when receiving or waiting for downstream reply.
+//Not OK to call when receiving or waiting for downstream reply,
+//as we can't let the size/packet sequence get out of sync.
 HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 {
 	//Sanity checks
@@ -187,13 +188,6 @@ HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 	case UPSTREAM_INTERFACE_TX_PACKET:
 		NextTxPacket = packetToWrite;
 		break;
-
-	case UPSTREAM_INTERFACE_RX_SIZE_WAIT:
-	case UPSTREAM_INTERFACE_RX_SIZE:
-	case UPSTREAM_INTERFACE_RX_PACKET_WAIT:
-	case UPSTREAM_INTERFACE_RX_PACKET:
-		//We can't let the size/packet sequence get out of sync.
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
 
 	case UPSTREAM_INTERFACE_IDLE:
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE_WAIT;
@@ -238,7 +232,7 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 		Upstream_ReleasePacket(CurrentWorkingPacket);
 		if (NextTxPacket != NULL)
 		{
-			//NextTxPacket has already passed the checks in SendUpstreamPacket.
+			//NextTxPacket has already passed the checks in Upstream_TransmitPacket.
 			//So we just need to pass it to HAL_SPI_Transmit_DMA.
 			UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE_WAIT;
 			CurrentWorkingPacket = NextTxPacket;
@@ -385,7 +379,8 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_PACKET)
 	{
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
-		if ((SentCommandClass != (CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK)) ||
+		if (((SentCommandClass != (CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK)) &&
+			 (SentCommandClass != COMMAND_CLASS_ERROR)) ||
 			(SentCommand != CurrentWorkingPacket->Command))
 		{
 			SPI_INTERFACE_FREAKOUT_RETURN_VOID;

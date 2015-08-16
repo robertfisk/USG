@@ -19,7 +19,6 @@ DownstreamStateTypeDef			DownstreamState;
 InterfaceCommandClassTypeDef	ConfiguredDeviceClass;
 
 
-void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
 void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacket);
 void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketTypeDef* replyPacket);
 

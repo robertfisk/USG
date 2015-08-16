@@ -185,13 +185,11 @@ USBH_StatusTypeDef USBH_MSC_SCSI_RequestSense (USBH_HandleTypeDef *phost,
 USBH_StatusTypeDef USBH_MSC_SCSI_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
-                                     uint8_t *pbuf,
                                      uint32_t length);
 
 USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
-                                     uint8_t *pbuf,
                                      uint32_t length);
 
 

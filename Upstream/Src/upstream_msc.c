@@ -51,7 +51,7 @@ HAL_StatusTypeDef Upstream_MSC_TestReady(UpstreamMSCCallbackTypeDef callback)
 void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
 	if ((replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + 1)) ||
-		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
+		(replyPacket->CommandClass != COMMAND_CLASS_MASS_STORAGE) ||
 		(replyPacket->Data[0] != HAL_OK))
 	{
 		Upstream_ReleasePacket(replyPacket);
@@ -90,7 +90,7 @@ void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
 	uint32_t uint[2];
 
 	if ((replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + 8) ||
-	    (replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG)))
+	    (replyPacket->CommandClass != COMMAND_CLASS_MASS_STORAGE)))
 	{
 		GetCapacityCallback(HAL_ERROR, NULL, NULL);
 		return;
@@ -113,9 +113,9 @@ HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
 
 	ReadStreamPacket = NULL;			//Prepare for GetStreamDataPacket's use
 	ReadStreamBusy = 0;
+	ByteCount = readByteCount;
 
 	TestReadyCallback = callback;
-	ByteCount = readByteCount;
 	freePacket = Upstream_GetFreePacketImmediately();
 
 	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN + (4 * 3);
@@ -165,20 +165,21 @@ void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket
 		return;
 	}
 
+	dataLength = replyPacket->Length - UPSTREAM_PACKET_HEADER_LEN;
+
 	if (((replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) == 0) ||		//Any 'command' reply (as opposed to 'data' reply) is an automatic fail here
 		 (replyPacket->Length <= UPSTREAM_PACKET_HEADER_LEN) ||				//Should be at least one data byte in the reply.
-		 (replyPacket->Length > ByteCount))
+		 (dataLength > ByteCount))											//No more data than expected transfer length
 	{
 		GetStreamDataCallback(HAL_ERROR, NULL, NULL);
 		return;
 	}
 
-	dataLength = replyPacket->Length - UPSTREAM_PACKET_HEADER_LEN;
 	ByteCount -= dataLength;
 	GetStreamDataCallback(HAL_OK, replyPacket, dataLength);	//usb_msc_scsi will use this packet, so don't release now
 	if (ByteCount > 0)
 	{
-		Upstream_MSC_GetStreamDataPacket(NULL);	//Try to get the next packet now, before USB asks for it
+		Upstream_MSC_GetStreamDataPacket(NULL);				//Try to get the next packet now, before USB asks for it
 	}
 }
 
@@ -212,7 +213,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
 void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
 	if ((replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + 1)) ||
-		(replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) ||
+		(replyPacket->CommandClass != COMMAND_CLASS_MASS_STORAGE) ||
 		((replyPacket->Data[0] != HAL_OK) && (replyPacket->Data[0] != HAL_BUSY)))
 	{
 		Upstream_ReleasePacket(replyPacket);

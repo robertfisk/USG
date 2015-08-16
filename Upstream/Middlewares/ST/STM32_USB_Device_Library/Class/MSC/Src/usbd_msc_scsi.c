@@ -846,7 +846,8 @@ static void SCSI_Verify10(void)
 */
 static int8_t SCSI_CheckAddressRange (uint32_t blk_offset , uint16_t blk_nbr)
 {
-  if ((blk_offset + blk_nbr) > SCSI_ProcessCmd_hmsc->scsi_blk_nbr )
+  if ((blk_offset 			  > SCSI_ProcessCmd_hmsc->scsi_blk_nbr) ||
+	  ((blk_offset + blk_nbr) > SCSI_ProcessCmd_hmsc->scsi_blk_nbr))
   {
     SCSI_SenseCode(SCSI_ProcessCmd_pdev,
     			   SCSI_ProcessCmd_lun,

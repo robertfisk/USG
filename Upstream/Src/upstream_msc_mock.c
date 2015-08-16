@@ -5,7 +5,7 @@
  *      Author: Robert Fisk
  *
  *      This file replaces upstream_msc.c to allow operational testing of Upstream,
- *      without Upstream in place and communicating over SPI.
+ *      without Downstream in place and communicating over SPI.
  *      It still attempts to write downstream packets out the SPI port.
  */
 
