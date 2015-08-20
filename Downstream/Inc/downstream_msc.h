@@ -16,8 +16,7 @@
 #define MSC_FIXED_LUN				0
 
 
-typedef void (*DownstreamMSCCallbackPacketTypeDef)(HAL_StatusTypeDef result,
-												   DownstreamPacketTypeDef* receivedPacket,
+typedef void (*DownstreamMSCCallbackPacketTypeDef)(DownstreamPacketTypeDef* receivedPacket,
 												   uint16_t dataLength);
 
 

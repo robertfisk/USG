@@ -40,13 +40,11 @@ HAL_StatusTypeDef Downstream_MSC_ApproveConnectedDevice(void)
 	if ((MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr == 0) ||
 		(MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr == UINT32_MAX))
 	{
-		//FreakOut?????
 		return HAL_ERROR;
 	}
 
 	if (MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_size != MSC_SUPPORTED_BLOCK_SIZE)
 	{
-		//FreakOut?????
 		return HAL_ERROR;
 	}
 
@@ -75,8 +73,7 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 		break;
 
 	default:
-		//FreakOut?????
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		Downstream_PacketProcessor_FreakOut();
 	}
 
 }
@@ -118,8 +115,7 @@ void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedP
 
 	if (receivedPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3)))
 	{
-		//FreakOut?????
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		Downstream_PacketProcessor_FreakOut();
 		return;
 	}
 
@@ -130,8 +126,7 @@ void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedP
 		((readBlockAddress + readBlockCount - 1) >= (uint64_t)MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr) ||
 		(readByteCount > UINT32_MAX))
 	{
-		//FreakOut?????
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		Downstream_PacketProcessor_FreakOut();
 		return;
 	}
 
@@ -173,8 +168,7 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 
 	if (receivedPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3)))
 	{
-		//FreakOut?????
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		Downstream_PacketProcessor_FreakOut();
 		return;
 	}
 
@@ -185,8 +179,7 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 		((writeBlockAddress + writeBlockCount - 1) >= (uint64_t)MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr) ||
 		(writeByteCount > UINT32_MAX))
 	{
-		//FreakOut?????
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		Downstream_PacketProcessor_FreakOut();
 		return;
 	}
 
@@ -214,7 +207,7 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 }
 
 
-
+//Used by USB MSC host driver
 HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* packetToSend,
 													 uint32_t dataLength)
 {
@@ -225,6 +218,7 @@ HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* pa
 }
 
 
+//Used by USB MSC host driver
 HAL_StatusTypeDef Downstream_MSC_GetStreamDataPacket(DownstreamMSCCallbackPacketTypeDef callback)
 {
 	GetStreamDataCallback = callback;
@@ -260,14 +254,13 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* replyPa
 		 (replyPacket->Length <= DOWNSTREAM_PACKET_HEADER_LEN) ||			//Should be at least one data byte in the packet.
 		 (replyPacket->Length > ByteCount))
 	{
-		//FreakOut?????
-		GetStreamDataCallback(HAL_ERROR, NULL, NULL);
+		Downstream_PacketProcessor_FreakOut();
 		return;
 	}
 
 	dataLength = replyPacket->Length - DOWNSTREAM_PACKET_HEADER_LEN;
 	ByteCount -= dataLength;
-	GetStreamDataCallback(HAL_OK, replyPacket, dataLength);	//usb_msc_scsi will use this packet, so don't release now
+	GetStreamDataCallback(replyPacket, dataLength);	//usb_msc_scsi will use this packet, so don't release now
 	if (ByteCount > 0)
 	{
 		Downstream_MSC_GetStreamDataPacket(NULL);	//Try to get the next packet now, before USB asks for it

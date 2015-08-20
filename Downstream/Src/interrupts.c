@@ -34,6 +34,7 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "interrupts.h"
+#include "led.h"
 
 
 /* External variables --------------------------------------------------------*/
@@ -51,6 +52,7 @@ extern DMA_HandleTypeDef hdma_spi1_tx;
 void SysTick_Handler(void)
 {
   HAL_IncTick();
+  LED_DoBlinks();
 }
 
 /******************************************************************************/

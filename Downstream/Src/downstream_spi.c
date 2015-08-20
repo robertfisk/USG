@@ -6,20 +6,22 @@
  */
 
 
-#include <downstream_interface_def.h>
-#include <downstream_spi.h>
+#include "downstream_interface_def.h"
+#include "downstream_spi.h"
+#include "downstream_statemachine.h"
 #include "board_config.h"
+#include "led.h"
 
 
 SPI_HandleTypeDef			Hspi1;
 DownstreamPacketTypeDef		DownstreamPacket0;
 DownstreamPacketTypeDef		DownstreamPacket1;
 DownstreamPacketTypeDef*	CurrentWorkingPacket;
-DownstreamPacketTypeDef*	NextTxPacket;
+DownstreamPacketTypeDef*	NextTxPacket			= NULL;
 
-InterfaceStateTypeDef				DownstreamInterfaceState;
-FreePacketCallbackTypeDef			PendingFreePacketCallback;	//Indicates someone is waiting for a packet buffer to become available
-SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback;		//Indicates someone is waiting for a received packet
+InterfaceStateTypeDef				DownstreamInterfaceState	= DOWNSTREAM_INTERFACE_IDLE;
+FreePacketCallbackTypeDef			PendingFreePacketCallback	= NULL;	//Indicates someone is waiting for a packet buffer to become available
+SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback		= NULL;	//Indicates someone is waiting for a received packet
 
 
 
@@ -35,11 +37,6 @@ void Downstream_InitSPI(void)
 
 	DownstreamPacket0.Busy = NOT_BUSY;
 	DownstreamPacket1.Busy = NOT_BUSY;
-	NextTxPacket = NULL;
-	PendingFreePacketCallback = NULL;
-	ReceivePacketCallback = NULL;
-
-	DownstreamInterfaceState = DOWNSTREAM_INTERFACE_IDLE;
 }
 
 
@@ -61,19 +58,18 @@ void SPI1_Init(void)
 }
 
 
-//Used by...
+//Used by downstream state machine and USB host classes.
 HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 {
-	//Sanity checks
 	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		return HAL_ERROR;
 	}
 
 	//Do we already have a queued callback?
 	if (PendingFreePacketCallback != NULL)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 	}
 
 	//Check if there is a free buffer now
@@ -96,40 +92,20 @@ HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 }
 
 
-//DownstreamPacketTypeDef* Downstream_GetFreePacketImmediately(void)
-//{
-//	//Sanity checks
-//	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
-//	{
-//		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
-//	}
-//
-//	//We are expecting a free buffer now
-//	if (DownstreamPacket0.Busy == NOT_BUSY)
-//	{
-//		DownstreamPacket0.Busy = BUSY;
-//		return &DownstreamPacket0;
-//	}
-//	if (DownstreamPacket1.Busy == NOT_BUSY)
-//	{
-//		DownstreamPacket1.Busy = BUSY;
-//		return &DownstreamPacket1;
-//	}
-//
-//	//Should not happen:
-//	SPI_INTERFACE_FREAKOUT_NO_RETURN;
-//}
-
-
-//Used by...
+//Used by Downstream state machine and USB host classes.
 void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
 {
 	FreePacketCallbackTypeDef tempCallback;
 
+	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
+
 	if ((packetToRelease != &DownstreamPacket0) &&
 		(packetToRelease != &DownstreamPacket1))
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 
 	if (PendingFreePacketCallback != NULL)
@@ -146,14 +122,19 @@ void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
 
 
 
-//Used by Downstream state machine (and USB classes?).
+//Used by Downstream state machine and USB classes.
 //Ok to call when idle or transmitting.
 //Not OK to call when receiving or awaiting reception.
 HAL_StatusTypeDef Downstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback)
 {
+	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
+	{
+		return HAL_ERROR;
+	}
+
 	if (ReceivePacketCallback != NULL)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 	}
 	ReceivePacketCallback = callback;
 	return Downstream_CheckPreparePacketReception();
@@ -163,11 +144,6 @@ HAL_StatusTypeDef Downstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef call
 //Internal use only
 HAL_StatusTypeDef Downstream_CheckPreparePacketReception(void)
 {
-	if (DownstreamInterfaceState > DOWNSTREAM_INTERFACE_TX_PACKET_WAIT)
-	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
-	}
-
 	if (DownstreamInterfaceState == DOWNSTREAM_INTERFACE_IDLE)
 	{
 		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_RX_SIZE_WAIT;
@@ -182,7 +158,7 @@ void Downstream_PreparePacketReception(DownstreamPacketTypeDef* freePacket)
 {
 	if (DownstreamInterfaceState != DOWNSTREAM_INTERFACE_RX_SIZE_WAIT)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 	CurrentWorkingPacket = freePacket;
 	//CurrentWorkingPacket->Length = 0;
@@ -191,7 +167,7 @@ void Downstream_PreparePacketReception(DownstreamPacketTypeDef* freePacket)
 							(uint8_t*)&CurrentWorkingPacket->Length,
 							(2 + 1)) != HAL_OK)		//"When the CRC feature is enabled the pData Length must be Size + 1"
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 
 	UPSTREAM_TX_REQUEST_ASSERT;
@@ -206,10 +182,9 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 
 	UPSTREAM_TX_REQUEST_DEASSERT;
 
-	if ((DownstreamInterfaceState != DOWNSTREAM_INTERFACE_RX_SIZE_WAIT) &&
-		(DownstreamInterfaceState != DOWNSTREAM_INTERFACE_RX_PACKET_WAIT))
+	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		return;
 	}
 
 	if (DownstreamInterfaceState == DOWNSTREAM_INTERFACE_RX_SIZE_WAIT)
@@ -217,14 +192,14 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 		if ((CurrentWorkingPacket->Length < DOWNSTREAM_PACKET_LEN_MIN) ||
 			(CurrentWorkingPacket->Length > DOWNSTREAM_PACKET_LEN))
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 		}
 		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_RX_PACKET_WAIT;
 		if ((HAL_SPI_Receive_DMA(&Hspi1,
 								 &CurrentWorkingPacket->CommandClass,
 								 CurrentWorkingPacket->Length + 1)) != HAL_OK)	//"When the CRC feature is enabled the pData Length must be Size + 1"
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 		}
 		UPSTREAM_TX_REQUEST_ASSERT;
 		return;
@@ -235,7 +210,7 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_IDLE;
 		if (ReceivePacketCallback == NULL)
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 		}
 		//Packet processor may want to receive another packet immediately,
 		//so clear ReceivePacketCallback before the call.
@@ -243,7 +218,10 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 		tempPacketCallback = ReceivePacketCallback;
 		ReceivePacketCallback = NULL;
 		tempPacketCallback(CurrentWorkingPacket);
+		return;
 	}
+
+	DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 }
 
 
@@ -253,21 +231,26 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 //It doesn't make sense to call when receiving or awaiting reception.
 HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWrite)
 {
+	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
+	{
+		return HAL_ERROR;
+	}
+
 	//Sanity checks
 	if ((packetToWrite != &DownstreamPacket0) &&
 		(packetToWrite != &DownstreamPacket1))
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 	}
 	if ((packetToWrite->Busy != BUSY) ||
 		(packetToWrite->Length < DOWNSTREAM_PACKET_LEN_MIN) ||
 		(packetToWrite->Length > DOWNSTREAM_PACKET_LEN))
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 	}
 	if (NextTxPacket != NULL)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 	}
 
 	switch (DownstreamInterfaceState)
@@ -285,13 +268,13 @@ HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWri
 										(uint8_t*)&CurrentWorkingPacket->Length,
 										2 + 1) != HAL_OK)		//"When the CRC feature is enabled the pRxData Length must be Size + 1"
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 		}
 		UPSTREAM_TX_REQUEST_ASSERT;
 		break;
 
 	default:
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR;
 	}
 
 	return HAL_OK;
@@ -306,16 +289,21 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	UPSTREAM_TX_REQUEST_DEASSERT;
 
+	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
+
 	if (DownstreamInterfaceState != DOWNSTREAM_INTERFACE_TX_SIZE_WAIT)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 
 	if (CurrentWorkingPacket->Length != 0)
 	{
 		//Currently we just freak out if Upstream sends us an unexpected command.
 		//Theoretically we could reset our downstream state machine and accept the new command...
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 
 	DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_PACKET_WAIT;
@@ -323,7 +311,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 							  &CurrentWorkingPacket->CommandClass,
 							  CurrentWorkingPacket->Length)) != HAL_OK)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 	UPSTREAM_TX_REQUEST_ASSERT;
 }
@@ -335,9 +323,14 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	UPSTREAM_TX_REQUEST_DEASSERT;
 
+	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
+
 	if (DownstreamInterfaceState != DOWNSTREAM_INTERFACE_TX_PACKET_WAIT)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 	}
 
 	Downstream_ReleasePacket(CurrentWorkingPacket);
@@ -349,11 +342,11 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 		CurrentWorkingPacket = NextTxPacket;
 		NextTxPacket = NULL;
 		if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
-											(uint8_t*)&CurrentWorkingPacket->Length,
-											(uint8_t*)&CurrentWorkingPacket->Length,
-											2 + 1) != HAL_OK)		//"When the CRC feature is enabled the pRxData Length must be Size + 1"
+										(uint8_t*)&CurrentWorkingPacket->Length,
+										(uint8_t*)&CurrentWorkingPacket->Length,
+										2 + 1) != HAL_OK)		//"When the CRC feature is enabled the pRxData Length must be Size + 1"
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 		}
 		UPSTREAM_TX_REQUEST_ASSERT;
 		return;
@@ -371,6 +364,6 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 //Something bad happened! Possibly CRC error...
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-	SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+	DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID;
 }
 

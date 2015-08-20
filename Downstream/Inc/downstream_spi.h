@@ -17,25 +17,23 @@
 #define DOWNSTREAM_PACKET_LEN_MIN		(DOWNSTREAM_PACKET_HEADER_LEN)
 
 
-#define SPI_INTERFACE_FREAKOUT_RETURN_VOID						\
-	do {														\
-		while (1);												\
-		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/		\
-		/*return;*/												\
-} while (0);
+#define DOWNSTREAM_SPI_FREAKOUT_RETURN_VOID							\
+	do {															\
+		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);				\
+		Downstream_PacketProcessor_SetErrorState();					\
+		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_ERROR;		\
+		while (1);													\
+		/*return;*/													\
+	} while (0);
 
-#define SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR					\
-	do {														\
-		while (1);												\
-		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/		\
-		/*return HAL_ERROR;*/									\
-} while (0);
-
-#define SPI_INTERFACE_FREAKOUT_NO_RETURN						\
-	do {														\
-		while (1);												\
-		/*while (1);*/											\
-} while (0);
+#define DOWNSTREAM_SPI_FREAKOUT_RETURN_HAL_ERROR					\
+	do {															\
+		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);				\
+		Downstream_PacketProcessor_SetErrorState();					\
+		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_ERROR;		\
+		while (1);													\
+		/*return HAL_ERROR;*/										\
+	} while (0);
 
 
 

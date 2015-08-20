@@ -31,10 +31,11 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include <downstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "usb_host.h"
 #include "board_config.h"
+#include "downstream_statemachine.h"
+#include "led.h"
 
 
 
@@ -46,8 +47,6 @@ static void GPIO_Init(void);
 
 int main(void)
 {
-	/* MCU Configuration----------------------------------------------------------*/
-
 	/* Configure the system clock */
 	SystemClock_Config();
 
@@ -56,9 +55,10 @@ int main(void)
 
 	/* Initialize all configured peripherals */
 	GPIO_Init();
+	LED_Init();
 	USB_Host_Init();
 
-	Downstream_InitSPI();
+	Downstream_InitStateMachine();
 
 	while (1)
 	{

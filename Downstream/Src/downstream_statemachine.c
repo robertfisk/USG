@@ -12,11 +12,12 @@
 #include "downstream_msc.h"
 #include "usbh_core.h"
 #include "usbh_msc.h"
+#include "led.h"
 
 
 
-DownstreamStateTypeDef			DownstreamState;
-InterfaceCommandClassTypeDef	ConfiguredDeviceClass;
+DownstreamStateTypeDef			DownstreamState			= STATE_DEVICE_NOT_READY;
+InterfaceCommandClassTypeDef	ConfiguredDeviceClass	= COMMAND_CLASS_INTERFACE;
 
 
 void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacket);
@@ -26,8 +27,6 @@ void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketType
 
 void Downstream_InitStateMachine(void)
 {
-	DownstreamState = STATE_DEVICE_NOT_READY;
-	ConfiguredDeviceClass = COMMAND_CLASS_INTERFACE;
 	Downstream_InitSPI();
 
 	//Prepare to receive our first packet from Upstream!
@@ -37,12 +36,18 @@ void Downstream_InitStateMachine(void)
 
 void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 {
+	if (DownstreamState >= STATE_ERROR)
+	{
+		Downstream_ReleasePacket(receivedPacket);
+		return;
+	}
+
 	switch (receivedPacket->CommandClass)
 	{
 	case COMMAND_CLASS_INTERFACE:
 		if (DownstreamState > STATE_DEVICE_READY)
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		}
 		Downstream_PacketProcessor_Interface(receivedPacket);
 		break;
@@ -50,8 +55,7 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 	case COMMAND_CLASS_MASS_STORAGE:
 		if (DownstreamState != STATE_ACTIVE)
 		{
-			Downstream_PacketProcessor_ErrorReply(receivedPacket);
-			return;
+			DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		}
 		Downstream_MSC_PacketProcessor(receivedPacket);
 		break;
@@ -59,8 +63,22 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 	//Add other classes here...
 
 	default:
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 	}
+}
+
+
+//Used by downstream_spi freakout macro, indicates we should stop everything.
+void Downstream_PacketProcessor_SetErrorState(void)
+{
+	DownstreamState = STATE_ERROR;
+}
+
+
+//Used by downstream class interfaces
+void Downstream_PacketProcessor_FreakOut(void)
+{
+	DOWNSTREAM_STATEMACHINE_FREAKOUT;
 }
 
 
@@ -70,8 +88,10 @@ void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacke
 	switch (receivedPacket->Command)
 	{
 	case COMMAND_INTERFACE_ECHO:
-		Downstream_TransmitPacket(receivedPacket);
-		Downstream_ReceivePacket(Downstream_PacketProcessor);
+		if (Downstream_TransmitPacket(receivedPacket) == HAL_OK)
+		{
+			Downstream_ReceivePacket(Downstream_PacketProcessor);
+		}
 		return;
 
 	case COMMAND_INTERFACE_NOTIFY_DEVICE:
@@ -87,12 +107,12 @@ void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacke
 			Downstream_ReleasePacket(receivedPacket);
 			return;
 		}
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		return;
 
 
 	default:
-		Downstream_PacketProcessor_ErrorReply(receivedPacket);
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 	}
 }
 
@@ -103,10 +123,12 @@ void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketType
 	replyPacket->CommandClass = COMMAND_CLASS_INTERFACE;
 	replyPacket->Command = COMMAND_INTERFACE_NOTIFY_DEVICE;
 	replyPacket->Data[0] = ConfiguredDeviceClass;
-	Downstream_TransmitPacket(replyPacket);
 
-	DownstreamState = STATE_ACTIVE;
-	Downstream_ReceivePacket(Downstream_PacketProcessor);
+	if (Downstream_TransmitPacket(replyPacket) == HAL_OK)
+	{
+		DownstreamState = STATE_ACTIVE;
+		Downstream_ReceivePacket(Downstream_PacketProcessor);
+	}
 }
 
 
@@ -114,15 +136,20 @@ void Downstream_PacketProcessor_ErrorReply(DownstreamPacketTypeDef* replyPacket)
 {
 	replyPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN;
 	replyPacket->CommandClass = COMMAND_CLASS_ERROR;
-	Downstream_TransmitPacket(replyPacket);
-	Downstream_ReceivePacket(Downstream_PacketProcessor);
+
+	if (Downstream_TransmitPacket(replyPacket) == HAL_OK)
+	{
+		Downstream_ReceivePacket(Downstream_PacketProcessor);
+	}
 }
 
 
 void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket)
 {
-	Downstream_TransmitPacket(replyPacket);
-	Downstream_ReceivePacket(Downstream_PacketProcessor);
+	if (Downstream_TransmitPacket(replyPacket) == HAL_OK)
+	{
+		Downstream_ReceivePacket(Downstream_PacketProcessor);
+	}
 }
 
 
@@ -132,6 +159,11 @@ void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket)
 void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 {
 	InterfaceCommandClassTypeDef newActiveClass = COMMAND_CLASS_INTERFACE;
+
+	if (DownstreamState >= STATE_ERROR)
+	{
+		return;
+	}
 
 	//Called from USB interrupt
 	if (id == HOST_USER_DISCONNECTION)
@@ -153,23 +185,31 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 			break;
 
 		//Add other classes here...
-		}
 
-		//To change device class, we must reboot.
-		if ((ConfiguredDeviceClass != COMMAND_CLASS_INTERFACE) &&
-			(ConfiguredDeviceClass != newActiveClass))
-		{
-			SPI_INTERFACE_FREAKOUT_NO_RETURN;
+		//Any unsupported device will cause a slow fault flash.
+		//This is distinct from the fast freakout flash caused by internal errors or attacks.
+		default:
+			LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
 			DownstreamState = STATE_ERROR;
 			return;
 		}
 
+
+		//If the new device has failed its 'approval' checks, we are sufficiently freaked out.
 		if (newActiveClass == COMMAND_CLASS_INTERFACE)
 		{
-			return;
+			DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		}
 
+		//If we already configured a device class, we cannot change to a different one without rebooting.
+		//This blocks some BadUSB attacks.
+		if ((ConfiguredDeviceClass != COMMAND_CLASS_INTERFACE) &&
+			(ConfiguredDeviceClass != newActiveClass))
+		{
+			DOWNSTREAM_STATEMACHINE_FREAKOUT;
+		}
 		ConfiguredDeviceClass = newActiveClass;
+
 		if (DownstreamState == STATE_WAIT_DEVICE_READY)
 		{
 			Downstream_GetFreePacket(Downstream_PacketProcessor_Interface_ReplyNotifyDevice);
@@ -182,9 +222,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 			return;
 		}
 
-		SPI_INTERFACE_FREAKOUT_NO_RETURN;
-		DownstreamState = STATE_ERROR;
-		return;
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 	}
 }
 

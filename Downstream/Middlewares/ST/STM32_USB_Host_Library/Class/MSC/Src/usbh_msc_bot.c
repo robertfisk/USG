@@ -37,8 +37,7 @@ static USBH_StatusTypeDef USBH_MSC_BOT_Abort(USBH_HandleTypeDef *phost, uint8_t 
 static BOT_CSWStatusTypeDef USBH_MSC_DecodeCSW(USBH_HandleTypeDef *phost);
 void USBH_MSC_BOT_Read_FreePacketCallback(DownstreamPacketTypeDef* freePacket);
 void USBH_MSC_BOT_Read_PrepareURB(USBH_HandleTypeDef *phost);
-void USBH_MSC_BOT_Write_ReceivePacketCallback(HAL_StatusTypeDef result,
-											  DownstreamPacketTypeDef* receivedPacket,
+void USBH_MSC_BOT_Write_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
 											  uint16_t dataLength);
 void USBH_MSC_BOT_Write_PrepareURB(USBH_HandleTypeDef *phost);
 
@@ -178,8 +177,11 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
   case BOT_DATA_IN:   
     /* Get first packet */
 	Callback_MSC_phost = phost;
-	Downstream_GetFreePacket(USBH_MSC_BOT_Read_FreePacketCallback);
-	MSC_Handle->hbot.state  = BOT_DATA_IN_WAIT;
+	MSC_Handle->hbot.state = BOT_DATA_IN_WAIT;
+	if (Downstream_GetFreePacket(USBH_MSC_BOT_Read_FreePacketCallback) != HAL_OK)
+	{
+		MSC_Handle->hbot.state = BOT_ERROR_IN;
+	}
 	break;
     
   case BOT_DATA_IN_WAIT:  
@@ -189,6 +191,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     {
     	MSC_Handle->hbot.cbw.field.DataTransferLength -= MSC_Handle->hbot.this_URB_size;
     	MSC_Handle->hbot.bot_packet_bytes_remaining -= MSC_Handle->hbot.this_URB_size;
+    	MSC_Handle->hbot.pbuf += MSC_Handle->hbot.this_URB_size;
 
     	if (MSC_Handle->hbot.cbw.field.DataTransferLength == 0)
     	{
@@ -218,7 +221,6 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     		else
     		{
     			//Continue filling the current bot_packet
-        		MSC_Handle->hbot.pbuf += MSC_Handle->hbot.this_URB_size;
     			USBH_MSC_BOT_Read_PrepareURB(phost);
     		}
     	}
@@ -254,6 +256,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     {
     	MSC_Handle->hbot.cbw.field.DataTransferLength -= MSC_Handle->hbot.this_URB_size;
     	MSC_Handle->hbot.bot_packet_bytes_remaining -= MSC_Handle->hbot.this_URB_size;
+    	MSC_Handle->hbot.pbuf += MSC_Handle->hbot.this_URB_size;
 
     	if (MSC_Handle->hbot.cbw.field.DataTransferLength == 0)
     	{
@@ -268,14 +271,12 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     			//Get next bot_packet
     			if (Downstream_MSC_GetStreamDataPacket(USBH_MSC_BOT_Write_ReceivePacketCallback) != HAL_OK)
     			{
-    				MSC_Handle->hbot.state  = BOT_ERROR_IN;
-    				break;
+    				MSC_Handle->hbot.state  = BOT_ERROR_OUT;
     			}
     		}
     		else
     		{
     			//Continue reading the current bot_packet
-        		MSC_Handle->hbot.pbuf += MSC_Handle->hbot.this_URB_size;
     			USBH_MSC_BOT_Write_PrepareURB(phost);
     		}
     	}
@@ -415,17 +416,10 @@ void USBH_MSC_BOT_Read_PrepareURB(USBH_HandleTypeDef *phost)
 }
 
 
-void USBH_MSC_BOT_Write_ReceivePacketCallback(HAL_StatusTypeDef result,
-											  DownstreamPacketTypeDef* receivedPacket,
+void USBH_MSC_BOT_Write_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
 											  uint16_t dataLength)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) Callback_MSC_phost->pActiveClass->pData;
-
-	if (result != HAL_OK)
-	{
-		MSC_Handle->hbot.state = BOT_ERROR_OUT;
-		return;
-	}
 
 	MSC_Handle->hbot.bot_packet = receivedPacket;
 	MSC_Handle->hbot.pbuf = receivedPacket->Data;
