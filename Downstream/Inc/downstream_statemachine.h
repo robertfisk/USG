@@ -32,6 +32,13 @@ typedef enum
 } while (0);
 
 
+#define DOWNSTREAM_STATEMACHINE_FREAKOUT_NORETURN		\
+	do {												\
+		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
+		DownstreamState = STATE_ERROR;					\
+} while (0);
+
+
 
 
 void Downstream_InitStateMachine(void);

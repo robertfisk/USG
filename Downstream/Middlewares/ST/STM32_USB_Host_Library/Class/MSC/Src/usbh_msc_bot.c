@@ -388,6 +388,12 @@ void USBH_MSC_BOT_Read_FreePacketCallback(DownstreamPacketTypeDef* freePacket)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) Callback_MSC_phost->pActiveClass->pData;
 
+	if (MSC_Handle->hbot.state != BOT_DATA_IN_WAIT)
+	{
+		Downstream_PacketProcessor_FreakOut();
+		return;
+	}
+
 	MSC_Handle->hbot.bot_packet = freePacket;
 	MSC_Handle->hbot.pbuf = freePacket->Data;
 	MSC_Handle->hbot.bot_packet_bytes_remaining = BOT_PAGE_LENGTH;
@@ -420,6 +426,12 @@ void USBH_MSC_BOT_Write_ReceivePacketCallback(DownstreamPacketTypeDef* receivedP
 											  uint16_t dataLength)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) Callback_MSC_phost->pActiveClass->pData;
+
+	if (MSC_Handle->hbot.state != BOT_DATA_OUT_WAIT)
+	{
+		Downstream_PacketProcessor_FreakOut();
+		return;
+	}
 
 	MSC_Handle->hbot.bot_packet = receivedPacket;
 	MSC_Handle->hbot.pbuf = receivedPacket->Data;

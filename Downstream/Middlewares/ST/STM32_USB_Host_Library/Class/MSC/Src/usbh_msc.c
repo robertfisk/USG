@@ -42,6 +42,7 @@
 #include "usbh_msc.h"
 #include "usbh_msc_bot.h"    
 #include "usbh_msc_scsi.h"
+#include "interrupts.h"
 
 
 /** @addtogroup USBH_LIB
@@ -498,6 +499,10 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
 
   case MSC_READ:
   case MSC_WRITE:
+	//USBH_MSC_RdWrProcess interacts heavily with downstream SPI code.
+	//So to protect against preemption we elevate our priority here.
+	__set_BASEPRI(INT_PRIORITY_OTG_FS);
+
 	error = USBH_MSC_RdWrProcess(phost, MSC_Handle->rw_lun);
 	if(((int32_t)(phost->Timer - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
 	{
@@ -513,6 +518,8 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
 			MSC_Handle->RdWrCompleteCallback = NULL;
 		}
 	}
+
+	__set_BASEPRI(0);
 	break;
 
   default:
