@@ -33,9 +33,8 @@
   ******************************************************************************
 */
 
-/* Includes ------------------------------------------------------------------*/
 
-#include <usbd_descriptors.h>
+#include "usbd_descriptors.h"
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_msc.h"
@@ -43,23 +42,18 @@
 /* USB Device Core handle declaration */
 USBD_HandleTypeDef hUsbDeviceFS;
 
-/* init function */				        
+
 void USB_Device_Init(void)
 {
-  /* Init Device Library,Add Supported Class and Start the library*/
-  USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
+	USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
 
-  USBD_RegisterClass(&hUsbDeviceFS, &USBD_MSC);
-
-  USBD_Start(&hUsbDeviceFS);
+//  USBD_RegisterClass(&hUsbDeviceFS, &USBD_MSC);
+//  USBD_Start(&hUsbDeviceFS);
 
 }
-/**
-  * @}
-  */
 
-/**
-  * @}
-  */
+
+
+
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

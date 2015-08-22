@@ -43,10 +43,14 @@
 #include "stm32f4xx_hal.h"
 #include "usbd_def.h"
 
+
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-/* USB_Device init function */	
+
 void USB_Device_Init(void);
+
+
+
 
 #ifdef __cplusplus
 }

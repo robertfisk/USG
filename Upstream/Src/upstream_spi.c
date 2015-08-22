@@ -5,8 +5,9 @@
  *      Author: Robert Fisk
  */
 
-#include <upstream_interface_def.h>
-#include <upstream_spi.h>
+#include "upstream_interface_def.h"
+#include "upstream_spi.h"
+#include "upstream_statemachine.h"
 #include "stm32f4xx_hal.h"
 #include "usbd_def.h"
 #include "board_config.h"
@@ -17,17 +18,16 @@ SPI_HandleTypeDef			Hspi1;
 UpstreamPacketTypeDef		UpstreamPacket0;
 UpstreamPacketTypeDef		UpstreamPacket1;
 UpstreamPacketTypeDef*		CurrentWorkingPacket;
-UpstreamPacketTypeDef*		NextTxPacket;			//Indicates we have a pending TX packet
+UpstreamPacketTypeDef*		NextTxPacket		= NULL;			//Indicates we have a pending TX packet
 
-InterfaceStateTypeDef				UpstreamInterfaceState;
-FreePacketCallbackTypeDef			PendingFreePacketCallback;	//Indicates someone is waiting for a packet buffer to become available
-SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback;		//Indicates someone is waiting for a received packet
+InterfaceStateTypeDef				UpstreamInterfaceState		= UPSTREAM_INTERFACE_IDLE;
+FreePacketCallbackTypeDef			PendingFreePacketCallback	= NULL;	//Indicates someone is waiting for a packet buffer to become available
+SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback		= NULL;	//Indicates someone is waiting for a received packet
 
 uint8_t						SentCommandClass;
 uint8_t						SentCommand;
 
 
-static void SPI1_Init(void);
 static HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void);
 static void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket);
 
@@ -35,24 +35,9 @@ static void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket);
 
 void Upstream_InitSPI(void)
 {
-	UpstreamInterfaceState = UPSTREAM_INTERFACE_RESET;
-
-	SPI1_Init();
 	UpstreamPacket0.Busy = NOT_BUSY;
 	UpstreamPacket1.Busy = NOT_BUSY;
-	NextTxPacket = NULL;
-	PendingFreePacketCallback = NULL;
-	ReceivePacketCallback = NULL;
 
-	//Todo: check connection to downstream, await client USB insertion
-
-	while (!DOWNSTREAM_TX_OK_ACTIVE);
-	UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
-}
-
-
-void SPI1_Init(void)
-{
 	Hspi1.Instance = SPI1;
 	Hspi1.State = HAL_SPI_STATE_RESET;
 	Hspi1.Init.Mode = SPI_MODE_MASTER;
@@ -74,17 +59,16 @@ void SPI1_Init(void)
 //Used by USB interface classes, and by our internal RX code.
 HAL_StatusTypeDef Upstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 {
-	//Sanity checks
-	if 	((UpstreamInterfaceState < UPSTREAM_INTERFACE_IDLE) ||
-		 (UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_PACKET))
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		return HAL_ERROR;
 	}
 
 	//Do we already have a queued callback?
 	if (PendingFreePacketCallback != NULL)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 
 	//Check if there is a free buffer now
@@ -109,11 +93,9 @@ HAL_StatusTypeDef Upstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 
 UpstreamPacketTypeDef* Upstream_GetFreePacketImmediately(void)
 {
-	//Sanity checks
-	if 	((UpstreamInterfaceState < UPSTREAM_INTERFACE_IDLE) ||
-		 (UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_PACKET))
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		return NULL;
 	}
 
 	//We are expecting a free buffer now
@@ -129,7 +111,8 @@ UpstreamPacketTypeDef* Upstream_GetFreePacketImmediately(void)
 	}
 
 	//Should not happen:
-	SPI_INTERFACE_FREAKOUT_NO_RETURN;
+	UPSTREAM_SPI_FREAKOUT;
+	return NULL;
 }
 
 
@@ -137,11 +120,17 @@ UpstreamPacketTypeDef* Upstream_GetFreePacketImmediately(void)
 void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease)
 {
 	FreePacketCallbackTypeDef tempCallback;
+	
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
 
 	if ((packetToRelease != &UpstreamPacket0) &&
 		(packetToRelease != &UpstreamPacket1))
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return;
 	}
 
 	if (PendingFreePacketCallback != NULL)
@@ -163,21 +152,29 @@ void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease)
 //as we can't let the size/packet sequence get out of sync.
 HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 {
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
+	{
+		return HAL_ERROR;
+	}
+	
 	//Sanity checks
 	if ((packetToWrite != &UpstreamPacket0) &&
 		(packetToWrite != &UpstreamPacket1))
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 	if ((packetToWrite->Busy != BUSY) ||
 		(packetToWrite->Length < UPSTREAM_PACKET_LEN_MIN) ||
 		(packetToWrite->Length > UPSTREAM_PACKET_LEN))
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 	if (NextTxPacket != NULL)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 
 	switch (UpstreamInterfaceState)
@@ -197,7 +194,8 @@ HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 		break;
 
 	default:
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 	return HAL_OK;
 }
@@ -210,26 +208,32 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	SPI1_NSS_DEASSERT;
 
-	if ((UpstreamInterfaceState != UPSTREAM_INTERFACE_TX_SIZE) &&
-		(UpstreamInterfaceState != UPSTREAM_INTERFACE_TX_PACKET))
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		return;
 	}
 
+	//Finished transmitting packet size
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_TX_SIZE)
 	{
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET_WAIT;
 		return;
 	}
 
+	//Finished transmitting packet body
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_TX_PACKET)
 	{
 		if ((PendingFreePacketCallback != NULL) && (NextTxPacket == NULL))
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			UPSTREAM_SPI_FREAKOUT;
+			return;
 		}
 
 		Upstream_ReleasePacket(CurrentWorkingPacket);
+		if (UpstreamInterfaceState == UPSTREAM_INTERFACE_ERROR)
+		{
+			return;						//Really shouldn't happen, but we are being paranoid...
+		}
 		if (NextTxPacket != NULL)
 		{
 			//NextTxPacket has already passed the checks in Upstream_TransmitPacket.
@@ -245,7 +249,11 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 		{
 			Upstream_CheckBeginPacketReception();
 		}
+		return;
 	}
+	
+	//case default:
+	UPSTREAM_SPI_FREAKOUT;
 }
 
 
@@ -254,9 +262,15 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 //Not OK to call when receiving or waiting for downstream reply.
 HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback)
 {
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
+	{
+		return HAL_ERROR;
+	}
+	
 	if (ReceivePacketCallback != NULL)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 
 	ReceivePacketCallback = callback;
@@ -267,10 +281,15 @@ HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callba
 //Internal use only.
 HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void)
 {
-	if ((UpstreamInterfaceState < UPSTREAM_INTERFACE_IDLE) ||
-		(UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_SIZE_WAIT))
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR;
+		return HAL_ERROR;
+	}
+	
+	if (UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_SIZE_WAIT)
+	{
+		UPSTREAM_SPI_FREAKOUT;
+		return HAL_ERROR;
 	}
 
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_IDLE)
@@ -285,6 +304,11 @@ HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void)
 //indicating that downstream is ready for the next transaction.
 void Upstream_TxOkInterrupt(void)
 {
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
+	
 	switch (UpstreamInterfaceState)
 	{
 	case UPSTREAM_INTERFACE_TX_SIZE_WAIT:
@@ -294,7 +318,7 @@ void Upstream_TxOkInterrupt(void)
 								 (uint8_t*)&CurrentWorkingPacket->Length,
 								 2) != HAL_OK)
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			UPSTREAM_SPI_FREAKOUT;
 		}
 		break;
 
@@ -305,7 +329,7 @@ void Upstream_TxOkInterrupt(void)
 								  &CurrentWorkingPacket->CommandClass,
 								  CurrentWorkingPacket->Length)) != HAL_OK)
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			UPSTREAM_SPI_FREAKOUT;
 		}
 		break;
 
@@ -320,12 +344,12 @@ void Upstream_TxOkInterrupt(void)
 								 &CurrentWorkingPacket->CommandClass,
 								 (CurrentWorkingPacket->Length + 1))) != HAL_OK)	//"When the CRC feature is enabled the pData Length must be Size + 1"
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			UPSTREAM_SPI_FREAKOUT;
 		}
 		break;
 
 	default:
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		UPSTREAM_SPI_FREAKOUT;
 	}
 }
 
@@ -334,9 +358,15 @@ void Upstream_TxOkInterrupt(void)
 //Called when we want to receive downstream packet, and a packet buffer has become free.
 void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket)
 {
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
+	
 	if (UpstreamInterfaceState != UPSTREAM_INTERFACE_RX_SIZE_WAIT)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		UPSTREAM_SPI_FREAKOUT;
+		return;
 	}
 	UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_SIZE;
 	CurrentWorkingPacket = freePacket;
@@ -346,7 +376,7 @@ void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket)
 							(uint8_t*)&CurrentWorkingPacket->Length,
 							(2 + 1)) != HAL_OK)		//"When the CRC feature is enabled the pData Length must be Size + 1"
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		UPSTREAM_SPI_FREAKOUT;
 	}
 }
 
@@ -359,10 +389,9 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 
 	SPI1_NSS_DEASSERT;
 
-	if ((UpstreamInterfaceState != UPSTREAM_INTERFACE_RX_SIZE) &&
-		(UpstreamInterfaceState != UPSTREAM_INTERFACE_RX_PACKET))
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
-		SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+		return;
 	}
 
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_SIZE)
@@ -370,7 +399,8 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 		if ((CurrentWorkingPacket->Length < UPSTREAM_PACKET_LEN_MIN) ||
 			(CurrentWorkingPacket->Length > UPSTREAM_PACKET_LEN))
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			UPSTREAM_SPI_FREAKOUT;
+			return;
 		}
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET_WAIT;
 		return;
@@ -378,29 +408,53 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_PACKET)
 	{
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
-		if (((SentCommandClass != (CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK)) &&
-			 (SentCommandClass != COMMAND_CLASS_ERROR)) ||
-			(SentCommand != CurrentWorkingPacket->Command))
-		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
-		}
 		if (ReceivePacketCallback == NULL)
 		{
-			SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+			UPSTREAM_SPI_FREAKOUT;
+			return;
 		}
+
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
+		if ((SentCommandClass != (CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK)) ||
+			(SentCommand != CurrentWorkingPacket->Command))
+		{
+			UPSTREAM_SPI_FREAKOUT;
+			Upstream_ReleasePacket(CurrentWorkingPacket);
+			CurrentWorkingPacket = NULL;		//Call back with a NULL packet to indicate error
+		}
+
 		//USB interface may want to receive another packet immediately,
 		//so clear ReceivePacketCallback before the call.
 		//It is the callback's responsibility to release the packet buffer we are passing to it!
 		tempPacketCallback = ReceivePacketCallback;
 		ReceivePacketCallback = NULL;
 		tempPacketCallback(CurrentWorkingPacket);
+		return;
 	}
+	
+	//case default:
+	UPSTREAM_SPI_FREAKOUT;
 }
 
 
 //Something bad happened! Possibly CRC error...
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-	SPI_INTERFACE_FREAKOUT_RETURN_VOID;
+	SpiPacketReceivedCallbackTypeDef tempPacketCallback;
+
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
+	{
+		return;
+	}
+	
+	UPSTREAM_SPI_FREAKOUT;
+
+	if (ReceivePacketCallback != NULL)
+	{
+		tempPacketCallback = ReceivePacketCallback;
+		ReceivePacketCallback = NULL;
+		tempPacketCallback(NULL);			//Call back with a NULL packet to indicate error
+	}
 }
+
+

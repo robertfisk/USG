@@ -30,6 +30,7 @@
 #include "usbh_msc.h"
 #include "downstream_spi.h"
 #include "downstream_msc.h"
+#include "downstream_statemachine.h"
 
 
 

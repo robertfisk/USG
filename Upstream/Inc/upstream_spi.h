@@ -17,32 +17,19 @@
 #define UPSTREAM_PACKET_LEN_MIN		(UPSTREAM_PACKET_HEADER_LEN)
 
 
-#define SPI_INTERFACE_FREAKOUT_RETURN_VOID						\
-	do {														\
-		while (1);												\
-		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/		\
-		/*return;*/												\
+#define UPSTREAM_SPI_FREAKOUT								\
+	do {													\
+		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);		\
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_ERROR;	\
+		Upstream_StateMachine_SetErrorState();				\
+		while (1);											\
 } while (0);
 
-#define SPI_INTERFACE_FREAKOUT_RETURN_HAL_ERROR					\
-	do {														\
-		while (1);												\
-		/*UpstreamInterfaceState = INTERFACE_STATE_ERROR;*/		\
-		/*return HAL_ERROR;*/									\
-} while (0);
-
-#define SPI_INTERFACE_FREAKOUT_NO_RETURN						\
-	do {														\
-		while (1);												\
-		/*while (1);*/											\
-} while (0);
 
 
 
 typedef enum
 {
-	UPSTREAM_INTERFACE_RESET,
-	UPSTREAM_INTERFACE_AWAITING_DEVICE,
 	UPSTREAM_INTERFACE_IDLE,
 	UPSTREAM_INTERFACE_TX_SIZE_WAIT,
 	UPSTREAM_INTERFACE_TX_SIZE,

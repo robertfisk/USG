@@ -13,12 +13,11 @@
 
 
 typedef void (*UpstreamMSCCallbackTypeDef)(HAL_StatusTypeDef result);
-typedef void (*UpstreamMSCCallbackPacketTypeDef)(HAL_StatusTypeDef result,
-												 UpstreamPacketTypeDef* upstreamPacket,
+typedef void (*UpstreamMSCCallbackPacketTypeDef)(UpstreamPacketTypeDef* upstreamPacket,
 												 uint16_t dataLength);
-typedef void (*UpstreamMSCCallbackUintPacketTypeDef)(HAL_StatusTypeDef result,
-													 uint32_t result_uint[],
-													 UpstreamPacketTypeDef* upstreamPacket);
+typedef void (*UpstreamMSCCallbackUintPacketTypeDef)(UpstreamPacketTypeDef* upstreamPacket,
+													 uint32_t result_uint1,
+													 uint32_t result_uint2);
 
 
 HAL_StatusTypeDef Upstream_MSC_TestReady(UpstreamMSCCallbackTypeDef callback);

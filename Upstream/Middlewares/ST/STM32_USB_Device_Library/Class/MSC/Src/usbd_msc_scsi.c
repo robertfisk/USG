@@ -104,15 +104,14 @@ static void SCSI_Verify10(void);
 static int8_t SCSI_CheckAddressRange (uint32_t blk_offset , uint16_t blk_nbr);
 
 void SCSI_TestUnitReadyCallback(HAL_StatusTypeDef result);
-void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
-								 uint32_t result_uint[],
-								 UpstreamPacketTypeDef* upstreamPacket);
-void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
-									 uint32_t result_uint[],
-									 UpstreamPacketTypeDef* packetToUse);
+void SCSI_ReadCapacity10Callback(UpstreamPacketTypeDef* upstreamPacket,
+								 uint32_t result_uint1,
+								 uint32_t result_uint2);
+void SCSI_ReadFormatCapacityCallback(UpstreamPacketTypeDef* upstreamPacket,
+									 uint32_t result_uint1,
+									 uint32_t result_uint2);
 void SCSI_Read10BeginCallback(HAL_StatusTypeDef result);
-void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
-							  UpstreamPacketTypeDef* upstreamPacket,
+void SCSI_Read10ReplyCallback(UpstreamPacketTypeDef* upstreamPacket,
 							  uint16_t dataLength);
 void SCSI_Write10BeginCallback(HAL_StatusTypeDef result);
 void SCSI_Write10FreePacketCallback(UpstreamPacketTypeDef* freePacket);
@@ -316,16 +315,16 @@ static void SCSI_ReadCapacity10(void)
 {
 	if (Upstream_MSC_GetCapacity(SCSI_ReadCapacity10Callback) != HAL_OK)
 	{
-		SCSI_ReadCapacity10Callback(HAL_ERROR, NULL, NULL);
+		SCSI_ReadCapacity10Callback(NULL, 0, 0);
 	}
 }
 
 
-void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
-								 uint32_t result_uint[],
-								 UpstreamPacketTypeDef* upstreamPacket)
+void SCSI_ReadCapacity10Callback(UpstreamPacketTypeDef* upstreamPacket,
+								 uint32_t result_uint1,
+								 uint32_t result_uint2)
 {
-	if (result != HAL_OK)
+	if (upstreamPacket == NULL)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
 					   SCSI_ProcessCmd_lun,
@@ -338,8 +337,8 @@ void SCSI_ReadCapacity10Callback(HAL_StatusTypeDef result,
 	SCSI_ProcessCmd_hmsc->bot_packet = upstreamPacket;
 	SCSI_ProcessCmd_hmsc->bot_data = upstreamPacket->Data;
 
-	SCSI_ProcessCmd_hmsc->scsi_blk_nbr = result_uint[0];
-	SCSI_ProcessCmd_hmsc->scsi_blk_size = result_uint[1];
+	SCSI_ProcessCmd_hmsc->scsi_blk_nbr = result_uint1;
+	SCSI_ProcessCmd_hmsc->scsi_blk_size = result_uint2;
 
 	SCSI_ProcessCmd_hmsc->bot_data[0] = (uint8_t)((SCSI_ProcessCmd_hmsc->scsi_blk_nbr - 1) >> 24);
 	SCSI_ProcessCmd_hmsc->bot_data[1] = (uint8_t)((SCSI_ProcessCmd_hmsc->scsi_blk_nbr - 1) >> 16);
@@ -366,16 +365,16 @@ static void SCSI_ReadFormatCapacity(void)
 {
 	if (Upstream_MSC_GetCapacity(SCSI_ReadFormatCapacityCallback) != HAL_OK)
 	{
-		SCSI_ReadFormatCapacityCallback(HAL_ERROR, NULL, NULL);
+		SCSI_ReadFormatCapacityCallback(NULL, 0, 0);
 	}
 }
 
 
-void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
-									 uint32_t result_uint[],
-									 UpstreamPacketTypeDef* packetToUse)
+void SCSI_ReadFormatCapacityCallback(UpstreamPacketTypeDef* upstreamPacket,
+									 uint32_t result_uint1,
+									 uint32_t result_uint2)
 {
-	if (result != HAL_OK)
+	if (upstreamPacket == NULL)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
 					   SCSI_ProcessCmd_lun,
@@ -385,22 +384,22 @@ void SCSI_ReadFormatCapacityCallback(HAL_StatusTypeDef result,
 		return;
 	}
 
-	SCSI_ProcessCmd_hmsc->bot_packet = packetToUse;
-	SCSI_ProcessCmd_hmsc->bot_data = packetToUse->Data;
+	SCSI_ProcessCmd_hmsc->bot_packet = upstreamPacket;
+	SCSI_ProcessCmd_hmsc->bot_data = upstreamPacket->Data;
 
 	SCSI_ProcessCmd_hmsc->bot_data[0] = 0;
 	SCSI_ProcessCmd_hmsc->bot_data[1] = 0;
 	SCSI_ProcessCmd_hmsc->bot_data[2] = 0;
 	SCSI_ProcessCmd_hmsc->bot_data[3] = 0x08;
-	SCSI_ProcessCmd_hmsc->bot_data[4] = (uint8_t)((result_uint[0] - 1) >> 24);
-	SCSI_ProcessCmd_hmsc->bot_data[5] = (uint8_t)((result_uint[0] - 1) >> 16);
-	SCSI_ProcessCmd_hmsc->bot_data[6] = (uint8_t)((result_uint[0] - 1) >>  8);
-	SCSI_ProcessCmd_hmsc->bot_data[7] = (uint8_t)(result_uint[0] - 1);
+	SCSI_ProcessCmd_hmsc->bot_data[4] = (uint8_t)((result_uint1 - 1) >> 24);
+	SCSI_ProcessCmd_hmsc->bot_data[5] = (uint8_t)((result_uint1 - 1) >> 16);
+	SCSI_ProcessCmd_hmsc->bot_data[6] = (uint8_t)((result_uint1 - 1) >>  8);
+	SCSI_ProcessCmd_hmsc->bot_data[7] = (uint8_t)(result_uint1 - 1);
 
 	SCSI_ProcessCmd_hmsc->bot_data[8] = 0x02;
-	SCSI_ProcessCmd_hmsc->bot_data[9] = (uint8_t)(result_uint[1] >>  16);
-	SCSI_ProcessCmd_hmsc->bot_data[10] = (uint8_t)(result_uint[1] >>  8);
-	SCSI_ProcessCmd_hmsc->bot_data[11] = (uint8_t)(result_uint[1]);
+	SCSI_ProcessCmd_hmsc->bot_data[9] = (uint8_t)(result_uint2 >>  16);
+	SCSI_ProcessCmd_hmsc->bot_data[10] = (uint8_t)(result_uint2 >>  8);
+	SCSI_ProcessCmd_hmsc->bot_data[11] = (uint8_t)(result_uint2);
 
 	SCSI_ProcessCmd_hmsc->bot_data_length = 12;
     SCSI_ProcessCmd_callback(0);
@@ -602,7 +601,7 @@ static void SCSI_Read10(void)
 	//hmsc->bot_state is already USBD_BOT_DATA_IN
 	if (Upstream_MSC_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
-		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
+		SCSI_Read10ReplyCallback(NULL, 0);
 	}
 }
 
@@ -622,16 +621,15 @@ void SCSI_Read10BeginCallback(HAL_StatusTypeDef result)
 
 	if (Upstream_MSC_GetStreamDataPacket(SCSI_Read10ReplyCallback) != HAL_OK)
 	{
-		SCSI_Read10ReplyCallback(HAL_ERROR, NULL, 0);
+		SCSI_Read10ReplyCallback(NULL, 0);
 	}
 }
 
 
-void SCSI_Read10ReplyCallback(HAL_StatusTypeDef result,
-							  UpstreamPacketTypeDef* upstreamPacket,
+void SCSI_Read10ReplyCallback(UpstreamPacketTypeDef* upstreamPacket,
 							  uint16_t dataLength)
 {
-	if (result != HAL_OK)
+	if (upstreamPacket == NULL)
 	{
 		SCSI_SenseCode(SCSI_ProcessCmd_pdev,
 					   SCSI_ProcessCmd_lun,

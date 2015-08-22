@@ -33,11 +33,11 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include <upstream_spi.h>
 #include "stm32f4xx_hal.h"
 #include "usb_device.h"
 #include "board_config.h"
-
+#include "led.h"
+#include "upstream_statemachine.h"
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -52,8 +52,6 @@ static void GPIO_Init(void);
 
 int main(void)
 {
-  /* MCU Configuration----------------------------------------------------------*/
-
   /* Configure the system clock */
   SystemClock_Config();
 
@@ -62,16 +60,16 @@ int main(void)
 
   /* Initialize all configured peripherals */
   GPIO_Init();
+  LED_Init();
   USB_Device_Init();
 
-  Upstream_InitSPI();
+  Upstream_InitStateMachine();
 
 
   while (1)
   {
 
   }
-
 }
 
 /** System Clock Configuration
@@ -102,7 +100,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2)) while(1);
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) while(1);
 
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 }
@@ -153,12 +151,12 @@ void GPIO_Init(void)
 	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
 	STAT_LED_OFF;
 
-	//SPI_DMA_ACTIVE indicator
-	GPIO_InitStruct.Pin = SPI_DMA_ACTIVE_PIN;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(SPI_DMA_ACTIVE_PORT, &GPIO_InitStruct);
-	SPI_DMA_ACTIVE_OFF;
+//	//SPI_DMA_ACTIVE indicator
+//	GPIO_InitStruct.Pin = SPI_DMA_ACTIVE_PIN;
+//	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//	HAL_GPIO_Init(SPI_DMA_ACTIVE_PORT, &GPIO_InitStruct);
+//	SPI_DMA_ACTIVE_OFF;
 }
 
 /* USER CODE BEGIN 4 */

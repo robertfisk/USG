@@ -37,6 +37,7 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "board_config.h"
+#include "led.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -55,7 +56,7 @@ extern DMA_HandleTypeDef	spiRxDmaHandle;
 void SysTick_Handler(void)
 {
   HAL_IncTick();
-
+  LED_DoBlinks();
 }
 
 /////////////////////////
@@ -65,31 +66,31 @@ void SysTick_Handler(void)
 /////////////////////////
 void OTG_FS_IRQHandler(void)
 {
-	STAT_LED_ON;		//blink STAT LED while processing interrupt
+	//STAT_LED_ON;		//blink STAT LED while processing interrupt
 	HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
-	STAT_LED_OFF;
+	//STAT_LED_OFF;
 }
 
 void DMA2_Stream2_IRQHandler(void)
 {
-	SPI_DMA_ACTIVE_ON;
+	//SPI_DMA_ACTIVE_ON;
 	HAL_DMA_IRQHandler(&spiRxDmaHandle);
-	SPI_DMA_ACTIVE_OFF;
+	//SPI_DMA_ACTIVE_OFF;
 }
 
 void DMA2_Stream3_IRQHandler(void)
 {
-	SPI_DMA_ACTIVE_ON;
+	//SPI_DMA_ACTIVE_ON;
 	HAL_DMA_IRQHandler(&spiTxDmaHandle);
-	SPI_DMA_ACTIVE_OFF;
+	//SPI_DMA_ACTIVE_OFF;
 }
 
 void EXTI3_IRQHandler(void)
 {
-	SPI_DMA_ACTIVE_ON;
+	//SPI_DMA_ACTIVE_ON;
 	__HAL_GPIO_EXTI_CLEAR_IT(3);
 	Upstream_TxOkInterrupt();
-	SPI_DMA_ACTIVE_OFF;
+	//SPI_DMA_ACTIVE_OFF;
 }
 /////////////////////////
 /////////////////////////
