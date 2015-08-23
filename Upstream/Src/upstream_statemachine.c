@@ -14,12 +14,13 @@
 #include "usbd_msc.h"
 
 
-UpstreamStateTypeDef			UpstreamState		= STATE_TEST_INTERFACE;
-InterfaceCommandClassTypeDef	ActiveDeviceClass	= COMMAND_CLASS_INTERFACE;
+UpstreamStateTypeDef			UpstreamState			= STATE_TEST_INTERFACE;
+InterfaceCommandClassTypeDef	ConfiguredDeviceClass	= COMMAND_CLASS_INTERFACE;
 
 
-void Upstream_TestInterfaceReplyCallback(UpstreamPacketTypeDef* replyPacket);
-void Upstream_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* replyPacket);
+void Upstream_StateMachine_TestInterfaceReplyCallback(UpstreamPacketTypeDef* replyPacket);
+void Upstream_StateMachine_NotifyDevice(UpstreamPacketTypeDef* freePacket);
+void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* replyPacket);
 
 
 
@@ -42,9 +43,9 @@ void Upstream_InitStateMachine(void)
 	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET;
 	freePacket->CommandClass = COMMAND_CLASS_INTERFACE;
 	freePacket->Command = COMMAND_INTERFACE_ECHO;
-	testDataValue = 0xFF;
 
 	//Fill our test packet with some junk
+	testDataValue = 0xFF;
 	for (i = 0; i < MSC_MEDIA_PACKET; i++)
 	{
 		freePacket->Data[i] = testDataValue;
@@ -53,7 +54,7 @@ void Upstream_InitStateMachine(void)
 
 	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
 	{
-		Upstream_ReceivePacket(Upstream_TestInterfaceReplyCallback);
+		Upstream_ReceivePacket(Upstream_StateMachine_TestInterfaceReplyCallback);
 	}
 }
 
@@ -62,8 +63,8 @@ void Upstream_InitStateMachine(void)
 void Upstream_StateMachine_SetErrorState(void)
 {
 	UpstreamState = STATE_ERROR;
-	if ((ActiveDeviceClass > COMMAND_CLASS_INTERFACE) &&
-		(ActiveDeviceClass < COMMAND_CLASS_ERROR))
+	if ((ConfiguredDeviceClass > COMMAND_CLASS_INTERFACE) &&
+		(ConfiguredDeviceClass < COMMAND_CLASS_ERROR))
 	{
 		USBD_Stop(&hUsbDeviceFS);
 	}
@@ -87,7 +88,7 @@ HAL_StatusTypeDef Upstream_StateMachine_CheckClassOperationOk(void)
 }
 
 
-void Upstream_TestInterfaceReplyCallback(UpstreamPacketTypeDef* replyPacket)
+void Upstream_StateMachine_TestInterfaceReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
 	uint16_t i;
 	uint8_t  testDataValue;
@@ -121,21 +122,29 @@ void Upstream_TestInterfaceReplyCallback(UpstreamPacketTypeDef* replyPacket)
 		testDataValue += 39;
 	}
 
-
 	//SPI interface passed checks. Now we wait for a device to be attached to downstream.
+	Upstream_StateMachine_NotifyDevice(replyPacket);
+}
+
+
+void Upstream_StateMachine_NotifyDevice(UpstreamPacketTypeDef* freePacket)
+{
 	UpstreamState = STATE_WAIT_DEVICE;
-	replyPacket->Length = UPSTREAM_PACKET_HEADER_LEN;
-	replyPacket->CommandClass = COMMAND_CLASS_INTERFACE;
-	replyPacket->Command = COMMAND_INTERFACE_NOTIFY_DEVICE;
-	if (Upstream_TransmitPacket(replyPacket) == HAL_OK)
+	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN;
+	freePacket->CommandClass = COMMAND_CLASS_INTERFACE;
+	freePacket->Command = COMMAND_INTERFACE_NOTIFY_DEVICE;
+	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
 	{
-		Upstream_ReceivePacket(Upstream_NotifyDeviceReplyCallback);
+		Upstream_ReceivePacket(Upstream_StateMachine_NotifyDeviceReplyCallback);
 	}
 }
 
 
-void Upstream_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* replyPacket)
+void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
+	InterfaceCommandClassTypeDef newActiveClass = COMMAND_CLASS_INTERFACE;
+	USBD_ClassTypeDef*			 newClassPointer;
+
 	if (UpstreamState >= STATE_ERROR)
 	{
 		return;
@@ -157,20 +166,47 @@ void Upstream_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* replyPacket)
 	switch (replyPacket->Data[0])
 	{
 	case COMMAND_CLASS_MASS_STORAGE:
-		USBD_RegisterClass(&hUsbDeviceFS, &USBD_MSC);
+		newActiveClass = COMMAND_CLASS_MASS_STORAGE;
+		newClassPointer = &USBD_MSC;
 		break;
 
-	default:
+	//Add other supported classes here...
+	}
+
+	if (newActiveClass == COMMAND_CLASS_INTERFACE)
+	{
 		UPSTREAM_STATEMACHINE_FREAKOUT;
 		return;
 	}
 
-	USBD_Start(&hUsbDeviceFS);
+	//Downstream should never change the active device class without rebooting!
+	if ((ConfiguredDeviceClass != COMMAND_CLASS_INTERFACE) &&
+		(ConfiguredDeviceClass != newActiveClass))
+	{
+		UPSTREAM_STATEMACHINE_FREAKOUT;
+		return;
+	}
+
 	UpstreamState = STATE_DEVICE_ACTIVE;
-	ActiveDeviceClass = replyPacket->Data[0];
+	ConfiguredDeviceClass = newActiveClass;
+	USBD_RegisterClass(&hUsbDeviceFS, newClassPointer);
+	USBD_Start(&hUsbDeviceFS);
 
 	//The USB device stack will now receive commands from our host.
-	//All we need to do is check for downstream device removal.
+	//All we need to do is monitor for downstream device disconnection.
 }
 
+
+void Upstream_StateMachine_DeviceDisconnected(void)
+{
+	if ((ConfiguredDeviceClass == COMMAND_CLASS_INTERFACE) ||
+		(ConfiguredDeviceClass >= COMMAND_CLASS_ERROR))
+	{
+		UPSTREAM_STATEMACHINE_FREAKOUT;
+		return;
+	}
+
+	USBD_Stop(&hUsbDeviceFS);
+	Upstream_GetFreePacket(Upstream_StateMachine_NotifyDevice);
+}
 

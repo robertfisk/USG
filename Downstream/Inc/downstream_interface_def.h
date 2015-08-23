@@ -49,5 +49,13 @@ typedef enum
 InterfaceCommandMscTypeDef;
 
 
+typedef enum
+{
+	COMMAND_ERROR_GENERIC,
+	COMMAND_ERROR_DEVICE_DISCONNECTED,
+}
+InterfaceCommandErrorTypeDef;
+
+
 
 #endif /* INC_DOWNSTREAM_INTERFACE_DEF_H_ */

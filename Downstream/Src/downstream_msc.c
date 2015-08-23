@@ -151,7 +151,7 @@ void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef resu
 {
 	if (result != USBH_OK)
 	{
-		Downstream_GetFreePacket(Downstream_PacketProcessor_ErrorReply);
+		Downstream_GetFreePacket(Downstream_PacketProcessor_GenericErrorReply);
 		return;
 	}
 	Downstream_ReceivePacket(Downstream_PacketProcessor);

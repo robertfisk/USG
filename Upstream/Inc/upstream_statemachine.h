@@ -33,6 +33,7 @@ typedef enum
 void Upstream_InitStateMachine(void);
 void Upstream_StateMachine_SetErrorState(void);
 HAL_StatusTypeDef Upstream_StateMachine_CheckClassOperationOk(void);
+void Upstream_StateMachine_DeviceDisconnected(void);
 
 
 

@@ -27,7 +27,6 @@
 
 
 
-
 typedef enum
 {
 	UPSTREAM_INTERFACE_IDLE,

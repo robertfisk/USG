@@ -24,12 +24,16 @@ InterfaceStateTypeDef				UpstreamInterfaceState		= UPSTREAM_INTERFACE_IDLE;
 FreePacketCallbackTypeDef			PendingFreePacketCallback	= NULL;	//Indicates someone is waiting for a packet buffer to become available
 SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback		= NULL;	//Indicates someone is waiting for a received packet
 
+uint8_t						TxOkInterruptReceived = 0;
 uint8_t						SentCommandClass;
 uint8_t						SentCommand;
 
 
-static HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void);
-static void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket);
+void Upstream_BeginTransmitPacketSize(void);
+void Upstream_BeginTransmitPacketBody(void);
+HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void);
+void Upstream_BeginReceivePacketSize(UpstreamPacketTypeDef* freePacket);
+void Upstream_BeginReceivePacketBody(void);
 
 
 
@@ -191,6 +195,14 @@ HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 		CurrentWorkingPacket = packetToWrite;
 		SentCommandClass = CurrentWorkingPacket->CommandClass;
 		SentCommand = CurrentWorkingPacket->Command;
+
+		//Downstream may have set TxOk pin before we wanted to transmit.
+		//In this case we can go ahead and transmit now.
+		if (TxOkInterruptReceived)
+		{
+			TxOkInterruptReceived = 0;
+			Upstream_BeginTransmitPacketSize();
+		}
 		break;
 
 	default:
@@ -217,6 +229,11 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_TX_SIZE)
 	{
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET_WAIT;
+		if (TxOkInterruptReceived)
+		{
+			TxOkInterruptReceived = 0;
+			Upstream_BeginTransmitPacketBody();
+		}
 		return;
 	}
 
@@ -241,6 +258,11 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 			UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE_WAIT;
 			CurrentWorkingPacket = NextTxPacket;
 			NextTxPacket = NULL;
+			if (TxOkInterruptReceived)
+			{
+				TxOkInterruptReceived = 0;
+				Upstream_BeginTransmitPacketSize();
+			}
 			return;
 		}
 
@@ -286,7 +308,7 @@ HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void)
 		return HAL_ERROR;
 	}
 	
-	if (UpstreamInterfaceState > UPSTREAM_INTERFACE_RX_SIZE_WAIT)
+	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_RX_SIZE_WAIT)
 	{
 		UPSTREAM_SPI_FREAKOUT;
 		return HAL_ERROR;
@@ -295,6 +317,11 @@ HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void)
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_IDLE)
 	{
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_SIZE_WAIT;
+		if (TxOkInterruptReceived)
+		{
+			TxOkInterruptReceived = 0;
+			Upstream_GetFreePacket(Upstream_BeginReceivePacketSize);
+		}
 	}
 	return HAL_OK;
 }
@@ -311,41 +338,24 @@ void Upstream_TxOkInterrupt(void)
 	
 	switch (UpstreamInterfaceState)
 	{
+	case UPSTREAM_INTERFACE_IDLE:
+		TxOkInterruptReceived = 1;
+		break;
+
 	case UPSTREAM_INTERFACE_TX_SIZE_WAIT:
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE;
-		SPI1_NSS_ASSERT;
-		if (HAL_SPI_Transmit_DMA(&Hspi1,
-								 (uint8_t*)&CurrentWorkingPacket->Length,
-								 2) != HAL_OK)
-		{
-			UPSTREAM_SPI_FREAKOUT;
-		}
+		Upstream_BeginTransmitPacketSize();
 		break;
 
 	case UPSTREAM_INTERFACE_TX_PACKET_WAIT:
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET;
-		SPI1_NSS_ASSERT;
-		if ((HAL_SPI_Transmit_DMA(&Hspi1,
-								  &CurrentWorkingPacket->CommandClass,
-								  CurrentWorkingPacket->Length)) != HAL_OK)
-		{
-			UPSTREAM_SPI_FREAKOUT;
-		}
+		Upstream_BeginTransmitPacketBody();
 		break;
 
 	case UPSTREAM_INTERFACE_RX_SIZE_WAIT:
-		Upstream_GetFreePacket(Upstream_BeginPacketReception);
+		Upstream_GetFreePacket(Upstream_BeginReceivePacketSize);
 		break;
 
 	case UPSTREAM_INTERFACE_RX_PACKET_WAIT:
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET;
-		SPI1_NSS_ASSERT;
-		if ((HAL_SPI_Receive_DMA(&Hspi1,
-								 &CurrentWorkingPacket->CommandClass,
-								 (CurrentWorkingPacket->Length + 1))) != HAL_OK)	//"When the CRC feature is enabled the pData Length must be Size + 1"
-		{
-			UPSTREAM_SPI_FREAKOUT;
-		}
+		Upstream_BeginReceivePacketBody();
 		break;
 
 	default:
@@ -354,9 +364,35 @@ void Upstream_TxOkInterrupt(void)
 }
 
 
+void Upstream_BeginTransmitPacketSize(void)
+{
+	UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE;
+	SPI1_NSS_ASSERT;
+	if (HAL_SPI_Transmit_DMA(&Hspi1,
+							 (uint8_t*)&CurrentWorkingPacket->Length,
+							 2) != HAL_OK)
+	{
+		UPSTREAM_SPI_FREAKOUT;
+	}
+}
+
+
+void Upstream_BeginTransmitPacketBody(void)
+{
+	UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET;
+	SPI1_NSS_ASSERT;
+	if ((HAL_SPI_Transmit_DMA(&Hspi1,
+							  &CurrentWorkingPacket->CommandClass,
+							  CurrentWorkingPacket->Length)) != HAL_OK)
+	{
+		UPSTREAM_SPI_FREAKOUT;
+	}
+}
+
+
 //Internal use only.
 //Called when we want to receive downstream packet, and a packet buffer has become free.
-void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket)
+void Upstream_BeginReceivePacketSize(UpstreamPacketTypeDef* freePacket)
 {
 	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
@@ -375,6 +411,19 @@ void Upstream_BeginPacketReception(UpstreamPacketTypeDef* freePacket)
 	if (HAL_SPI_Receive_DMA(&Hspi1,
 							(uint8_t*)&CurrentWorkingPacket->Length,
 							(2 + 1)) != HAL_OK)		//"When the CRC feature is enabled the pData Length must be Size + 1"
+	{
+		UPSTREAM_SPI_FREAKOUT;
+	}
+}
+
+
+void Upstream_BeginReceivePacketBody(void)
+{
+	UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET;
+	SPI1_NSS_ASSERT;
+	if ((HAL_SPI_Receive_DMA(&Hspi1,
+							 &CurrentWorkingPacket->CommandClass,
+							 (CurrentWorkingPacket->Length + 1))) != HAL_OK)	//"When the CRC feature is enabled the pData Length must be Size + 1"
 	{
 		UPSTREAM_SPI_FREAKOUT;
 	}
@@ -403,20 +452,34 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 			return;
 		}
 		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET_WAIT;
+		if (TxOkInterruptReceived)
+		{
+			TxOkInterruptReceived = 0;
+			Upstream_BeginReceivePacketBody();
+		}
 		return;
 	}
 
 	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_PACKET)
 	{
+		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
 		if (ReceivePacketCallback == NULL)
 		{
 			UPSTREAM_SPI_FREAKOUT;
 			return;
 		}
 
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
-		if ((SentCommandClass != (CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK)) ||
-			(SentCommand != CurrentWorkingPacket->Command))
+		if ((CurrentWorkingPacket->CommandClass == COMMAND_CLASS_ERROR) &&
+			(CurrentWorkingPacket->Command == COMMAND_ERROR_DEVICE_DISCONNECTED))
+		{
+			Upstream_ReleasePacket(CurrentWorkingPacket);
+			ReceivePacketCallback = NULL;
+			Upstream_StateMachine_DeviceDisconnected();
+			return;
+		}
+
+		if (((CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK) != SentCommandClass) ||
+			(CurrentWorkingPacket->Command != SentCommand))
 		{
 			UPSTREAM_SPI_FREAKOUT;
 			Upstream_ReleasePacket(CurrentWorkingPacket);

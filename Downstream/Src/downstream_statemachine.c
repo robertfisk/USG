@@ -43,21 +43,38 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 		return;
 	}
 
-	switch (receivedPacket->CommandClass)
+	if (receivedPacket->CommandClass == COMMAND_CLASS_INTERFACE)
 	{
-	case COMMAND_CLASS_INTERFACE:
 		if (DownstreamState > STATE_DEVICE_READY)
 		{
 			DOWNSTREAM_STATEMACHINE_FREAKOUT;
+			return;
 		}
 		Downstream_PacketProcessor_Interface(receivedPacket);
-		break;
+		return;
+	}
 
+	//If we get a class-specific message when our device is disconnected,
+	//we need to tell Upstream of the fact (and not freak out).
+	if (DownstreamState == STATE_DEVICE_NOT_READY)
+	{
+		receivedPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN;
+		receivedPacket->CommandClass = COMMAND_CLASS_ERROR;
+		receivedPacket->Command = COMMAND_ERROR_DEVICE_DISCONNECTED;
+		Downstream_PacketProcessor_ClassReply(receivedPacket);
+		return;
+	}
+
+	//We should only receive class-specific messages when we are in the Active state.
+	if (DownstreamState != STATE_ACTIVE)
+	{
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
+		return;
+	}
+
+	switch (receivedPacket->CommandClass)
+	{
 	case COMMAND_CLASS_MASS_STORAGE:
-		if (DownstreamState != STATE_ACTIVE)
-		{
-			DOWNSTREAM_STATEMACHINE_FREAKOUT;
-		}
 		Downstream_MSC_PacketProcessor(receivedPacket);
 		break;
 
@@ -89,11 +106,9 @@ void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacke
 	switch (receivedPacket->Command)
 	{
 	case COMMAND_INTERFACE_ECHO:
-		if (Downstream_TransmitPacket(receivedPacket) == HAL_OK)
-		{
-			Downstream_ReceivePacket(Downstream_PacketProcessor);
-		}
-		return;
+		Downstream_TransmitPacket(receivedPacket);
+		Downstream_ReceivePacket(Downstream_PacketProcessor);
+		break;
 
 	case COMMAND_INTERFACE_NOTIFY_DEVICE:
 		if (DownstreamState == STATE_DEVICE_READY)
@@ -109,7 +124,7 @@ void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacke
 			return;
 		}
 		DOWNSTREAM_STATEMACHINE_FREAKOUT;
-		return;
+		break;
 
 
 	default:
@@ -133,24 +148,21 @@ void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketType
 }
 
 
-void Downstream_PacketProcessor_ErrorReply(DownstreamPacketTypeDef* replyPacket)
+void Downstream_PacketProcessor_GenericErrorReply(DownstreamPacketTypeDef* replyPacket)
 {
 	replyPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN;
 	replyPacket->CommandClass = COMMAND_CLASS_ERROR;
+	replyPacket->Command = COMMAND_ERROR_GENERIC;
 
-	if (Downstream_TransmitPacket(replyPacket) == HAL_OK)
-	{
-		Downstream_ReceivePacket(Downstream_PacketProcessor);
-	}
+	Downstream_TransmitPacket(replyPacket);
+	Downstream_ReceivePacket(Downstream_PacketProcessor);
 }
 
 
 void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket)
 {
-	if (Downstream_TransmitPacket(replyPacket) == HAL_OK)
-	{
-		Downstream_ReceivePacket(Downstream_PacketProcessor);
-	}
+	Downstream_TransmitPacket(replyPacket);
+	Downstream_ReceivePacket(Downstream_PacketProcessor);
 }
 
 
@@ -173,14 +185,12 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		return;
 	}
 
-	//Elevate our priority level so we aren't interrupted
-	__set_BASEPRI(INT_PRIORITY_OTG_FS);
-
+	__set_BASEPRI(INT_PRIORITY_OTG_FS);		//Elevate our priority level so we aren't interrupted
 
 	//Called from main()
 	if (id == HOST_USER_UNRECOVERED_ERROR)
 	{
-		DOWNSTREAM_STATEMACHINE_FREAKOUT_NORETURN;
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		__set_BASEPRI(0);
 		return;
 	}
@@ -212,7 +222,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		//If the new device has failed its 'approval' checks, we are sufficiently freaked out.
 		if (newActiveClass == COMMAND_CLASS_INTERFACE)
 		{
-			DOWNSTREAM_STATEMACHINE_FREAKOUT_NORETURN;
+			DOWNSTREAM_STATEMACHINE_FREAKOUT;
 			__set_BASEPRI(0);
 			return;
 		}
@@ -222,7 +232,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		if ((ConfiguredDeviceClass != COMMAND_CLASS_INTERFACE) &&
 			(ConfiguredDeviceClass != newActiveClass))
 		{
-			DOWNSTREAM_STATEMACHINE_FREAKOUT_NORETURN;
+			DOWNSTREAM_STATEMACHINE_FREAKOUT;
 			__set_BASEPRI(0);
 			return;
 		}
@@ -242,7 +252,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 			return;
 		}
 
-		DOWNSTREAM_STATEMACHINE_FREAKOUT_NORETURN;
+		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		__set_BASEPRI(0);
 		return;
 	}

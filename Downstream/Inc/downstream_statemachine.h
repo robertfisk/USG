@@ -28,14 +28,6 @@ typedef enum
 	do {												\
 		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
 		DownstreamState = STATE_ERROR;					\
-		return;											\
-} while (0);
-
-
-#define DOWNSTREAM_STATEMACHINE_FREAKOUT_NORETURN		\
-	do {												\
-		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
-		DownstreamState = STATE_ERROR;					\
 } while (0);
 
 
@@ -44,7 +36,7 @@ typedef enum
 void Downstream_InitStateMachine(void);
 void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id);
 void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_PacketProcessor_ErrorReply(DownstreamPacketTypeDef* replyPacket);
+void Downstream_PacketProcessor_GenericErrorReply(DownstreamPacketTypeDef* replyPacket);
 void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket);
 void Downstream_PacketProcessor_SetErrorState(void);
 void Downstream_PacketProcessor_FreakOut(void);
