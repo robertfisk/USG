@@ -37,6 +37,11 @@ HAL_StatusTypeDef Downstream_MSC_ApproveConnectedDevice(void)
 {
 	MSC_HandleTypeDef* MSC_Handle =  (MSC_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
+	if (MSC_Handle->unit[MSC_FIXED_LUN].error != MSC_OK)
+	{
+		return HAL_ERROR;
+	}
+
 	if ((MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr == 0) ||
 		(MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr == UINT32_MAX))
 	{

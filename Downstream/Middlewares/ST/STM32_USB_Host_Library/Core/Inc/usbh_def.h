@@ -94,6 +94,9 @@
 #define  LE32S(addr)              (int32_t)(LE32((addr)))
 
 
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+
 
 #define  USB_LEN_DESC_HDR                               0x02
 #define  USB_LEN_DEV_DESC                               0x12

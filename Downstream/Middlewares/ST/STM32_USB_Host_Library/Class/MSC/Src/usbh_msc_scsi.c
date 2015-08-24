@@ -352,6 +352,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Write(USBH_HandleTypeDef *phost,
 
     MSC_Handle->hbot.state = BOT_SEND_CBW;
     MSC_Handle->hbot.cmd_state = BOT_CMD_WAIT;
+    MSC_Handle->hbot.pbuf = NULL;
     error = USBH_BUSY; 
     break;
     
@@ -408,6 +409,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
 
     MSC_Handle->hbot.state = BOT_SEND_CBW;
     MSC_Handle->hbot.cmd_state = BOT_CMD_WAIT;
+    MSC_Handle->hbot.pbuf = NULL;
     error = USBH_BUSY; 
     break;
     

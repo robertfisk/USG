@@ -142,6 +142,7 @@ typedef struct
   uint8_t                    Reserved2[3];
   uint8_t*                   pbuf;
   DownstreamPacketTypeDef*	 bot_packet;
+  uint8_t*					 bot_packet_pbuf;
   uint16_t					 bot_packet_bytes_remaining;
   uint16_t					 this_URB_size;
 } 

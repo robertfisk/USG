@@ -36,11 +36,12 @@
 
 static USBH_StatusTypeDef USBH_MSC_BOT_Abort(USBH_HandleTypeDef *phost, uint8_t lun, uint8_t dir);
 static BOT_CSWStatusTypeDef USBH_MSC_DecodeCSW(USBH_HandleTypeDef *phost);
-void USBH_MSC_BOT_Read_FreePacketCallback(DownstreamPacketTypeDef* freePacket);
-void USBH_MSC_BOT_Read_PrepareURB(USBH_HandleTypeDef *phost);
-void USBH_MSC_BOT_Write_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
+void USBH_MSC_BOT_Read_Multipacket_FreePacketCallback(DownstreamPacketTypeDef* freePacket);
+void USBH_MSC_BOT_Read_Multipacket_PrepareURB(USBH_HandleTypeDef *phost);
+void USBH_MSC_BOT_Write_Multipacket_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
 											  uint16_t dataLength);
-void USBH_MSC_BOT_Write_PrepareURB(USBH_HandleTypeDef *phost);
+void USBH_MSC_BOT_Write_Multipacket_PrepareURB(USBH_HandleTypeDef *phost);
+
 
 
 USBH_HandleTypeDef *Callback_MSC_phost;
@@ -175,13 +176,26 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     }
     break;
     
-  case BOT_DATA_IN:   
-    /* Get first packet */
-	Callback_MSC_phost = phost;
+  case BOT_DATA_IN:
 	MSC_Handle->hbot.state = BOT_DATA_IN_WAIT;
-	if (Downstream_GetFreePacket(USBH_MSC_BOT_Read_FreePacketCallback) != HAL_OK)
+	if (MSC_Handle->hbot.pbuf != NULL)
 	{
-		MSC_Handle->hbot.state = BOT_ERROR_IN;
+		//Simple single-buffer operation
+		MSC_Handle->hbot.this_URB_size = MIN(MSC_Handle->hbot.cbw.field.DataTransferLength,
+											 MSC_Handle->InEpSize);
+		USBH_BulkReceiveData (phost,
+							  MSC_Handle->hbot.pbuf,
+							  MSC_Handle->hbot.this_URB_size,
+							  MSC_Handle->InPipe);
+	}
+	else
+	{
+		//Asynchronous multi-packet operation: get first packet
+		Callback_MSC_phost = phost;
+		if (Downstream_GetFreePacket(USBH_MSC_BOT_Read_Multipacket_FreePacketCallback) != HAL_OK)
+		{
+			MSC_Handle->hbot.state = BOT_ERROR_IN;
+		}
 	}
 	break;
     
@@ -191,39 +205,49 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     if (URB_Status == USBH_URB_DONE)
     {
     	MSC_Handle->hbot.cbw.field.DataTransferLength -= MSC_Handle->hbot.this_URB_size;
-    	MSC_Handle->hbot.bot_packet_bytes_remaining -= MSC_Handle->hbot.this_URB_size;
-    	MSC_Handle->hbot.pbuf += MSC_Handle->hbot.this_URB_size;
 
-    	if (MSC_Handle->hbot.cbw.field.DataTransferLength == 0)
+    	if (MSC_Handle->hbot.pbuf != NULL)
     	{
-    		//End of reception: dispatch last packet
-    		MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
-    		Downstream_MSC_PutStreamDataPacket(MSC_Handle->hbot.bot_packet,
-    										   (BOT_PAGE_LENGTH - MSC_Handle->hbot.bot_packet_bytes_remaining));
+    		//Simple single-buffer operation: everything must fit in one URB
+			MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
     	}
     	else
     	{
-    		//Still more data to receive
-    		if (MSC_Handle->hbot.bot_packet_bytes_remaining == 0)
-    		{
-    			//Dispatch current bot_packet, then get a new one
-    			if (Downstream_MSC_PutStreamDataPacket(MSC_Handle->hbot.bot_packet,
-    			    								   (BOT_PAGE_LENGTH - MSC_Handle->hbot.bot_packet_bytes_remaining)) != HAL_OK)
-    			{
-    				MSC_Handle->hbot.state  = BOT_ERROR_IN;
-    				break;
-    			}
-    			if (Downstream_GetFreePacket(USBH_MSC_BOT_Read_FreePacketCallback) != HAL_OK)
-    			{
-    				MSC_Handle->hbot.state  = BOT_ERROR_IN;
-    				break;
-    			}
-    		}
-    		else
-    		{
-    			//Continue filling the current bot_packet
-    			USBH_MSC_BOT_Read_PrepareURB(phost);
-    		}
+    		//Asynchronous multi-packet operation
+			MSC_Handle->hbot.bot_packet_bytes_remaining -= MSC_Handle->hbot.this_URB_size;
+			MSC_Handle->hbot.bot_packet_pbuf += MSC_Handle->hbot.this_URB_size;
+
+			if (MSC_Handle->hbot.cbw.field.DataTransferLength == 0)
+			{
+				//End of reception: dispatch last packet
+				MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
+				Downstream_MSC_PutStreamDataPacket(MSC_Handle->hbot.bot_packet,
+												   (BOT_PAGE_LENGTH - MSC_Handle->hbot.bot_packet_bytes_remaining));
+			}
+			else
+			{
+				//Still more data to receive
+				if (MSC_Handle->hbot.bot_packet_bytes_remaining == 0)
+				{
+					//Dispatch current bot_packet, then get a new one
+					if (Downstream_MSC_PutStreamDataPacket(MSC_Handle->hbot.bot_packet,
+														   (BOT_PAGE_LENGTH - MSC_Handle->hbot.bot_packet_bytes_remaining)) != HAL_OK)
+					{
+						MSC_Handle->hbot.state  = BOT_ERROR_IN;
+						break;
+					}
+					if (Downstream_GetFreePacket(USBH_MSC_BOT_Read_Multipacket_FreePacketCallback) != HAL_OK)
+					{
+						MSC_Handle->hbot.state  = BOT_ERROR_IN;
+						break;
+					}
+				}
+				else
+				{
+					//Continue filling the current bot_packet
+					USBH_MSC_BOT_Read_Multipacket_PrepareURB(phost);
+				}
+			}
     	}
     }
 
@@ -242,11 +266,26 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     break;  
     
   case BOT_DATA_OUT:
-	Callback_MSC_phost = phost;
 	MSC_Handle->hbot.state = BOT_DATA_OUT_WAIT;
-	if (Downstream_MSC_GetStreamDataPacket(USBH_MSC_BOT_Write_ReceivePacketCallback) != HAL_OK)
+	if (MSC_Handle->hbot.pbuf != NULL)
 	{
-		MSC_Handle->hbot.state  = BOT_ERROR_OUT;
+		//Simple single-buffer operation
+		MSC_Handle->hbot.this_URB_size = MIN(MSC_Handle->hbot.cbw.field.DataTransferLength,
+											 MSC_Handle->OutEpSize);
+		USBH_BulkSendData (phost,
+						   MSC_Handle->hbot.pbuf,
+						   MSC_Handle->hbot.this_URB_size,
+						   MSC_Handle->OutPipe,
+						   1);
+	}
+	else
+	{
+		//Asynchronous multi-packet operation: get first packet
+		Callback_MSC_phost = phost;
+		if (Downstream_MSC_GetStreamDataPacket(USBH_MSC_BOT_Write_Multipacket_ReceivePacketCallback) != HAL_OK)
+		{
+			MSC_Handle->hbot.state  = BOT_ERROR_OUT;
+		}
 	}
 	break;
     
@@ -256,30 +295,39 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
     if(URB_Status == USBH_URB_DONE)
     {
     	MSC_Handle->hbot.cbw.field.DataTransferLength -= MSC_Handle->hbot.this_URB_size;
-    	MSC_Handle->hbot.bot_packet_bytes_remaining -= MSC_Handle->hbot.this_URB_size;
-    	MSC_Handle->hbot.pbuf += MSC_Handle->hbot.this_URB_size;
 
-    	if (MSC_Handle->hbot.cbw.field.DataTransferLength == 0)
-    	{
-    		//End of reception
-    		MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
-    	}
+    	if (MSC_Handle->hbot.pbuf != NULL)
+		{
+    		//Simple single-buffer operation: everything must fit in one URB
+			MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
+		}
     	else
     	{
-    		//Still more data to receive
-    		if (MSC_Handle->hbot.bot_packet_bytes_remaining == 0)
-    		{
-    			//Get next bot_packet
-    			if (Downstream_MSC_GetStreamDataPacket(USBH_MSC_BOT_Write_ReceivePacketCallback) != HAL_OK)
-    			{
-    				MSC_Handle->hbot.state  = BOT_ERROR_OUT;
-    			}
-    		}
-    		else
-    		{
-    			//Continue reading the current bot_packet
-    			USBH_MSC_BOT_Write_PrepareURB(phost);
-    		}
+    		//Asynchronous multi-packet operation
+        	MSC_Handle->hbot.bot_packet_bytes_remaining -= MSC_Handle->hbot.this_URB_size;
+        	MSC_Handle->hbot.bot_packet_pbuf += MSC_Handle->hbot.this_URB_size;
+			if (MSC_Handle->hbot.cbw.field.DataTransferLength == 0)
+			{
+				//End of transmission
+				MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
+			}
+			else
+			{
+				//Still more data to send
+				if (MSC_Handle->hbot.bot_packet_bytes_remaining == 0)
+				{
+					//Get next bot_packet
+					if (Downstream_MSC_GetStreamDataPacket(USBH_MSC_BOT_Write_Multipacket_ReceivePacketCallback) != HAL_OK)
+					{
+						MSC_Handle->hbot.state  = BOT_ERROR_OUT;
+					}
+				}
+				else
+				{
+					//Continue writing the current bot_packet
+					USBH_MSC_BOT_Write_Multipacket_PrepareURB(phost);
+				}
+			}
     	}
     }
     
@@ -385,7 +433,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
 }
 
 
-void USBH_MSC_BOT_Read_FreePacketCallback(DownstreamPacketTypeDef* freePacket)
+void USBH_MSC_BOT_Read_Multipacket_FreePacketCallback(DownstreamPacketTypeDef* freePacket)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) Callback_MSC_phost->pActiveClass->pData;
 
@@ -396,13 +444,13 @@ void USBH_MSC_BOT_Read_FreePacketCallback(DownstreamPacketTypeDef* freePacket)
 	}
 
 	MSC_Handle->hbot.bot_packet = freePacket;
-	MSC_Handle->hbot.pbuf = freePacket->Data;
+	MSC_Handle->hbot.bot_packet_pbuf = freePacket->Data;
 	MSC_Handle->hbot.bot_packet_bytes_remaining = BOT_PAGE_LENGTH;
-	USBH_MSC_BOT_Read_PrepareURB(Callback_MSC_phost);
+	USBH_MSC_BOT_Read_Multipacket_PrepareURB(Callback_MSC_phost);
 }
 
 
-void USBH_MSC_BOT_Read_PrepareURB(USBH_HandleTypeDef *phost)
+void USBH_MSC_BOT_Read_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
 
@@ -417,14 +465,14 @@ void USBH_MSC_BOT_Read_PrepareURB(USBH_HandleTypeDef *phost)
 	}
 
 	USBH_BulkReceiveData(phost,
-						 MSC_Handle->hbot.pbuf,
+						 MSC_Handle->hbot.bot_packet_pbuf,
 						 MSC_Handle->hbot.this_URB_size,
 						 MSC_Handle->InPipe);
 }
 
 
-void USBH_MSC_BOT_Write_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
-											  uint16_t dataLength)
+void USBH_MSC_BOT_Write_Multipacket_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
+														  uint16_t dataLength)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) Callback_MSC_phost->pActiveClass->pData;
 
@@ -435,13 +483,13 @@ void USBH_MSC_BOT_Write_ReceivePacketCallback(DownstreamPacketTypeDef* receivedP
 	}
 
 	MSC_Handle->hbot.bot_packet = receivedPacket;
-	MSC_Handle->hbot.pbuf = receivedPacket->Data;
+	MSC_Handle->hbot.bot_packet_pbuf = receivedPacket->Data;
 	MSC_Handle->hbot.bot_packet_bytes_remaining = dataLength;
-	USBH_MSC_BOT_Write_PrepareURB(Callback_MSC_phost);
+	USBH_MSC_BOT_Write_Multipacket_PrepareURB(Callback_MSC_phost);
 }
 
 
-void USBH_MSC_BOT_Write_PrepareURB(USBH_HandleTypeDef *phost)
+void USBH_MSC_BOT_Write_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
 {
 	MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
 
@@ -455,7 +503,7 @@ void USBH_MSC_BOT_Write_PrepareURB(USBH_HandleTypeDef *phost)
 		MSC_Handle->hbot.this_URB_size = MSC_Handle->OutEpSize;
 	}
 	USBH_BulkSendData (phost,
-					   MSC_Handle->hbot.pbuf,
+					   MSC_Handle->hbot.bot_packet_pbuf,
 					   MSC_Handle->hbot.this_URB_size,
 					   MSC_Handle->OutPipe,
 					   1);
