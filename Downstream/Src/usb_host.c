@@ -42,7 +42,6 @@
 USBH_HandleTypeDef hUsbHostFS;
 
 
-
 /* init function */				        
 void USB_Host_Init(void)
 {
@@ -60,7 +59,8 @@ void USB_Host_Init(void)
 void USB_Host_Process()
 {
   /* USB Host Background task */
-    USBH_Process(&hUsbHostFS); 						
+	USBH_Process(&hUsbHostFS);
+
 }
 
 

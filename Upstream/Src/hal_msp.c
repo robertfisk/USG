@@ -74,7 +74,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     */
     GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -82,6 +82,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     SPI1_NSS_DEASSERT;
     GPIO_InitStruct.Pin = SPI1_NSS_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(SPI1_NSS_PORT, &GPIO_InitStruct);
 
 	//Configure downstream request pin and interrupt
@@ -100,8 +101,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	spiTxDmaHandle.Init.Direction = DMA_MEMORY_TO_PERIPH;
 	spiTxDmaHandle.Init.PeriphInc = DMA_PINC_DISABLE;
 	spiTxDmaHandle.Init.MemInc = DMA_MINC_ENABLE;
-	spiTxDmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-	spiTxDmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	spiTxDmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;	//DMA_PDATAALIGN_BYTE;
+	spiTxDmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;		//DMA_MDATAALIGN_BYTE;
 	spiTxDmaHandle.Init.Mode = DMA_NORMAL;
 	spiTxDmaHandle.Init.Priority = DMA_PRIORITY_MEDIUM;
 	spiTxDmaHandle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
@@ -117,8 +118,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	spiRxDmaHandle.Init.Direction = DMA_PERIPH_TO_MEMORY;
 	spiRxDmaHandle.Init.PeriphInc = DMA_PINC_DISABLE;
 	spiRxDmaHandle.Init.MemInc = DMA_MINC_ENABLE;
-	spiRxDmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-	spiRxDmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	spiRxDmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;	//DMA_PDATAALIGN_BYTE;
+	spiRxDmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;		//DMA_MDATAALIGN_BYTE;
 	spiRxDmaHandle.Init.Mode = DMA_NORMAL;
 	spiRxDmaHandle.Init.Priority = DMA_PRIORITY_MEDIUM;
 	spiRxDmaHandle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;

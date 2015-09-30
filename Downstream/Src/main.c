@@ -35,8 +35,8 @@
 #include "usb_host.h"
 #include "board_config.h"
 #include "downstream_statemachine.h"
+#include "downstream_spi.h"
 #include "led.h"
-
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,7 +63,7 @@ int main(void)
 	while (1)
 	{
 		USB_Host_Process();
-
+		Downstream_SPIProcess();
 	}
 }
 
@@ -158,6 +158,11 @@ void GPIO_Init(void)
 	STAT_LED_OFF;
 	GPIO_InitStruct.Pin = STAT_LED_PIN;
 	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
+
+	//SPI_INT_ACTIVE indicator
+	GPIO_InitStruct.Pin = SPI_INT_ACTIVE_PIN;
+	HAL_GPIO_Init(SPI_INT_ACTIVE_PORT, &GPIO_InitStruct);
+	SPI_INT_ACTIVE_OFF;
 }
 
 

@@ -477,19 +477,13 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
       default:
         break;
       }
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CLASS_EVENT, 0);
-#endif       
     }
     else
     {
-      MSC_Handle->current_lun = 0;
-    MSC_Handle->state = MSC_IDLE;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CLASS_EVENT, 0);
-#endif 
-    phost->pUser(phost, HOST_USER_CLASS_ACTIVE);     
+    	MSC_Handle->current_lun = 0;
+    	MSC_Handle->state = MSC_IDLE;
+
+		phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
     }
     break;
 
@@ -499,10 +493,6 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
 
   case MSC_READ:
   case MSC_WRITE:
-	//USBH_MSC_RdWrProcess interacts heavily with downstream SPI code.
-	//So to protect against preemption we elevate our priority here.
-	__set_BASEPRI(INT_PRIORITY_OTG_FS);
-
 	error = USBH_MSC_RdWrProcess(phost, MSC_Handle->rw_lun);
 	if(((int32_t)(phost->Timer - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
 	{
@@ -518,8 +508,6 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
 			MSC_Handle->RdWrCompleteCallback = NULL;
 		}
 	}
-
-	__set_BASEPRI(0);
 	break;
 
   default:

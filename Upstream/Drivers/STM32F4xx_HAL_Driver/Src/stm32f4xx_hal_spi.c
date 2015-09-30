@@ -2066,14 +2066,14 @@ static void SPI_DMAEndTransmitReceive(SPI_HandleTypeDef *hspi)
   if(hspi->Init.CRCCalculation == SPI_CRCCALCULATION_ENABLE)
   {
     /* Check if CRC is done on going (RXNE flag set) */
-    if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_RXNE, SET, SPI_TIMEOUT_VALUE) == HAL_OK)
-    {
+//    if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_RXNE, SET, SPI_TIMEOUT_VALUE) == HAL_OK)
+//    {
       /* Wait until RXNE flag is set to send data */
       if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_RXNE, RESET, SPI_TIMEOUT_VALUE) != HAL_OK)
       {
         hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
       }
-    }
+//    }
     /* Read CRC */
     tmpreg = hspi->Instance->DR;
     UNUSED(tmpreg);

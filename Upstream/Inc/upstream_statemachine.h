@@ -26,6 +26,7 @@ typedef enum
 	do {												\
 		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
 		Upstream_StateMachine_SetErrorState();			\
+		while (1);										\
 } while (0);
 
 

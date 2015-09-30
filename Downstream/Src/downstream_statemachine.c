@@ -13,7 +13,6 @@
 #include "usbh_core.h"
 #include "usbh_msc.h"
 #include "led.h"
-#include "interrupts.h"
 
 
 
@@ -58,7 +57,7 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 	//we need to tell Upstream of the fact (and not freak out).
 	if (DownstreamState == STATE_DEVICE_NOT_READY)
 	{
-		receivedPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN;
+		receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
 		receivedPacket->CommandClass = COMMAND_CLASS_ERROR;
 		receivedPacket->Command = COMMAND_ERROR_DEVICE_DISCONNECTED;
 		Downstream_PacketProcessor_ClassReply(receivedPacket);
@@ -135,7 +134,7 @@ void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacke
 
 void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketTypeDef* replyPacket)
 {
-	replyPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + 1;
+	replyPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
 	replyPacket->CommandClass = COMMAND_CLASS_INTERFACE;
 	replyPacket->Command = COMMAND_INTERFACE_NOTIFY_DEVICE;
 	replyPacket->Data[0] = ConfiguredDeviceClass;
@@ -150,7 +149,7 @@ void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketType
 
 void Downstream_PacketProcessor_GenericErrorReply(DownstreamPacketTypeDef* replyPacket)
 {
-	replyPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN;
+	replyPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
 	replyPacket->CommandClass = COMMAND_CLASS_ERROR;
 	replyPacket->Command = COMMAND_ERROR_GENERIC;
 
@@ -168,7 +167,7 @@ void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket)
 
 //This callback receives various event ids from the host stack,
 //either at INT_PRIORITY_OTG_FS or from main().
-//We should therefore elevate our execution priority to INT_PRIORITY_OTG_FS where necessary.
+//We therefore require interrupts be disabled when being called from main().
 void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 {
 	InterfaceCommandClassTypeDef newActiveClass = COMMAND_CLASS_INTERFACE;
@@ -185,17 +184,14 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		return;
 	}
 
-	__set_BASEPRI(INT_PRIORITY_OTG_FS);		//Elevate our priority level so we aren't interrupted
-
-	//Called from main()
+	//Called from main(). Elevate priority before calling!
 	if (id == HOST_USER_UNRECOVERED_ERROR)
 	{
 		DOWNSTREAM_STATEMACHINE_FREAKOUT;
-		__set_BASEPRI(0);
 		return;
 	}
 
-	//Called from main()
+	//Called from main(). Elevate priority before calling!
 	if (id == HOST_USER_CLASS_ACTIVE)
 	{
 		switch (phost->pActiveClass->ClassCode)
@@ -214,7 +210,6 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		default:
 			LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
 			DownstreamState = STATE_ERROR;
-			__set_BASEPRI(0);
 			return;
 		}
 
@@ -223,7 +218,6 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		if (newActiveClass == COMMAND_CLASS_INTERFACE)
 		{
 			DOWNSTREAM_STATEMACHINE_FREAKOUT;
-			__set_BASEPRI(0);
 			return;
 		}
 
@@ -233,7 +227,6 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 			(ConfiguredDeviceClass != newActiveClass))
 		{
 			DOWNSTREAM_STATEMACHINE_FREAKOUT;
-			__set_BASEPRI(0);
 			return;
 		}
 		ConfiguredDeviceClass = newActiveClass;
@@ -241,19 +234,16 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		if (DownstreamState == STATE_WAIT_DEVICE_READY)
 		{
 			Downstream_GetFreePacket(Downstream_PacketProcessor_Interface_ReplyNotifyDevice);
-			__set_BASEPRI(0);
 			return;
 		}
 
 		if (DownstreamState == STATE_DEVICE_NOT_READY)
 		{
 			DownstreamState = STATE_DEVICE_READY;
-			__set_BASEPRI(0);
 			return;
 		}
 
 		DOWNSTREAM_STATEMACHINE_FREAKOUT;
-		__set_BASEPRI(0);
 		return;
 	}
 }

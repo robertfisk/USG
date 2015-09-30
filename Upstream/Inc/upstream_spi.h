@@ -12,9 +12,13 @@
 #include "usbd_config.h"
 
 
-#define UPSTREAM_PACKET_HEADER_LEN	(2)			//Min length = CommandClass & Command bytes
-#define UPSTREAM_PACKET_LEN			(UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET)
-#define UPSTREAM_PACKET_LEN_MIN		(UPSTREAM_PACKET_HEADER_LEN)
+#define UPSTREAM_PACKET_HEADER_LEN		(2)			//Min length = CommandClass & Command bytes
+#define UPSTREAM_PACKET_LEN				(UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET)
+#define UPSTREAM_PACKET_LEN_MIN			(UPSTREAM_PACKET_HEADER_LEN)
+
+#define UPSTREAM_PACKET_HEADER_LEN_16	(UPSTREAM_PACKET_HEADER_LEN / 2)
+#define UPSTREAM_PACKET_LEN_16			(UPSTREAM_PACKET_LEN / 2)
+#define UPSTREAM_PACKET_LEN_MIN_16		(UPSTREAM_PACKET_LEN_MIN / 2)
 
 
 #define UPSTREAM_SPI_FREAKOUT								\
@@ -54,11 +58,10 @@ PacketBusyTypeDef;
 typedef struct
 {
 	PacketBusyTypeDef	Busy;						//Everything after Busy should be word-aligned
-	uint16_t			Length __ALIGN_END;			//Packet length includes CommandClass, Command, and Data
+	uint16_t			Length16 __ALIGN_END;			//Packet length includes CommandClass, Command, and Data
 	uint8_t				CommandClass;
 	uint8_t				Command;
 	uint8_t				Data[MSC_MEDIA_PACKET];		//Should (must?) be word-aligned, for USB copy routine
-	uint8_t				RxCrc;
 }
 UpstreamPacketTypeDef;
 

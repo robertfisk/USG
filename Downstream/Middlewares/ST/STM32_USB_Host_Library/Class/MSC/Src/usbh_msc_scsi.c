@@ -387,9 +387,8 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
   
   switch(MSC_Handle->hbot.cmd_state)
   {
-  case BOT_CMD_SEND:  
-    
-    /*Prepare the CBW and relevent field*/
+  case BOT_CMD_SEND:
+    /*Prepare the CBW and relevant fields*/
     MSC_Handle->hbot.cbw.field.DataTransferLength = length * MSC_Handle->unit[lun].capacity.block_size;;
     MSC_Handle->hbot.cbw.field.Flags = USB_EP_DIR_IN;
     MSC_Handle->hbot.cbw.field.CBLength = CBW_LENGTH;

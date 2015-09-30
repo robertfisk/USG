@@ -88,7 +88,7 @@ void DMA2_Stream3_IRQHandler(void)
 void EXTI3_IRQHandler(void)
 {
 	//SPI_DMA_ACTIVE_ON;
-	__HAL_GPIO_EXTI_CLEAR_IT(3);
+	__HAL_GPIO_EXTI_CLEAR_IT(DOWNSTREAM_TX_OK_PIN);
 	Upstream_TxOkInterrupt();
 	//SPI_DMA_ACTIVE_OFF;
 }
