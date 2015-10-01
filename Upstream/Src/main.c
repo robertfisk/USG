@@ -38,6 +38,7 @@
 #include "board_config.h"
 #include "led.h"
 #include "upstream_statemachine.h"
+#include "upstream_spi.h"
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -68,9 +69,10 @@ int main(void)
 
   while (1)
   {
-
+	  Upstream_SPIProcess_InterruptSafe();
   }
 }
+
 
 /** System Clock Configuration
 */
@@ -151,12 +153,12 @@ void GPIO_Init(void)
 	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
 	STAT_LED_OFF;
 
-//	//SPI_DMA_ACTIVE indicator
-//	GPIO_InitStruct.Pin = SPI_DMA_ACTIVE_PIN;
-//	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//	GPIO_InitStruct.Pull = GPIO_NOPULL;
-//	HAL_GPIO_Init(SPI_DMA_ACTIVE_PORT, &GPIO_InitStruct);
-//	SPI_DMA_ACTIVE_OFF;
+	//SPI_INT_ACTIVE indicator
+	GPIO_InitStruct.Pin = SPI_INT_ACTIVE_PIN;
+	//GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	//GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(SPI_INT_ACTIVE_PORT, &GPIO_InitStruct);
+	SPI_INT_ACTIVE_OFF;
 }
 
 /* USER CODE BEGIN 4 */

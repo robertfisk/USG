@@ -447,11 +447,6 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 }
 
 
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	SpiInterruptCompleted = 1;
-}
-
 //
 ////Called at the end of the SPI TX DMA transfer,
 ////at DMA2 interrupt priority. Assume *hspi points to our hspi1.

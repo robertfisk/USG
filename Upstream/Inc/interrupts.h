@@ -49,8 +49,9 @@
 *         A lower priority value indicates a higher priority. */
 
 #define INT_PRIORITY_SYSTICK	2
-#define INT_PRIORITY_SPI_DMA	10			//SPI interacts heavily with USB_OTG,
-#define INT_PRIORITY_OTG_FS		10			//so set them at the same priority.
+#define INT_PRIORITY_SPI		8			//SPI is more important than USB now!
+#define INT_PRIORITY_OTG_FS		10
+#define INT_PRIORITY_EXT3I		INT_PRIORITY_OTG_FS
 
 
 /* Exported macro ------------------------------------------------------------*/
@@ -58,8 +59,8 @@
 
 void OTG_FS_IRQHandler(void);
 void SysTick_Handler(void);
-void DMA2_Stream2_IRQHandler(void);
-void DMA2_Stream3_IRQHandler(void);
+//void DMA2_Stream2_IRQHandler(void);
+//void DMA2_Stream3_IRQHandler(void);
 void EXTI3_IRQHandler(void);
 
 

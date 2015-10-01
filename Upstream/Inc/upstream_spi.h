@@ -24,7 +24,7 @@
 #define UPSTREAM_SPI_FREAKOUT								\
 	do {													\
 		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);		\
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_ERROR;	\
+		/*UpstreamInterfaceState = UPSTREAM_INTERFACE_ERROR; */ \
 		Upstream_StateMachine_SetErrorState();				\
 		while (1);											\
 } while (0);
@@ -78,8 +78,8 @@ void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease);
 HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite);
 HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback);
 void Upstream_TxOkInterrupt(void);
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
+void Upstream_SPIProcess_InterruptSafe(void);
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
 
 

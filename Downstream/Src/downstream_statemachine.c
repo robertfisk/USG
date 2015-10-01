@@ -167,7 +167,6 @@ void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket)
 
 //This callback receives various event ids from the host stack,
 //either at INT_PRIORITY_OTG_FS or from main().
-//We therefore require interrupts be disabled when being called from main().
 void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 {
 	InterfaceCommandClassTypeDef newActiveClass = COMMAND_CLASS_INTERFACE;
@@ -177,21 +176,22 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		return;
 	}
 
-	//Called from USB interrupt
+	//Called from USB interrupt.
+	//Simple function shouldn't need to worry about preempting anything important.
 	if (id == HOST_USER_DISCONNECTION)
 	{
 		DownstreamState = STATE_DEVICE_NOT_READY;
 		return;
 	}
 
-	//Called from main(). Elevate priority before calling!
+	//Called from main()
 	if (id == HOST_USER_UNRECOVERED_ERROR)
 	{
 		DOWNSTREAM_STATEMACHINE_FREAKOUT;
 		return;
 	}
 
-	//Called from main(). Elevate priority before calling!
+	//Called from main()
 	if (id == HOST_USER_CLASS_ACTIVE)
 	{
 		switch (phost->pActiveClass->ClassCode)
