@@ -17,44 +17,57 @@
 UpstreamMSCCallbackTypeDef 				TestReadyCallback;
 UpstreamMSCCallbackUintPacketTypeDef	GetCapacityCallback;
 UpstreamMSCCallbackPacketTypeDef		GetStreamDataCallback;
+uint64_t								BlockStart;
+uint32_t								BlockCount;
 uint32_t								ByteCount;
+
 UpstreamPacketTypeDef*					ReadStreamPacket;
 uint8_t									ReadStreamBusy;
 
 
+static void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* freePacket);
 static void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket);
 static void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket);
 static void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket);
 static void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket);
 
 
 
 HAL_StatusTypeDef Upstream_MSC_TestReady(UpstreamMSCCallbackTypeDef callback)
 {
-	UpstreamPacketTypeDef* freePacket;
-
 	if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
 	{
 		return HAL_ERROR;
 	}
 	
 	TestReadyCallback = callback;
-	freePacket = Upstream_GetFreePacketImmediately();
-	if (freePacket == NULL)
-	{
-		return HAL_ERROR;
-	}
+	return Upstream_GetFreePacket(Upstream_MSC_TestReadyFreePacketCallback);
+}
 
+
+
+void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* freePacket)
+{
 	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_TEST_UNIT_READY;
+
 	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
 	{
-		return Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback);
+		Upstream_ReleasePacket(freePacket);
+		if (Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback) != HAL_OK)
+		{
+			TestReadyCallback(HAL_ERROR);
+		}
+		return;
 	}
+
 	//else:
-	return HAL_ERROR;
+	Upstream_ReleasePacket(freePacket);
+	TestReadyCallback(HAL_ERROR);
 }
+
 
 
 void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket)
@@ -248,36 +261,45 @@ void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket
 
 
 HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
-										  uint64_t readBlockStart,
-										  uint32_t readBlockCount)
+										  uint64_t writeBlockStart,
+										  uint32_t writeBlockCount)
 {
-	UpstreamPacketTypeDef* freePacket;
-
 	if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
 	{
 		return HAL_ERROR;
 	}
 
+	BlockStart = writeBlockStart;
+	BlockCount = writeBlockCount;
 	TestReadyCallback = callback;
-	freePacket = Upstream_GetFreePacketImmediately();
-	if (freePacket == NULL)
-	{
-		return HAL_ERROR;
-	}
+	return Upstream_GetFreePacket(Upstream_MSC_BeginWriteFreePacketCallback);
+}
 
+
+
+void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket)
+{
 	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_BEGIN_WRITE;
-	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
-	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
+	*(uint64_t*)&(freePacket->Data[0]) = BlockStart;
+	*(uint32_t*)&(freePacket->Data[8]) = BlockCount;
 
 	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
 	{
-		return Upstream_ReceivePacket(Upstream_MSC_BeginWriteReplyCallback);
+		Upstream_ReleasePacket(freePacket);
+		if (Upstream_ReceivePacket(Upstream_MSC_BeginWriteReplyCallback) != HAL_OK)
+		{
+			TestReadyCallback(HAL_ERROR);
+		}
+		return;
 	}
+
 	//else:
-	return HAL_ERROR;
+	Upstream_ReleasePacket(freePacket);
+	TestReadyCallback(HAL_ERROR);
 }
+
 
 
 void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)

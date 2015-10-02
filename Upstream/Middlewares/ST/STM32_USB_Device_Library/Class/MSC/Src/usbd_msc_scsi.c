@@ -668,7 +668,6 @@ void SCSI_Read10ReplyCallback(UpstreamPacketTypeDef* upstreamPacket,
 * @param  params: Command parameters
 * @retval status
 */
-
 static void SCSI_Write10(void)
 {
 	uint32_t dataLength;
@@ -716,8 +715,8 @@ static void SCSI_Write10(void)
 		}
 
 		if (Upstream_MSC_BeginWrite(SCSI_Write10BeginCallback,
-										   SCSI_ProcessCmd_hmsc->scsi_blk_addr,
-										   SCSI_ProcessCmd_hmsc->scsi_blk_len) != HAL_OK)
+									SCSI_ProcessCmd_hmsc->scsi_blk_addr,
+									SCSI_ProcessCmd_hmsc->scsi_blk_len) != HAL_OK)
 		{
 			SCSI_Write10BeginCallback(HAL_ERROR);
 		}

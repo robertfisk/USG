@@ -353,6 +353,10 @@ void  MSC_BOT_SendCSW (USBD_HandleTypeDef  *pdev,
   hmsc->csw.bStatus = CSW_Status;
   hmsc->bot_state = USBD_BOT_IDLE;
   
+  //De-register UpstreamPacket* from USB interface,
+  //so we don't unintentionally free it on USB transaction completion.
+  hmsc->bot_packet = NULL;
+
   USBD_LL_Transmit (pdev, 
              MSC_EPIN_ADDR, 
              (uint8_t *)&hmsc->csw, 

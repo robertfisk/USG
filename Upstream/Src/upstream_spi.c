@@ -106,16 +106,9 @@ HAL_StatusTypeDef Upstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 
 UpstreamPacketTypeDef* Upstream_GetFreePacketImmediately(void)
 {
-uint8_t temp;
-
 	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
 	{
 		return NULL;
-	}
-
-	if (NextTxPacket != NULL)
-	{
-		temp = 0;
 	}
 
 	//We are expecting a free buffer now
@@ -260,11 +253,13 @@ void Upstream_SPIProcess_InterruptSafe(void)
 }
 
 
+
 //Called from main().
 //Must be protected against preemption by USB and EXT3 interrupts at priority 10!
 void Upstream_SPIProcess(void)
 {
 	SpiPacketReceivedCallbackTypeDef tempPacketCallback;
+	UpstreamPacketTypeDef* tempPacketToFree;
 
 	SPI1_NSS_DEASSERT;
 
@@ -294,11 +289,8 @@ void Upstream_SPIProcess(void)
 			return;
 		}
 
-		Upstream_ReleasePacket(CurrentWorkingPacket);
-		if (UpstreamInterfaceState == UPSTREAM_INTERFACE_ERROR)
-		{
-			return;						//Really shouldn't happen, but we are being paranoid...
-		}
+		tempPacketToFree = CurrentWorkingPacket;
+
 		if (NextTxPacket != NULL)
 		{
 			//NextTxPacket has already passed the checks in Upstream_TransmitPacket.
@@ -306,19 +298,26 @@ void Upstream_SPIProcess(void)
 			UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE_WAIT;
 			CurrentWorkingPacket = NextTxPacket;
 			NextTxPacket = NULL;
+			SentCommandClass = CurrentWorkingPacket->CommandClass;
+			SentCommand = CurrentWorkingPacket->Command;
 			if (TxOkInterruptReceived)
 			{
 				TxOkInterruptReceived = 0;
 				Upstream_BeginTransmitPacketSize();
 			}
-			return;
+		}
+		else
+		{
+			//No packet queued for transmission:
+			UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
+			if (ReceivePacketCallback != NULL)
+			{
+				Upstream_CheckBeginPacketReception();
+			}
 		}
 
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
-		if (ReceivePacketCallback != NULL)
-		{
-			Upstream_CheckBeginPacketReception();
-		}
+		//Release old packet after moving Next to Current
+		Upstream_ReleasePacket(tempPacketToFree);
 		return;
 	}
 	

@@ -28,8 +28,8 @@ HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
 										 uint32_t readByteCount);
 HAL_StatusTypeDef Upstream_MSC_GetStreamDataPacket(UpstreamMSCCallbackPacketTypeDef callback);
 HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
-										  uint64_t readBlockStart,
-										  uint32_t readBlockCount);
+										  uint64_t writeBlockStart,
+										  uint32_t writeBlockCount);
 HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packetToSend,
 												   uint32_t dataLength8);
 
