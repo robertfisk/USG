@@ -179,7 +179,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
 
 	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
-	freePacket->Command = COMMAND_MSC_BEGIN_READ;
+	freePacket->Command = COMMAND_MSC_READ;
 	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
 	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
 
@@ -215,6 +215,7 @@ HAL_StatusTypeDef Upstream_MSC_GetStreamDataPacket(UpstreamMSCCallbackPacketType
 	}
 	return Upstream_ReceivePacket(Upstream_MSC_GetStreamDataPacketCallback);
 }
+
 
 
 void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket)
@@ -281,7 +282,7 @@ void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket
 {
 	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
-	freePacket->Command = COMMAND_MSC_BEGIN_WRITE;
+	freePacket->Command = COMMAND_MSC_WRITE;
 	*(uint64_t*)&(freePacket->Data[0]) = BlockStart;
 	*(uint32_t*)&(freePacket->Data[8]) = BlockCount;
 
@@ -347,7 +348,7 @@ HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packet
 
 	packetToSend->Length16 = (dataLength8 / 2) + UPSTREAM_PACKET_HEADER_LEN_16;
 	packetToSend->CommandClass = COMMAND_CLASS_MASS_STORAGE | COMMAND_CLASS_DATA_FLAG;
-	packetToSend->Command = COMMAND_MSC_BEGIN_WRITE;
+	packetToSend->Command = COMMAND_MSC_WRITE;
 	return Upstream_TransmitPacket(packetToSend);
 }
 

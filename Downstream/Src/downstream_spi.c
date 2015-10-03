@@ -40,7 +40,7 @@ void Downstream_InitSPI(void)
 	Hspi1.Instance = SPI1;
 	Hspi1.Init.Mode = SPI_MODE_SLAVE;
 	Hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-	Hspi1.Init.DataSize = SPI_DATASIZE_16BIT;		//SPI_DATASIZE_8BIT;
+	Hspi1.Init.DataSize = SPI_DATASIZE_16BIT;
 	Hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
 	Hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
 	Hspi1.Init.NSS = SPI_NSS_HARD_INPUT;
@@ -172,12 +172,11 @@ void Downstream_PrepareReceivePacketSize(DownstreamPacketTypeDef* freePacket)
 		return;
 	}
 	CurrentWorkingPacket = freePacket;
-	//CurrentWorkingPacket->Length = 0;
-	//if (HAL_SPI_TransmitReceive_DMA(... ????
-	if (HAL_SPI_TransmitReceive_IT(&Hspi1,								//////////////
-							(uint8_t*)&CurrentWorkingPacket->Length16,
-							(uint8_t*)&CurrentWorkingPacket->Length16,	//////////////
-							2) != HAL_OK)		//We only need to read one word, but the peripheral library freaks out...
+	CurrentWorkingPacket->Length16 = 0;
+	if (HAL_SPI_TransmitReceive_IT(&Hspi1,
+								   (uint8_t*)&CurrentWorkingPacket->Length16,
+								   (uint8_t*)&CurrentWorkingPacket->Length16,
+								   2) != HAL_OK)		//We only need to read one word, but the peripheral library freaks out...
 	{
 		DOWNSTREAM_SPI_FREAKOUT;
 		return;
@@ -187,63 +186,8 @@ void Downstream_PrepareReceivePacketSize(DownstreamPacketTypeDef* freePacket)
 }
 
 
-//Called at the end of the SPI RX DMA transfer,
-//at DMA2 interrupt priority. Assume *hspi points to our hspi1.
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	SpiPacketReceivedCallbackTypeDef tempPacketCallback;
 
-	UPSTREAM_TX_REQUEST_DEASSERT;
-
-	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
-	{
-		return;
-	}
-
-//	if (DownstreamInterfaceState == DOWNSTREAM_INTERFACE_RX_SIZE_WAIT)
-//	{
-//		if ((CurrentWorkingPacket->Length < DOWNSTREAM_PACKET_LEN_MIN) ||
-//			(CurrentWorkingPacket->Length > DOWNSTREAM_PACKET_LEN))
-//		{
-//			DOWNSTREAM_SPI_FREAKOUT;
-//			return;
-//		}
-//		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_RX_PACKET_WAIT;
-//		if (HAL_SPI_TransmitReceive_DMA(&Hspi1,							////////////////
-//								&CurrentWorkingPacket->CommandClass,
-//								&CurrentWorkingPacket->CommandClass,	////////////////
-//								CurrentWorkingPacket->Length) != HAL_OK)
-//		{
-//			DOWNSTREAM_SPI_FREAKOUT;
-//			return;
-//		}
-//		UPSTREAM_TX_REQUEST_ASSERT;
-//		return;
-//	}
-//
-//	if (DownstreamInterfaceState == DOWNSTREAM_INTERFACE_RX_PACKET_WAIT)
-//	{
-//		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_IDLE;
-//		if (ReceivePacketCallback == NULL)
-//		{
-//			DOWNSTREAM_SPI_FREAKOUT;
-//			return;
-//		}
-//		//Packet processor may want to receive another packet immediately,
-//		//so clear ReceivePacketCallback before the call.
-//		//It is the callback's responsibility to release the packet buffer we are passing to it!
-//		tempPacketCallback = ReceivePacketCallback;
-//		ReceivePacketCallback = NULL;
-//		tempPacketCallback(CurrentWorkingPacket);
-//		return;
-//	}
-
-	//case default:
-	DOWNSTREAM_SPI_FREAKOUT;
-}
-
-
-//Used by Downstream state machine (and USB classes?).
+//Used by Downstream state machine and USB classes.
 //Call when idle or transmitting.
 //It doesn't make sense to call when receiving or awaiting reception.
 HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWrite)
@@ -284,12 +228,10 @@ HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWri
 		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_SIZE_WAIT;
 		CurrentWorkingPacket = packetToWrite;
 
-		//if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
 		if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-		//if (HAL_SPI_Transmit_IT(&Hspi1,
-										(uint8_t*)&CurrentWorkingPacket->Length16,
-										(uint8_t*)&TemporaryIncomingPacketLength,
-										2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
+									   (uint8_t*)&CurrentWorkingPacket->Length16,
+									   (uint8_t*)&TemporaryIncomingPacketLength,
+									   2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
 		{
 			DOWNSTREAM_SPI_FREAKOUT;
 			return HAL_ERROR;
@@ -337,12 +279,10 @@ void Downstream_SPIProcess(void)
 		}
 
 		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_PACKET_WAIT;
-		//if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
 		if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-		//if (HAL_SPI_Transmit_IT(&Hspi1,
-										&CurrentWorkingPacket->CommandClass,
-										&CurrentWorkingPacket->CommandClass,
-										((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
+									   &CurrentWorkingPacket->CommandClass,
+									   &CurrentWorkingPacket->CommandClass,
+									   ((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
 		{
 			DOWNSTREAM_SPI_FREAKOUT;
 			return;
@@ -362,12 +302,10 @@ void Downstream_SPIProcess(void)
 			DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_SIZE_WAIT;
 			CurrentWorkingPacket = NextTxPacket;
 			NextTxPacket = NULL;
-			//if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
 			if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-			//if (HAL_SPI_Transmit_IT(&Hspi1,
-											(uint8_t*)&CurrentWorkingPacket->Length16,
-											(uint8_t*)&TemporaryIncomingPacketLength,
-											2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
+										   (uint8_t*)&CurrentWorkingPacket->Length16,
+										   (uint8_t*)&TemporaryIncomingPacketLength,
+										   2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
 			{
 				DOWNSTREAM_SPI_FREAKOUT;
 				return;
@@ -385,9 +323,6 @@ void Downstream_SPIProcess(void)
 	}
 
 
-
-
-
 	if (DownstreamInterfaceState == DOWNSTREAM_INTERFACE_RX_SIZE_WAIT)
 	{
 		if ((CurrentWorkingPacket->Length16 < DOWNSTREAM_PACKET_LEN_MIN_16) ||
@@ -397,10 +332,10 @@ void Downstream_SPIProcess(void)
 			return;
 		}
 		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_RX_PACKET_WAIT;
-		if (HAL_SPI_TransmitReceive_IT(&Hspi1,							////////////////
-								&CurrentWorkingPacket->CommandClass,
-								&CurrentWorkingPacket->CommandClass,	////////////////
-								((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
+		if (HAL_SPI_TransmitReceive_IT(&Hspi1,
+									   &CurrentWorkingPacket->CommandClass,
+									   &CurrentWorkingPacket->CommandClass,
+									   ((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
 		{
 			DOWNSTREAM_SPI_FREAKOUT;
 			return;
@@ -427,8 +362,6 @@ void Downstream_SPIProcess(void)
 	}
 
 
-
-
 	//case default:
 	DOWNSTREAM_SPI_FREAKOUT;
 }
@@ -445,52 +378,6 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	SpiInterruptCompleted = 1;
 }
-
-
-//
-////Called at the end of the SPI TX DMA transfer,
-////at DMA2 interrupt priority. Assume *hspi points to our hspi1.
-//void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-//{
-//	UPSTREAM_TX_REQUEST_DEASSERT;
-//
-//	if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
-//	{
-//		return;
-//	}
-//
-//	if (DownstreamInterfaceState != DOWNSTREAM_INTERFACE_TX_PACKET_WAIT)
-//	{
-//		DOWNSTREAM_SPI_FREAKOUT;
-//		return;
-//	}
-//
-//	Downstream_ReleasePacket(CurrentWorkingPacket);
-//	if (NextTxPacket != NULL)
-//	{
-//		//NextTxPacket has already passed the checks in Downstream_TransmitPacket.
-//		//So we just need to pass it to HAL_SPI_Transmit_DMA.
-//		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_TX_SIZE_WAIT;
-//		CurrentWorkingPacket = NextTxPacket;
-//		NextTxPacket = NULL;
-//		if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
-//										(uint8_t*)&CurrentWorkingPacket->Length,
-//										(uint8_t*)&TemporaryUpstreamPacketLengthStore,
-//										2) != HAL_OK)
-//		{
-//			DOWNSTREAM_SPI_FREAKOUT;
-//			return;
-//		}
-//		UPSTREAM_TX_REQUEST_ASSERT;
-//		return;
-//	}
-//
-//	DownstreamInterfaceState = DOWNSTREAM_INTERFACE_IDLE;
-//	if (ReceivePacketCallback != NULL)
-//	{
-//		Downstream_CheckPreparePacketReception();
-//	}
-//}
 
 
 

@@ -74,9 +74,7 @@ HAL_StatusTypeDef Downstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef call
 HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWrite);
 void Downstream_SPIProcess(void);
 
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
 
 

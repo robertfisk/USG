@@ -69,11 +69,11 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 		Downstream_MSC_PacketProcessor_GetCapacity(receivedPacket);
 		break;
 
-	case COMMAND_MSC_BEGIN_READ:
+	case COMMAND_MSC_READ:
 		Downstream_MSC_PacketProcessor_BeginRead(receivedPacket);
 		break;
 
-	case COMMAND_MSC_BEGIN_WRITE:
+	case COMMAND_MSC_WRITE:
 		Downstream_MSC_PacketProcessor_BeginWrite(receivedPacket);
 		break;
 
@@ -223,7 +223,7 @@ HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* pa
 
 	packetToSend->Length16 = (dataLength8 / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
 	packetToSend->CommandClass = COMMAND_CLASS_MASS_STORAGE | COMMAND_CLASS_DATA_FLAG;
-	packetToSend->Command = COMMAND_MSC_BEGIN_READ;
+	packetToSend->Command = COMMAND_MSC_READ;
 	return Downstream_TransmitPacket(packetToSend);
 }
 
@@ -263,7 +263,7 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receive
 	dataLength8 = (receivedPacket->Length16 - DOWNSTREAM_PACKET_HEADER_LEN_16) * 2;
 
 	if ((receivedPacket->CommandClass != (COMMAND_CLASS_MASS_STORAGE | COMMAND_CLASS_DATA_FLAG)) ||	//Must be MSC command with data flag set
-		(receivedPacket->Command != COMMAND_MSC_BEGIN_WRITE) ||				//Must be write command
+		(receivedPacket->Command != COMMAND_MSC_WRITE) ||						//Must be write command
 		(receivedPacket->Length16 <= DOWNSTREAM_PACKET_HEADER_LEN_16) ||		//Should be at least one data byte in the packet.
 		(dataLength8 > ByteCount))
 	{

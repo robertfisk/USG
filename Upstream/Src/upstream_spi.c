@@ -50,7 +50,7 @@ void Upstream_InitSPI(void)
 	Hspi1.State = HAL_SPI_STATE_RESET;
 	Hspi1.Init.Mode = SPI_MODE_MASTER;
 	Hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-	Hspi1.Init.DataSize = SPI_DATASIZE_16BIT;	//SPI_DATASIZE_8BIT;
+	Hspi1.Init.DataSize = SPI_DATASIZE_16BIT;
 	Hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
 	Hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
 	Hspi1.Init.NSS = SPI_NSS_SOFT;
@@ -238,6 +238,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 
 
 //Preemption protection wrapper around Upstream_SPIProcess()
+//We must protect against preemption by USB and EXT3 interrupts at priority 10!
 void Upstream_SPIProcess_InterruptSafe(void)
 {
 	//This is done on SPI interrupt callback...
@@ -374,7 +375,6 @@ void Upstream_SPIProcess(void)
 		tempPacketCallback(CurrentWorkingPacket);
 		return;
 	}
-
 
 
 	//case default:
@@ -538,75 +538,6 @@ void Upstream_BeginReceivePacketBody(void)
 	}
 }
 
-
-//Called at the end of the SPI RX DMA transfer,
-//at DMA2 interrupt priority. Assume *hspi points to our hspi1.
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	SpiPacketReceivedCallbackTypeDef tempPacketCallback;
-
-	SPI1_NSS_DEASSERT;
-
-	if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
-	{
-		return;
-	}
-
-//	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_SIZE)
-//	{
-//		if ((CurrentWorkingPacket->Length < UPSTREAM_PACKET_LEN_MIN) ||
-//			(CurrentWorkingPacket->Length > UPSTREAM_PACKET_LEN))
-//		{
-//			UPSTREAM_SPI_FREAKOUT;
-//			return;
-//		}
-//		UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET_WAIT;
-//		if (TxOkInterruptReceived)
-//		{
-//			TxOkInterruptReceived = 0;
-//			Upstream_BeginReceivePacketBody();
-//		}
-//		return;
-//	}
-//
-//	if (UpstreamInterfaceState == UPSTREAM_INTERFACE_RX_PACKET)
-//	{
-//		UpstreamInterfaceState = UPSTREAM_INTERFACE_IDLE;
-//		if (ReceivePacketCallback == NULL)
-//		{
-//			UPSTREAM_SPI_FREAKOUT;
-//			return;
-//		}
-//
-//		if ((CurrentWorkingPacket->CommandClass == COMMAND_CLASS_ERROR) &&
-//			(CurrentWorkingPacket->Command == COMMAND_ERROR_DEVICE_DISCONNECTED))
-//		{
-//			Upstream_ReleasePacket(CurrentWorkingPacket);
-//			ReceivePacketCallback = NULL;
-//			Upstream_StateMachine_DeviceDisconnected();
-//			return;
-//		}
-//
-//		if (((CurrentWorkingPacket->CommandClass & COMMAND_CLASS_MASK) != SentCommandClass) ||
-//			(CurrentWorkingPacket->Command != SentCommand))
-//		{
-//			UPSTREAM_SPI_FREAKOUT;
-//			Upstream_ReleasePacket(CurrentWorkingPacket);
-//			CurrentWorkingPacket = NULL;		//Call back with a NULL packet to indicate error
-//		}
-//
-//		//USB interface may want to receive another packet immediately,
-//		//so clear ReceivePacketCallback before the call.
-//		//It is the callback's responsibility to release the packet buffer we are passing to it!
-//		tempPacketCallback = ReceivePacketCallback;
-//		ReceivePacketCallback = NULL;
-//		tempPacketCallback(CurrentWorkingPacket);
-//		return;
-//	}
-	
-	//case default:
-	UPSTREAM_SPI_FREAKOUT;
-}
 
 
 //Something bad happened! Possibly CRC error...
