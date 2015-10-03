@@ -7,6 +7,10 @@
  *      This file replaces upstream_msc.c to allow operational testing of Upstream,
  *      without Downstream in place and communicating over SPI.
  *      It still attempts to write downstream packets out the SPI port.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 

@@ -38,7 +38,9 @@
   * limitations under the License.
   *
   ******************************************************************************
-  */ 
+  *
+  * Modifications by Robert Fisk
+  */
 
 /* Includes ------------------------------------------------------------------*/
 #include <upstream_interface_def.h>

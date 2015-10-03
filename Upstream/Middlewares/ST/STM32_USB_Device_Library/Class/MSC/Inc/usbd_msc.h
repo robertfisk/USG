@@ -23,7 +23,9 @@
   * limitations under the License.
   *
   ******************************************************************************
-  */ 
+  *
+  * Modifications by Robert Fisk
+  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USBD_MSC_H

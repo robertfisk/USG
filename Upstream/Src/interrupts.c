@@ -30,7 +30,10 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
+  *
+  * Modifications by Robert Fisk
   */
+
 /* Includes ------------------------------------------------------------------*/
 #include <interrupts.h>
 #include <upstream_spi.h>

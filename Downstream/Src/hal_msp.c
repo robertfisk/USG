@@ -30,7 +30,10 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
+  *
+  * Modifications by Robert Fisk
   */
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "interrupts.h"

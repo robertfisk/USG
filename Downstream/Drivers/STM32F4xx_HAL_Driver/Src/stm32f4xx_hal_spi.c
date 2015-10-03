@@ -84,6 +84,8 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
+  *
+  * Modifications by Robert Fisk
   */
 
 /* Includes ------------------------------------------------------------------*/

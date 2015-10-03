@@ -23,7 +23,10 @@
   * limitations under the License.
   *
   ******************************************************************************
-  */ 
+  *
+  * Modifications by Robert Fisk
+  */
+
 
 /* Define to prevent recursive  ----------------------------------------------*/
 #ifndef __USBH_CTLREQ_H
