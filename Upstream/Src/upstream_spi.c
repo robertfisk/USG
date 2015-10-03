@@ -54,7 +54,7 @@ void Upstream_InitSPI(void)
 	Hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
 	Hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
 	Hspi1.Init.NSS = SPI_NSS_SOFT;
-	Hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;	//42MHz APB2 / 32 = 1.3Mbaud
+	Hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;	//42MHz APB2 / 32 = 1.3Mbaud
 	Hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	Hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
 	Hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLED;

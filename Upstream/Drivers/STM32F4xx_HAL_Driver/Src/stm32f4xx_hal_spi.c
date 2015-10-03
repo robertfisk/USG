@@ -1500,8 +1500,8 @@ void HAL_SPI_IRQHandler(SPI_HandleTypeDef *hspi)
   if((tmp1 != RESET) && (tmp2 != RESET) && (tmp3 == RESET))
   {
     hspi->RxISR(hspi);
-    return;
-  } 
+    //return;
+  }
 
   tmp1 = __HAL_SPI_GET_FLAG(hspi, SPI_FLAG_TXE);
   tmp2 = __HAL_SPI_GET_IT_SOURCE(hspi, SPI_IT_TXE);
@@ -1699,11 +1699,11 @@ uint32_t HAL_SPI_GetError(SPI_HandleTypeDef *hspi)
   */
 static void SPI_TxCloseIRQHandler(SPI_HandleTypeDef *hspi)
 {
-  /* Wait until TXE flag is set to send data */
-  if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_TXE, RESET, SPI_TIMEOUT_VALUE) != HAL_OK)
-  {
-    hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
-  }
+//  /* Wait until TXE flag is set to send data */
+//  if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_TXE, RESET, SPI_TIMEOUT_VALUE) != HAL_OK)
+//  {
+//    hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
+//  }
 
   /* Disable TXE interrupt */
   __HAL_SPI_DISABLE_IT(hspi, (SPI_IT_TXE ));
