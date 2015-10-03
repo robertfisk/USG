@@ -45,8 +45,10 @@
 /* External variables --------------------------------------------------------*/
 
 extern PCD_HandleTypeDef	hpcd_USB_OTG_FS;
-extern DMA_HandleTypeDef	spiTxDmaHandle;
-extern DMA_HandleTypeDef	spiRxDmaHandle;
+extern SPI_HandleTypeDef	Hspi1;
+
+//extern DMA_HandleTypeDef	spiTxDmaHandle;
+//extern DMA_HandleTypeDef	spiRxDmaHandle;
 
 
 /******************************************************************************/
@@ -66,34 +68,38 @@ void SysTick_Handler(void)
 /////////////////////////
 void OTG_FS_IRQHandler(void)
 {
-	//STAT_LED_ON;		//blink STAT LED while processing interrupt
 	HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
-	//STAT_LED_OFF;
 }
 
-void DMA2_Stream2_IRQHandler(void)
-{
-	//SPI_DMA_ACTIVE_ON;
-	HAL_DMA_IRQHandler(&spiRxDmaHandle);
-	//SPI_DMA_ACTIVE_OFF;
-}
-
-void DMA2_Stream3_IRQHandler(void)
-{
-	//SPI_DMA_ACTIVE_ON;
-	HAL_DMA_IRQHandler(&spiTxDmaHandle);
-	//SPI_DMA_ACTIVE_OFF;
-}
+//void DMA2_Stream2_IRQHandler(void)
+//{
+//	//SPI_DMA_ACTIVE_ON;
+//	HAL_DMA_IRQHandler(&spiRxDmaHandle);
+//	//SPI_DMA_ACTIVE_OFF;
+//}
+//
+//void DMA2_Stream3_IRQHandler(void)
+//{
+//	//SPI_DMA_ACTIVE_ON;
+//	HAL_DMA_IRQHandler(&spiTxDmaHandle);
+//	//SPI_DMA_ACTIVE_OFF;
+//}
 
 void EXTI3_IRQHandler(void)
 {
-	//SPI_DMA_ACTIVE_ON;
-	__HAL_GPIO_EXTI_CLEAR_IT(3);
+	__HAL_GPIO_EXTI_CLEAR_IT(DOWNSTREAM_TX_OK_PIN);
 	Upstream_TxOkInterrupt();
-	//SPI_DMA_ACTIVE_OFF;
 }
 /////////////////////////
 /////////////////////////
+
+
+void SPI1_IRQHandler(void)
+{
+	SPI_INT_ACTIVE_ON;
+	HAL_SPI_IRQHandler(&Hspi1);
+	SPI_INT_ACTIVE_OFF;
+}
 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

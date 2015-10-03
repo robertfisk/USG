@@ -43,8 +43,8 @@ typedef enum
 {
 	COMMAND_MSC_TEST_UNIT_READY,	//Returns HAL_StatusTypeDef result
 	COMMAND_MSC_GET_CAPACITY,		//Returns uint32_t blk_nbr, uint32_t blk_size
-	COMMAND_MSC_BEGIN_READ,			//Returns HAL_StatusTypeDef result, then data stream
-	COMMAND_MSC_BEGIN_WRITE,		//Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
+	COMMAND_MSC_READ,				//Returns HAL_StatusTypeDef result, then data stream
+	COMMAND_MSC_WRITE,				//Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
 }
 InterfaceCommandMscTypeDef;
 

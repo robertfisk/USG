@@ -28,7 +28,7 @@ void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receive
 void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedPacket);
 void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket);
 void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef result);
-void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* replyPacket);
+void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receivedPacket);
 
 
 //High-level checks on the connected device. We don't want some weirdly
@@ -69,11 +69,11 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 		Downstream_MSC_PacketProcessor_GetCapacity(receivedPacket);
 		break;
 
-	case COMMAND_MSC_BEGIN_READ:
+	case COMMAND_MSC_READ:
 		Downstream_MSC_PacketProcessor_BeginRead(receivedPacket);
 		break;
 
-	case COMMAND_MSC_BEGIN_WRITE:
+	case COMMAND_MSC_WRITE:
 		Downstream_MSC_PacketProcessor_BeginWrite(receivedPacket);
 		break;
 
@@ -94,7 +94,7 @@ void Downstream_MSC_PacketProcessor_TestUnitReady(DownstreamPacketTypeDef* recei
 	{
 		receivedPacket->Data[0] = HAL_ERROR;
 	}
-	receivedPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + 1;
+	receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
 	Downstream_PacketProcessor_ClassReply(receivedPacket);
 }
 
@@ -103,7 +103,7 @@ void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receive
 {
 	MSC_HandleTypeDef* MSC_Handle =  (MSC_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
-	receivedPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + 8;
+	receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + (8 / 2);
 	*(uint32_t*)&(receivedPacket->Data[0]) = MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr;
 	*(uint32_t*)&(receivedPacket->Data[4]) = (uint32_t)MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_size;
 	Downstream_PacketProcessor_ClassReply(receivedPacket);
@@ -118,7 +118,7 @@ void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedP
 	uint64_t readByteCount;
 	MSC_HandleTypeDef* MSC_Handle =  (MSC_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
-	if (receivedPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3)))
+	if (receivedPacket->Length16 != (DOWNSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2)))
 	{
 		Downstream_PacketProcessor_FreakOut();
 		return;
@@ -136,7 +136,7 @@ void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedP
 	}
 
 	receivedPacket->Data[0] = HAL_ERROR;
-	receivedPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + 1;
+	receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
 	if (USBH_MSC_UnitIsReady(&hUsbHostFS, MSC_FIXED_LUN))
 	{
 		if (USBH_MSC_Read(&hUsbHostFS,
@@ -171,7 +171,7 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 	uint64_t writeByteCount;
 	MSC_HandleTypeDef* MSC_Handle =  (MSC_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
-	if (receivedPacket->Length != (DOWNSTREAM_PACKET_HEADER_LEN + (4 * 3)))
+	if (receivedPacket->Length16 != (DOWNSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2)))
 	{
 		Downstream_PacketProcessor_FreakOut();
 		return;
@@ -193,7 +193,7 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 	ByteCount = (uint32_t)writeByteCount;
 
 	receivedPacket->Data[0] = HAL_ERROR;
-	receivedPacket->Length = DOWNSTREAM_PACKET_HEADER_LEN + 1;
+	receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
 
 	//Our host stack has no way to detect if write-protection is enabled.
 	//So currently we can't return HAL_BUSY to Upstream in this situation.
@@ -214,11 +214,16 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 
 //Used by USB MSC host driver
 HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* packetToSend,
-													 uint32_t dataLength)
+													 uint32_t dataLength8)
 {
-	packetToSend->Length = dataLength + DOWNSTREAM_PACKET_HEADER_LEN;
+	if ((dataLength8 % 2) != 0)
+	{
+		return HAL_ERROR;
+	}
+
+	packetToSend->Length16 = (dataLength8 / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
 	packetToSend->CommandClass = COMMAND_CLASS_MASS_STORAGE | COMMAND_CLASS_DATA_FLAG;
-	packetToSend->Command = COMMAND_MSC_BEGIN_WRITE;
+	packetToSend->Command = COMMAND_MSC_READ;
 	return Downstream_TransmitPacket(packetToSend);
 }
 
@@ -244,32 +249,35 @@ HAL_StatusTypeDef Downstream_MSC_GetStreamDataPacket(DownstreamMSCCallbackPacket
 }
 
 
-void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* replyPacket)
+void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receivedPacket)
 {
-	uint16_t dataLength;
+	uint16_t dataLength8;
 
 	ReadStreamBusy = 0;
 	if (GetStreamDataCallback == NULL)
 	{
-		ReadStreamPacket = replyPacket;		//We used up our callback already, so save this one for later.
+		ReadStreamPacket = receivedPacket;		//We used up our callback already, so save this one for later.
 		return;
 	}
 
-	if (((replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) == 0) ||		//Any incoming 'command' (as opposed to incoming 'data') is an automatic fail here
-		 (replyPacket->Length <= DOWNSTREAM_PACKET_HEADER_LEN) ||			//Should be at least one data byte in the packet.
-		 (replyPacket->Length > ByteCount))
+	dataLength8 = (receivedPacket->Length16 - DOWNSTREAM_PACKET_HEADER_LEN_16) * 2;
+
+	if ((receivedPacket->CommandClass != (COMMAND_CLASS_MASS_STORAGE | COMMAND_CLASS_DATA_FLAG)) ||	//Must be MSC command with data flag set
+		(receivedPacket->Command != COMMAND_MSC_WRITE) ||						//Must be write command
+		(receivedPacket->Length16 <= DOWNSTREAM_PACKET_HEADER_LEN_16) ||		//Should be at least one data byte in the packet.
+		(dataLength8 > ByteCount))
 	{
 		Downstream_PacketProcessor_FreakOut();
 		return;
 	}
 
-	dataLength = replyPacket->Length - DOWNSTREAM_PACKET_HEADER_LEN;
-	ByteCount -= dataLength;
-	GetStreamDataCallback(replyPacket, dataLength);	//usb_msc_scsi will use this packet, so don't release now
+	ByteCount -= dataLength8;
+	GetStreamDataCallback(receivedPacket, dataLength8);	//usb_msc_scsi will use this packet, so don't release now
 	if (ByteCount > 0)
 	{
 		Downstream_MSC_GetStreamDataPacket(NULL);	//Try to get the next packet now, before USB asks for it
 	}
 
 }
+
 

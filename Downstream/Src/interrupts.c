@@ -35,12 +35,15 @@
 #include "stm32f4xx.h"
 #include "interrupts.h"
 #include "led.h"
+#include "board_config.h"
 
 
 /* External variables --------------------------------------------------------*/
 extern HCD_HandleTypeDef hhcd_USB_OTG_FS;
-extern DMA_HandleTypeDef hdma_spi1_rx;
-extern DMA_HandleTypeDef hdma_spi1_tx;
+extern SPI_HandleTypeDef Hspi1;
+
+//extern DMA_HandleTypeDef hdma_spi1_rx;
+//extern DMA_HandleTypeDef hdma_spi1_tx;
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
@@ -62,21 +65,30 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
-/**
-* @brief This function handles DMA2 Stream2 global interrupt.
-*/
-void DMA2_Stream2_IRQHandler(void)
+///**
+//* @brief This function handles DMA2 Stream2 global interrupt.
+//*/
+//void DMA2_Stream2_IRQHandler(void)
+//{
+//  HAL_DMA_IRQHandler(&hdma_spi1_rx);
+//}
+//
+///**
+//* @brief This function handles DMA2 Stream3 global interrupt.
+//*/
+//void DMA2_Stream3_IRQHandler(void)
+//{
+//  HAL_DMA_IRQHandler(&hdma_spi1_tx);
+//}
+
+
+void SPI1_IRQHandler(void)
 {
-  HAL_DMA_IRQHandler(&hdma_spi1_rx);
+	SPI_INT_ACTIVE_ON;
+	HAL_SPI_IRQHandler(&Hspi1);
+	SPI_INT_ACTIVE_OFF;
 }
 
-/**
-* @brief This function handles DMA2 Stream3 global interrupt.
-*/
-void DMA2_Stream3_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler(&hdma_spi1_tx);
-}
 
 /**
 * @brief This function handles USB On The Go FS global interrupt.

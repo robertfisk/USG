@@ -285,6 +285,7 @@ static void SCSI_Inquiry(void)
 	}
 	else
 	{
+		//Standard INQUIRY data
 		//Return the same info for any LUN requested
 		pPage = (uint8_t *)&STORAGE_Inquirydata_FS;
 		len = pPage[4] + 5;
@@ -589,9 +590,9 @@ static void SCSI_Read10(void)
 		}
 
 		if (Upstream_MSC_BeginRead(SCSI_Read10BeginCallback,
-										  SCSI_ProcessCmd_hmsc->scsi_blk_addr,
-										  SCSI_ProcessCmd_hmsc->scsi_blk_len,
-										  SCSI_ProcessCmd_hmsc->cbw.dDataLength) != HAL_OK)
+								   SCSI_ProcessCmd_hmsc->scsi_blk_addr,
+								   SCSI_ProcessCmd_hmsc->scsi_blk_len,
+								   SCSI_ProcessCmd_hmsc->cbw.dDataLength) != HAL_OK)
 		{
 			SCSI_Read10BeginCallback(HAL_ERROR);
 		}
@@ -667,7 +668,6 @@ void SCSI_Read10ReplyCallback(UpstreamPacketTypeDef* upstreamPacket,
 * @param  params: Command parameters
 * @retval status
 */
-
 static void SCSI_Write10(void)
 {
 	uint32_t dataLength;
@@ -715,8 +715,8 @@ static void SCSI_Write10(void)
 		}
 
 		if (Upstream_MSC_BeginWrite(SCSI_Write10BeginCallback,
-										   SCSI_ProcessCmd_hmsc->scsi_blk_addr,
-										   SCSI_ProcessCmd_hmsc->scsi_blk_len) != HAL_OK)
+									SCSI_ProcessCmd_hmsc->scsi_blk_addr,
+									SCSI_ProcessCmd_hmsc->scsi_blk_len) != HAL_OK)
 		{
 			SCSI_Write10BeginCallback(HAL_ERROR);
 		}

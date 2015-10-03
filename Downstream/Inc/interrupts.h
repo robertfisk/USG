@@ -44,8 +44,9 @@
 /* Exported constants --------------------------------------------------------*/
 
 #define INT_PRIORITY_SYSTICK	2
-#define INT_PRIORITY_SPI_DMA	10			//SPI interacts heavily with USB_OTG,
-#define INT_PRIORITY_OTG_FS		10			//so set them at the same priority.
+//#define INT_PRIORITY_SPI_DMA	10
+#define INT_PRIORITY_SPI		8			//Interrupt-based SPI must be highest priority!
+#define INT_PRIORITY_OTG_FS		10
 
 
  /* Exported macro ------------------------------------------------------------*/

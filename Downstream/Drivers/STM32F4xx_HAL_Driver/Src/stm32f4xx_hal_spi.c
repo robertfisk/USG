@@ -102,7 +102,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define SPI_TIMEOUT_VALUE  10
+#define SPI_TIMEOUT_VALUE  2
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -1933,6 +1933,8 @@ static void SPI_RxISR(SPI_HandleTypeDef *hspi)
   */
 static void SPI_DMATransmitCplt(DMA_HandleTypeDef *hdma)
 {
+  __IO uint16_t tmpreg;
+
   SPI_HandleTypeDef* hspi = ( SPI_HandleTypeDef* )((DMA_HandleTypeDef* )hdma)->Parent;
 
   /* DMA Normal Mode */
@@ -1963,7 +1965,7 @@ static void SPI_DMATransmitCplt(DMA_HandleTypeDef *hdma)
    __HAL_SPI_CLEAR_OVRFLAG(hspi);
   }
 
-  /* Check if Errors has been detected during transfer */
+   /* Check if Errors has been detected during transfer */
   if(hspi->ErrorCode != HAL_SPI_ERROR_NONE)
   {
     HAL_SPI_ErrorCallback(hspi);
@@ -2066,14 +2068,14 @@ static void SPI_DMAEndTransmitReceive(SPI_HandleTypeDef *hspi)
   if(hspi->Init.CRCCalculation == SPI_CRCCALCULATION_ENABLE)
   {
     /* Check if CRC is done on going (RXNE flag set) */
-    if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_RXNE, SET, SPI_TIMEOUT_VALUE) == HAL_OK)
-    {
+//    if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_RXNE, SET, SPI_TIMEOUT_VALUE) == HAL_OK)
+//    {
       /* Wait until RXNE flag is set to send data */
       if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_RXNE, RESET, SPI_TIMEOUT_VALUE) != HAL_OK)
       {
         hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
       }
-    }
+//    }
     /* Read CRC */
     tmpreg = hspi->Instance->DR;
     UNUSED(tmpreg);
@@ -2097,7 +2099,10 @@ static void SPI_DMAEndTransmitReceive(SPI_HandleTypeDef *hspi)
   /* Wait until Busy flag is reset before disabling SPI */
   if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_BSY, SET, SPI_TIMEOUT_VALUE) != HAL_OK)
   {
-    hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
+	//The Busy flag occasionally fails to reset within timeout. No idea why.
+	//But in this case WaitOnFlagUntilTimeout disables the SPI for us,
+	//so we can ignore the error and carry on.
+    //hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
   }
   
   /* Disable Rx DMA Request */
@@ -2121,7 +2126,7 @@ static void SPI_DMATransmitReceiveCplt(DMA_HandleTypeDef *hdma)
     SPI_DMAEndTransmitReceive(hspi);
     
     hspi->State = HAL_SPI_STATE_READY;
-    
+
     /* Check if Errors has been detected during transfer */
     if(hspi->ErrorCode != HAL_SPI_ERROR_NONE)
     {

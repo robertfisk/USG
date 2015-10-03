@@ -40,7 +40,7 @@ void Upstream_InitStateMachine(void)
 		return;
 	}
 
-	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET;
+	freePacket->Length16 = UPSTREAM_PACKET_LEN_16;
 	freePacket->CommandClass = COMMAND_CLASS_INTERFACE;
 	freePacket->Command = COMMAND_INTERFACE_ECHO;
 
@@ -105,7 +105,7 @@ void Upstream_StateMachine_TestInterfaceReplyCallback(UpstreamPacketTypeDef* rep
 		return;
 	}
 
-	if (replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET))
+	if (replyPacket->Length16 != UPSTREAM_PACKET_LEN_16)
 	{
 		UPSTREAM_STATEMACHINE_FREAKOUT;
 		return;
@@ -130,7 +130,7 @@ void Upstream_StateMachine_TestInterfaceReplyCallback(UpstreamPacketTypeDef* rep
 void Upstream_StateMachine_NotifyDevice(UpstreamPacketTypeDef* freePacket)
 {
 	UpstreamState = STATE_WAIT_DEVICE;
-	freePacket->Length = UPSTREAM_PACKET_HEADER_LEN;
+	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
 	freePacket->CommandClass = COMMAND_CLASS_INTERFACE;
 	freePacket->Command = COMMAND_INTERFACE_NOTIFY_DEVICE;
 	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
@@ -157,7 +157,7 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
 		return;
 	}
 
-	if (replyPacket->Length != (UPSTREAM_PACKET_HEADER_LEN + 1))
+	if (replyPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + 1))
 	{
 		UPSTREAM_STATEMACHINE_FREAKOUT;
 		return;
@@ -172,6 +172,8 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
 
 	//Add other supported classes here...
 	}
+
+	Upstream_ReleasePacket(replyPacket);
 
 	if (newActiveClass == COMMAND_CLASS_INTERFACE)
 	{

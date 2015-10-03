@@ -17,13 +17,13 @@
 
 
 typedef void (*DownstreamMSCCallbackPacketTypeDef)(DownstreamPacketTypeDef* receivedPacket,
-												   uint16_t dataLength);
+												   uint16_t dataLength8);
 
 
 HAL_StatusTypeDef Downstream_MSC_ApproveConnectedDevice(void);
 void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
 HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* packetToSend,
-													 uint32_t dataLength);
+													 uint32_t dataLength8);
 HAL_StatusTypeDef Downstream_MSC_GetStreamDataPacket(DownstreamMSCCallbackPacketTypeDef callback);
 
 

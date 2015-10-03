@@ -12,15 +12,19 @@
 #include "usbd_config.h"
 
 
-#define UPSTREAM_PACKET_HEADER_LEN	(2)			//Min length = CommandClass & Command bytes
-#define UPSTREAM_PACKET_LEN			(UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET)
-#define UPSTREAM_PACKET_LEN_MIN		(UPSTREAM_PACKET_HEADER_LEN)
+#define UPSTREAM_PACKET_HEADER_LEN		(2)			//Min length = CommandClass & Command bytes
+#define UPSTREAM_PACKET_LEN				(UPSTREAM_PACKET_HEADER_LEN + MSC_MEDIA_PACKET)
+#define UPSTREAM_PACKET_LEN_MIN			(UPSTREAM_PACKET_HEADER_LEN)
+
+#define UPSTREAM_PACKET_HEADER_LEN_16	(UPSTREAM_PACKET_HEADER_LEN / 2)
+#define UPSTREAM_PACKET_LEN_16			(UPSTREAM_PACKET_LEN / 2)
+#define UPSTREAM_PACKET_LEN_MIN_16		(UPSTREAM_PACKET_LEN_MIN / 2)
 
 
 #define UPSTREAM_SPI_FREAKOUT								\
 	do {													\
 		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);		\
-		UpstreamInterfaceState = UPSTREAM_INTERFACE_ERROR;	\
+		/*UpstreamInterfaceState = UPSTREAM_INTERFACE_ERROR; */ \
 		Upstream_StateMachine_SetErrorState();				\
 		while (1);											\
 } while (0);
@@ -54,11 +58,10 @@ PacketBusyTypeDef;
 typedef struct
 {
 	PacketBusyTypeDef	Busy;						//Everything after Busy should be word-aligned
-	uint16_t			Length __ALIGN_END;			//Packet length includes CommandClass, Command, and Data
+	uint16_t			Length16 __ALIGN_END;			//Packet length includes CommandClass, Command, and Data
 	uint8_t				CommandClass;
 	uint8_t				Command;
 	uint8_t				Data[MSC_MEDIA_PACKET];		//Should (must?) be word-aligned, for USB copy routine
-	uint8_t				RxCrc;
 }
 UpstreamPacketTypeDef;
 
@@ -75,8 +78,8 @@ void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease);
 HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite);
 HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback);
 void Upstream_TxOkInterrupt(void);
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
+void Upstream_SPIProcess_InterruptSafe(void);
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
 
 
