@@ -68,22 +68,6 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
-///**
-//* @brief This function handles DMA2 Stream2 global interrupt.
-//*/
-//void DMA2_Stream2_IRQHandler(void)
-//{
-//  HAL_DMA_IRQHandler(&hdma_spi1_rx);
-//}
-//
-///**
-//* @brief This function handles DMA2 Stream3 global interrupt.
-//*/
-//void DMA2_Stream3_IRQHandler(void)
-//{
-//  HAL_DMA_IRQHandler(&hdma_spi1_tx);
-//}
-
 
 void SPI1_IRQHandler(void)
 {
@@ -93,9 +77,6 @@ void SPI1_IRQHandler(void)
 }
 
 
-/**
-* @brief This function handles USB On The Go FS global interrupt.
-*/
 void OTG_FS_IRQHandler(void)
 {
   HAL_HCD_IRQHandler(&hhcd_USB_OTG_FS);

@@ -99,40 +99,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	//Interrupt-based SPI now!
 	HAL_NVIC_SetPriority(SPI1_IRQn, INT_PRIORITY_SPI, 0);
 	HAL_NVIC_EnableIRQ(SPI1_IRQn);
-
-//	//Prepare Tx DMA stream
-//	hspi->hdmatx = &spiTxDmaHandle;
-//	spiTxDmaHandle.Instance = DMA2_Stream3;
-//	spiTxDmaHandle.Parent = hspi;
-//	spiTxDmaHandle.Init.Channel = DMA_CHANNEL_3;
-//	spiTxDmaHandle.Init.Direction = DMA_MEMORY_TO_PERIPH;
-//	spiTxDmaHandle.Init.PeriphInc = DMA_PINC_DISABLE;
-//	spiTxDmaHandle.Init.MemInc = DMA_MINC_ENABLE;
-//	spiTxDmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;	//DMA_PDATAALIGN_BYTE;
-//	spiTxDmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;		//DMA_MDATAALIGN_BYTE;
-//	spiTxDmaHandle.Init.Mode = DMA_NORMAL;
-//	spiTxDmaHandle.Init.Priority = DMA_PRIORITY_MEDIUM;
-//	spiTxDmaHandle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-//	HAL_DMA_Init(&spiTxDmaHandle);
-//	HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, INT_PRIORITY_SPI_DMA, 0);
-//	HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
-//
-//	//Prepare Rx DMA stream
-//	hspi->hdmarx = &spiRxDmaHandle;
-//	spiRxDmaHandle.Instance = DMA2_Stream2;
-//	spiRxDmaHandle.Parent = hspi;
-//	spiRxDmaHandle.Init.Channel = DMA_CHANNEL_3;
-//	spiRxDmaHandle.Init.Direction = DMA_PERIPH_TO_MEMORY;
-//	spiRxDmaHandle.Init.PeriphInc = DMA_PINC_DISABLE;
-//	spiRxDmaHandle.Init.MemInc = DMA_MINC_ENABLE;
-//	spiRxDmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;	//DMA_PDATAALIGN_BYTE;
-//	spiRxDmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;		//DMA_MDATAALIGN_BYTE;
-//	spiRxDmaHandle.Init.Mode = DMA_NORMAL;
-//	spiRxDmaHandle.Init.Priority = DMA_PRIORITY_MEDIUM;
-//	spiRxDmaHandle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-//	HAL_DMA_Init(&spiRxDmaHandle);
-//	HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, INT_PRIORITY_SPI_DMA, 0);
-//	HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
   }
 }
 
@@ -152,11 +118,6 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
     PA7     ------> SPI1_MOSI 
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7);
-//    HAL_DMA_DeInit(&spiTxDmaHandle);
-//    HAL_DMA_DeInit(&spiRxDmaHandle);
-//
-//    HAL_NVIC_DisableIRQ(DMA2_Stream3_IRQn);
-//    HAL_NVIC_DisableIRQ(DMA2_Stream2_IRQn);
   }
 
 }

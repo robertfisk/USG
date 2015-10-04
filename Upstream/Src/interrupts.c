@@ -74,20 +74,6 @@ void OTG_FS_IRQHandler(void)
 	HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
 }
 
-//void DMA2_Stream2_IRQHandler(void)
-//{
-//	//SPI_DMA_ACTIVE_ON;
-//	HAL_DMA_IRQHandler(&spiRxDmaHandle);
-//	//SPI_DMA_ACTIVE_OFF;
-//}
-//
-//void DMA2_Stream3_IRQHandler(void)
-//{
-//	//SPI_DMA_ACTIVE_ON;
-//	HAL_DMA_IRQHandler(&spiTxDmaHandle);
-//	//SPI_DMA_ACTIVE_OFF;
-//}
-
 void EXTI3_IRQHandler(void)
 {
 	__HAL_GPIO_EXTI_CLEAR_IT(DOWNSTREAM_TX_OK_PIN);
@@ -97,6 +83,8 @@ void EXTI3_IRQHandler(void)
 /////////////////////////
 
 
+//As SPI DMA doesn't work when the USB peripheral is active,
+//we are forced to use interrupts. This must be higher priority than USB.
 void SPI1_IRQHandler(void)
 {
 	SPI_INT_ACTIVE_ON;
