@@ -14,6 +14,7 @@
 
 
 #include "usbh_def.h"
+#include "usb_host.h"
 #include "downstream_spi.h"
 
 
@@ -30,6 +31,7 @@ typedef enum
 
 #define DOWNSTREAM_STATEMACHINE_FREAKOUT				\
 	do {												\
+		USB_Host_Disconnect();							\
 		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
 		DownstreamState = STATE_ERROR;					\
 		while (1);										\

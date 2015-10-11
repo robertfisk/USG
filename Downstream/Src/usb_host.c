@@ -66,6 +66,12 @@ void USB_Host_Process()
 }
 
 
+//Called when Downstream Statemachine or SPI freaks out.
+void USB_Host_Disconnect()
+{
+	USBH_DeInit(&hUsbHostFS);
+}
+
 
 /**
   * @}

@@ -67,7 +67,7 @@
 #define HOST_USER_CONNECTION                    4
 #define HOST_USER_DISCONNECTION                 5
 #define HOST_USER_UNRECOVERED_ERROR             6
-
+#define HOST_USER_CLASS_FAILED					7
 
 /**
   * @}

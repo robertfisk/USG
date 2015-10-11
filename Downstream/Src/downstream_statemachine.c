@@ -89,14 +89,8 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 }
 
 
-//Used by downstream_spi freakout macro, indicates we should stop everything.
-void Downstream_PacketProcessor_SetErrorState(void)
-{
-	DownstreamState = STATE_ERROR;
-}
 
-
-//Used by downstream class interfaces
+//Used by downstream class interfaces, and SPI interface
 void Downstream_PacketProcessor_FreakOut(void)
 {
 	DOWNSTREAM_STATEMACHINE_FREAKOUT;
@@ -212,6 +206,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		//Unsupported device classes will cause a slow fault flash.
 		//This is distinct from the fast freakout flash caused by internal errors or attacks.
 		default:
+			USB_Host_Disconnect();
 			LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
 			DownstreamState = STATE_ERROR;
 			return;
@@ -248,6 +243,17 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 		}
 
 		DOWNSTREAM_STATEMACHINE_FREAKOUT;
+		return;
+	}
+
+	//Called from main():
+	if (id == HOST_USER_CLASS_FAILED)
+	{
+		//Unsupported device classes will cause a slow fault flash.
+		//This is distinct from the fast freakout flash caused by internal errors or attacks.
+		USB_Host_Disconnect();
+		LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
+		DownstreamState = STATE_ERROR;
 		return;
 	}
 }

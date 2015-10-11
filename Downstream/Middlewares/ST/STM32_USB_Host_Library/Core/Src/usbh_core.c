@@ -534,6 +534,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
         }
         else
         {
+          phost->pUser(phost, HOST_USER_CLASS_FAILED);
           phost->gState  = HOST_ABORT_STATE;
           USBH_UsrLog ("Device not supporting %s class.", phost->pActiveClass->Name);
         }

@@ -54,6 +54,7 @@ typedef enum {
 
 void USB_Host_Init(void);
 void USB_Host_Process(void);
+void USB_Host_Disconnect(void);
 
 
 #ifdef __cplusplus

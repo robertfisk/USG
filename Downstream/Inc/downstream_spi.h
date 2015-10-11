@@ -26,9 +26,8 @@
 
 #define DOWNSTREAM_SPI_FREAKOUT									\
 	do {														\
-		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);			\
-		/*Downstream_PacketProcessor_SetErrorState();*/				\
-		/*DownstreamInterfaceState = DOWNSTREAM_INTERFACE_ERROR;*/	\
+		Downstream_PacketProcessor_FreakOut();					\
+		DownstreamInterfaceState = DOWNSTREAM_INTERFACE_ERROR;	\
 		while (1);												\
 	} while (0);
 
