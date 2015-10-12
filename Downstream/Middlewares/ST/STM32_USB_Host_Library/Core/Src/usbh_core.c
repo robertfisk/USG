@@ -423,7 +423,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     USBH_UsrLog("USB Device Attached");  
       
     /* Wait for 100 ms after Reset */
-    USBH_Delay(100); 
+    USBH_Delay(100);
           
     phost->device.speed = USBH_LL_GetSpeed(phost);
     
@@ -541,6 +541,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
       }
       else
       {
+    	phost->pUser(phost, HOST_USER_CLASS_FAILED);
         phost->gState  = HOST_ABORT_STATE;
         USBH_UsrLog ("No registered class for this device.");
       }
