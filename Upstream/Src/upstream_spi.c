@@ -31,7 +31,6 @@ SpiPacketReceivedCallbackTypeDef	ReceivePacketCallback		= NULL;	//Indicates some
 
 uint32_t					TemporaryIncomingPacketLength;		//We don't actually care about what Downstream sends us when we are transmitting. We just need somewhere to put it so that our own packet length is not overwritten.
 uint8_t						TxOkInterruptReceived = 0;
-uint8_t						SpiInterruptCompleted = 0;
 uint8_t						SentCommandClass;
 uint8_t						SentCommand;
 
@@ -41,7 +40,6 @@ void Upstream_BeginTransmitPacketBody(void);
 HAL_StatusTypeDef Upstream_CheckBeginPacketReception(void);
 void Upstream_BeginReceivePacketSize(UpstreamPacketTypeDef* freePacket);
 void Upstream_BeginReceivePacketBody(void);
-void Upstream_SPIProcess(void);
 
 
 
@@ -58,7 +56,7 @@ void Upstream_InitSPI(void)
 	Hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
 	Hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
 	Hspi1.Init.NSS = SPI_NSS_SOFT;
-	Hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;	//42MHz APB2 / 32 = 1.3Mbaud
+	Hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;	//42MHz APB2 / 4 = 10.5Mbaud
 	Hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	Hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
 	Hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLED;
@@ -231,37 +229,6 @@ HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 //at SPI1 interrupt priority. Assume *hspi points to our hspi1.
 //We TxRx our outgoing packet because the SPI hardware freaks out if we only Tx it :-/
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	SpiInterruptCompleted = 1;
-
-	//Elevate priority here to stop EXT3I sneaking in
-	//before we have a chance to process UpstreamInterfaceState change.
-	__set_BASEPRI(INT_PRIORITY_OTG_FS << (8 - __NVIC_PRIO_BITS));
-}
-
-
-
-//Preemption protection wrapper around Upstream_SPIProcess()
-//We must protect against preemption by USB and EXT3 interrupts at priority 10!
-void Upstream_SPIProcess_InterruptSafe(void)
-{
-	//This is done on SPI interrupt callback...
-	//__set_BASEPRI(INT_PRIORITY_OTG_FS << (8 - __NVIC_PRIO_BITS));
-
-	if (SpiInterruptCompleted == 0)
-	{
-		return;
-	}
-	SpiInterruptCompleted = 0;
-	Upstream_SPIProcess();
-	__set_BASEPRI(0);
-}
-
-
-
-//Called from main().
-//Must be protected against preemption by USB and EXT3 interrupts at priority 10!
-void Upstream_SPIProcess(void)
 {
 	SpiPacketReceivedCallbackTypeDef tempPacketCallback;
 	UpstreamPacketTypeDef* tempPacketToFree;
@@ -475,10 +442,10 @@ void Upstream_BeginTransmitPacketSize(void)
 {
 	UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE;
 	SPI1_NSS_ASSERT;
-	if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-								   (uint8_t*)&CurrentWorkingPacket->Length16,
-								   (uint8_t*)&TemporaryIncomingPacketLength,
-								   2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
+	if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+									(uint8_t*)&CurrentWorkingPacket->Length16,
+									(uint8_t*)&TemporaryIncomingPacketLength,
+									2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
 	{
 		UPSTREAM_SPI_FREAKOUT;
 	}
@@ -490,10 +457,10 @@ void Upstream_BeginTransmitPacketBody(void)
 	UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_PACKET;
 	SPI1_NSS_ASSERT;
 
-	if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-								   &CurrentWorkingPacket->CommandClass,
-								   &CurrentWorkingPacket->CommandClass,
-								   ((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
+	if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+									&CurrentWorkingPacket->CommandClass,
+									&CurrentWorkingPacket->CommandClass,
+									((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
 	{
 		UPSTREAM_SPI_FREAKOUT;
 	}
@@ -516,13 +483,12 @@ void Upstream_BeginReceivePacketSize(UpstreamPacketTypeDef* freePacket)
 	}
 	UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_SIZE;
 	CurrentWorkingPacket = freePacket;
-	CurrentWorkingPacket->Length16 = 0;		//Our RX buffer is used by HAL_SPI_Receive_DMA as dummy TX data, we set Length to 0 so downstream will know this is a dummy packet.
+	CurrentWorkingPacket->Length16 = 0;		//Our RX buffer is used by HAL_SPI_TransmitReceive_DMA as dummy TX data, we set Length to 0 so downstream will know this is a dummy packet.
 	SPI1_NSS_ASSERT;
-	TemporaryIncomingPacketLength = 0;
-	if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-								   (uint8_t*)&TemporaryIncomingPacketLength,
-								   (uint8_t*)&CurrentWorkingPacket->Length16,
-								   2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
+	if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+									(uint8_t*)&CurrentWorkingPacket->Length16,
+									(uint8_t*)&CurrentWorkingPacket->Length16,
+									2) != HAL_OK)		//We only need to write one word, but the peripheral library freaks out...
 	{
 		UPSTREAM_SPI_FREAKOUT;
 	}
@@ -533,10 +499,10 @@ void Upstream_BeginReceivePacketBody(void)
 {
 	UpstreamInterfaceState = UPSTREAM_INTERFACE_RX_PACKET;
 	SPI1_NSS_ASSERT;
-	if (HAL_SPI_TransmitReceive_IT(&Hspi1,
-								   &CurrentWorkingPacket->CommandClass,
-								   &CurrentWorkingPacket->CommandClass,
-								   ((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
+	if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+									&CurrentWorkingPacket->CommandClass,
+									&CurrentWorkingPacket->CommandClass,
+									((CurrentWorkingPacket->Length16 < 2) ? 2 : CurrentWorkingPacket->Length16)) != HAL_OK)
 	{
 		UPSTREAM_SPI_FREAKOUT;
 	}

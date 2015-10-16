@@ -62,7 +62,7 @@ PacketBusyTypeDef;
 typedef struct
 {
 	PacketBusyTypeDef	Busy;						//Everything after Busy should be word-aligned
-	uint16_t			Length16 __ALIGN_END;			//Packet length includes CommandClass, Command, and Data
+	uint16_t			Length16 __ALIGN_END;		//Packet length includes CommandClass, Command, and Data
 	uint8_t				CommandClass;
 	uint8_t				Command;
 	uint8_t				Data[MSC_MEDIA_PACKET];		//Should (must?) be word-aligned, for USB copy routine
@@ -82,7 +82,6 @@ void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease);
 HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite);
 HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback);
 void Upstream_TxOkInterrupt(void);
-void Upstream_SPIProcess_InterruptSafe(void);
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
 

@@ -79,7 +79,7 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* hpcd)
     GPIO_InitStruct.Alternate = GPIO_AF10_OTG_FS;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    HAL_NVIC_SetPriority(OTG_FS_IRQn, INT_PRIORITY_OTG_FS, 0);
+    HAL_NVIC_SetPriority(OTG_FS_IRQn, INT_PRIORITY_USB, 0);
     HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
   /* USER CODE BEGIN USB_OTG_FS_MspInit 1 */
 

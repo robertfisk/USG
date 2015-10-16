@@ -48,10 +48,8 @@
 /* External variables --------------------------------------------------------*/
 
 extern PCD_HandleTypeDef	hpcd_USB_OTG_FS;
-extern SPI_HandleTypeDef	Hspi1;
-
-//extern DMA_HandleTypeDef	spiTxDmaHandle;
-//extern DMA_HandleTypeDef	spiRxDmaHandle;
+extern DMA_HandleTypeDef	spiTxDmaHandle;
+extern DMA_HandleTypeDef	spiRxDmaHandle;
 
 
 /******************************************************************************/
@@ -74,6 +72,20 @@ void OTG_FS_IRQHandler(void)
 	HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
 }
 
+void DMA2_Stream2_IRQHandler(void)
+{
+	INT_ACTIVE_ON;
+	HAL_DMA_IRQHandler(&spiRxDmaHandle);
+	INT_ACTIVE_OFF;
+}
+
+void DMA2_Stream3_IRQHandler(void)
+{
+	INT_ACTIVE_ON;
+	HAL_DMA_IRQHandler(&spiTxDmaHandle);
+	INT_ACTIVE_OFF;
+}
+
 void EXTI3_IRQHandler(void)
 {
 	__HAL_GPIO_EXTI_CLEAR_IT(DOWNSTREAM_TX_OK_PIN);
@@ -82,15 +94,6 @@ void EXTI3_IRQHandler(void)
 /////////////////////////
 /////////////////////////
 
-
-//As SPI DMA doesn't work when the USB peripheral is active,
-//we are forced to use interrupts. This must be higher priority than USB.
-void SPI1_IRQHandler(void)
-{
-	SPI_INT_ACTIVE_ON;
-	HAL_SPI_IRQHandler(&Hspi1);
-	SPI_INT_ACTIVE_OFF;
-}
 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

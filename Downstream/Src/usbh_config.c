@@ -67,7 +67,7 @@ void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd)
     __USB_OTG_FS_CLK_ENABLE();
 
     /* Peripheral interrupt init*/
-    HAL_NVIC_SetPriority(OTG_FS_IRQn, INT_PRIORITY_OTG_FS, 0);
+    HAL_NVIC_SetPriority(OTG_FS_IRQn, INT_PRIORITY_USB, 0);
     HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
   }
 }

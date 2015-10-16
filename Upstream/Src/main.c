@@ -71,7 +71,7 @@ int main(void)
 
   while (1)
   {
-	  Upstream_SPIProcess_InterruptSafe();
+  
   }
 }
 
@@ -156,11 +156,11 @@ void GPIO_Init(void)
 	STAT_LED_OFF;
 
 	//SPI_INT_ACTIVE indicator
-	GPIO_InitStruct.Pin = SPI_INT_ACTIVE_PIN;
+	GPIO_InitStruct.Pin = INT_ACTIVE_PIN;
 	//GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	//GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(SPI_INT_ACTIVE_PORT, &GPIO_InitStruct);
-	SPI_INT_ACTIVE_OFF;
+	HAL_GPIO_Init(INT_ACTIVE_PORT, &GPIO_InitStruct);
+	INT_ACTIVE_OFF;
 }
 
 /* USER CODE BEGIN 4 */
