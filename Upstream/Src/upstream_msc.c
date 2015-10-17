@@ -33,6 +33,7 @@ static void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* free
 static void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket);
 static void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket);
 static void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket);
 static void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket);
 static void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket);
 
@@ -163,36 +164,43 @@ HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
 										 uint32_t readBlockCount,
 										 uint32_t readByteCount)
 {
-	UpstreamPacketTypeDef* freePacket;
-
 	if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
 	{
 		return HAL_ERROR;
 	}
 
+	BlockStart = readBlockStart;
+	BlockCount = readBlockCount;
+	ByteCount = readByteCount;
 	ReadStreamPacket = NULL;			//Prepare for GetStreamDataPacket's use
 	ReadStreamBusy = 0;
-	ByteCount = readByteCount;
 
 	TestReadyCallback = callback;
-	freePacket = Upstream_GetFreePacketImmediately();
-	if (freePacket == NULL)
-	{
-		return HAL_ERROR;
-	}
+	return Upstream_GetFreePacket(Upstream_MSC_BeginReadFreePacketCallback);
+}
 
+
+
+void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket)
+{
 	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2);
 	freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
 	freePacket->Command = COMMAND_MSC_READ;
-	*(uint64_t*)&(freePacket->Data[0]) = readBlockStart;
-	*(uint32_t*)&(freePacket->Data[8]) = readBlockCount;
+	*(uint64_t*)&(freePacket->Data[0]) = BlockStart;
+	*(uint32_t*)&(freePacket->Data[8]) = BlockCount;
 
 	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
 	{
-		return Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback);	//Re-use TestReadyReplyCallback because it does exactly what we want!
+		if (Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback) != HAL_OK)	//Re-use TestReadyReplyCallback because it does exactly what we want!
+		{
+			TestReadyCallback(HAL_ERROR);
+		}
+		return;
 	}
+
 	//else:
-	return HAL_ERROR;
+	Upstream_ReleasePacket(freePacket);
+	TestReadyCallback(HAL_ERROR);
 }
 
 
@@ -292,7 +300,6 @@ void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket
 
 	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
 	{
-		Upstream_ReleasePacket(freePacket);
 		if (Upstream_ReceivePacket(Upstream_MSC_BeginWriteReplyCallback) != HAL_OK)
 		{
 			TestReadyCallback(HAL_ERROR);
