@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/me/USBdevel/USG/Git/Hardware/USG.sch)
-    (date "Mon 26 Oct 2015 13:31:41 NZDT")
+    (date "Mon 26 Oct 2015 22:32:00 NZDT")
     (tool "Eeschema (2015-10-16 BZR 6271)-product")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -431,7 +431,7 @@
       (tstamp 562D2889))
     (comp (ref P3)
       (value USB_OTG)
-      (footprint USG_footprints:USB_Micro-B-SMD)
+      (footprint Connect:USB_Micro-B)
       (libsource (lib conn) (part USB_OTG))
       (sheetpath (names /) (tstamps /))
       (tstamp 562D02AE)))
@@ -596,6 +596,17 @@
         (pin (num 1) (name Anode) (type passive))
         (pin (num 2) (name cathode) (type passive))
         (pin (num 3) (name AK) (type passive))))
+    (libpart (lib USG_parts) (part NUP4114)
+      (fields
+        (field (name Reference) U)
+        (field (name Value) NUP4114))
+      (pins
+        (pin (num 1) (name IO1) (type BiDi))
+        (pin (num 2) (name GND) (type BiDi))
+        (pin (num 3) (name IO3) (type BiDi))
+        (pin (num 4) (name IO4) (type BiDi))
+        (pin (num 5) (name Vcc) (type BiDi))
+        (pin (num 6) (name IO2) (type BiDi))))
     (libpart (lib USG_parts) (part RR)
       (footprints
         (fp R?)
@@ -678,18 +689,7 @@
         (pin (num 61) (name I2C1_SCL/TIM4_CH3/TIM10_CH1/SDIO_D4/PB8) (type BiDi))
         (pin (num 62) (name SPI2_NSS/I2S2_WS/I2C1_SDA/TIM4_CH4/TIM11_CH1/SDIO_D5/PB9) (type BiDi))
         (pin (num 63) (name VSS) (type power_in))
-        (pin (num 64) (name VDD) (type power_in))))
-    (libpart (lib USG_parts) (part NUP4114)
-      (fields
-        (field (name Reference) U)
-        (field (name Value) NUP4114))
-      (pins
-        (pin (num 1) (name IO1) (type BiDi))
-        (pin (num 2) (name GND) (type BiDi))
-        (pin (num 3) (name IO3) (type BiDi))
-        (pin (num 4) (name IO4) (type BiDi))
-        (pin (num 5) (name Vcc) (type BiDi))
-        (pin (num 6) (name IO2) (type BiDi)))))
+        (pin (num 64) (name VDD) (type power_in)))))
   (libraries
     (library (logical conn)
       (uri /usr/local/share/kicad/library/conn.lib))

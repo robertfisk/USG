@@ -1591,9 +1591,9 @@ F 3 "" H 9100 7100 60  0000 C CNN
 	1    9100 7100
 	0    1    1    0   
 $EndComp
-Text Notes 3100 1350 0    197  ~ 0
+Text Notes 3150 1400 0    197  ~ 0
 Upstream
-Text Notes 11250 1800 0    197  ~ 0
+Text Notes 11250 1700 0    197  ~ 0
 Downstream
 $Comp
 L DOUBLE_DIODE_CCOM D1
@@ -2155,9 +2155,9 @@ Wire Wire Line
 Wire Bus Line
 	8150 5500 8150 9300
 Wire Bus Line
-	15850 9300 8150 9300
+	8150 9300 15850 9300
 Wire Bus Line
-	15850 5500 15850 9300
+	15850 9300 15850 5500
 Wire Wire Line
 	6400 5400 8050 5400
 Wire Wire Line
@@ -2218,7 +2218,7 @@ U 1 1 562D02AE
 P 1400 2100
 F 0 "P3" H 1725 1975 50  0000 C CNN
 F 1 "USB_OTG" H 1400 2300 50  0000 C CNN
-F 2 "USG_footprints:USB_Micro-B-SMD" V 1350 2000 60  0001 C CNN
+F 2 "Connect:USB_Micro-B" V 1350 2000 60  0001 C CNN
 F 3 "" V 1350 2000 60  0000 C CNN
 	1    1400 2100
 	0    -1   1    0   
