@@ -45,11 +45,16 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void GPIO_Init(void);
+void CheckFirmwareMatchesHardware(void);
 
 
 
 int main(void)
 {
+	//First things first!
+	CheckFirmwareMatchesHardware();
+
+
 	/* Configure the system clock */
 	SystemClock_Config();
 
@@ -68,6 +73,45 @@ int main(void)
 		USB_Host_Process();
 		Downstream_SPIProcess();
 	}
+}
+
+
+void CheckFirmwareMatchesHardware(void)
+{
+	//Check we are running on the expected hardware:
+	//STM32F407 on an Olimex dev board
+
+	GPIO_InitTypeDef GPIO_InitStruct;
+
+	if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_405_407_415_417)
+	{
+		//The H407 board has a STAT LED on PC13. If there is no pullup on this pin,
+		//then we are probably running on another board.
+		__HAL_RCC_GPIOC_CLK_ENABLE();
+		GPIO_InitStruct.Pin = FAULT_LED_PIN;
+		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+		GPIO_InitStruct.Alternate = 0;
+		HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+
+		if (FAULT_LED_PORT->IDR & FAULT_LED_PIN)
+		{
+			//Pin pulls up, so this is an H407 board :)
+			return;
+		}
+	}
+
+	//This is not the hardware we expected, so turn on our fault LED(s) and die in a heap.
+	GPIO_InitStruct.Pin = FAULT_LED_PIN | H405_FAULT_LED_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+	FAULT_LED_ON;
+	H405_FAULT_LED_ON;
+	while (1);
 }
 
 
@@ -158,14 +202,14 @@ void GPIO_Init(void)
 	HAL_GPIO_Init(USB_HS_VBUSON_PORT, &GPIO_InitStruct);
 
 	//STAT_LED is output
-	STAT_LED_OFF;
-	GPIO_InitStruct.Pin = STAT_LED_PIN;
-	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
+	FAULT_LED_OFF;
+	GPIO_InitStruct.Pin = FAULT_LED_PIN;
+	HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
 
 	//SPI_INT_ACTIVE indicator
-	GPIO_InitStruct.Pin = SPI_INT_ACTIVE_PIN;
-	HAL_GPIO_Init(SPI_INT_ACTIVE_PORT, &GPIO_InitStruct);
-	SPI_INT_ACTIVE_OFF;
+	GPIO_InitStruct.Pin = INT_ACTIVE_PIN;
+	HAL_GPIO_Init(INT_ACTIVE_PORT, &GPIO_InitStruct);
+	INT_ACTIVE_OFF;
 }
 
 

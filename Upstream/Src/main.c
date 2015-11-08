@@ -50,30 +50,75 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void GPIO_Init(void);
+void CheckFirmwareMatchesHardware(void);
 
 
 
 int main(void)
 {
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-
-  /* Initialize all configured peripherals */
-  GPIO_Init();
-  LED_Init();
-  USB_Device_Init();
-
-  Upstream_InitStateMachine();
+	//First things first!
+	CheckFirmwareMatchesHardware();
 
 
-  while (1)
-  {
-  
-  }
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* Initialize all configured peripherals */
+	GPIO_Init();
+	LED_Init();
+	USB_Device_Init();
+
+	Upstream_InitStateMachine();
+
+
+	while (1)
+	{
+
+	}
 }
+
+
+void CheckFirmwareMatchesHardware(void)
+{
+	//Check we are running on the expected hardware:
+	//STM32F405 on an Olimex dev board
+
+	GPIO_InitTypeDef GPIO_InitStruct;
+
+	if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_405_407_415_417)
+	{
+		//The H405 board has a STAT LED on PC12. If there is no pullup on this pin,
+		//then we are probably running on another board.
+		__HAL_RCC_GPIOC_CLK_ENABLE();
+		GPIO_InitStruct.Pin = FAULT_LED_PIN;
+		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+		GPIO_InitStruct.Alternate = 0;
+		HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+
+		if (FAULT_LED_PORT->IDR & FAULT_LED_PIN)
+		{
+			//Pin pulls up, so this is an H405 board :)
+			return;
+		}
+	}
+
+	//This is not the hardware we expected, so turn on our fault LED(s) and die in a heap.
+	GPIO_InitStruct.Pin = FAULT_LED_PIN | OTHER_BOARDS_FAULT_LED_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+	FAULT_LED_ON;
+	OTHER_BOARDS_FAULT_LED_ON;
+	while (1);
+}
+
 
 
 /** System Clock Configuration
@@ -149,11 +194,11 @@ void GPIO_Init(void)
 	HAL_GPIO_Init(USB_P_PORT, &GPIO_InitStruct);
 
 	//STAT_LED is output
-	GPIO_InitStruct.Pin = STAT_LED_PIN;
+	GPIO_InitStruct.Pin = FAULT_LED_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(STAT_LED_PORT, &GPIO_InitStruct);
-	STAT_LED_OFF;
+	HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+	FAULT_LED_OFF;
 
 	//SPI_INT_ACTIVE indicator
 	GPIO_InitStruct.Pin = INT_ACTIVE_PIN;
