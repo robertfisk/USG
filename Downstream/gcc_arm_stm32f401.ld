@@ -1,10 +1,9 @@
 /* Linker script to configure memory regions. */
 MEMORY
 {
-	FLASH (rx)	: ORIGIN = 0x08000000, LENGTH = 1024K
-	SRAM1 (xrw)	: ORIGIN = 0x20000000, LENGTH = 112K
-	SRAM2 (xrw)	: ORIGIN = 0x2001C000, LENGTH = 16K
-	CCMRAM (rw)	: ORIGIN = 0x10000000, LENGTH = 64K
+	FLASH (rx)	: ORIGIN = 0x08000000, LENGTH = 256K
+	SRAM1 (xrw)	: ORIGIN = 0x20000000, LENGTH = 64K
+
 }
 
 /* Library configurations */
@@ -112,33 +111,5 @@ SECTIONS
 
 	/* Check if data + heap + stack exceeds RAM limit */
 	ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
-
-
-	/* TODO: Place DMA buffers here.
-	*	SRAM1 and SRAM2 can be accessed simultaneously.
-	*	Startup file does not initialise this area. */
-	.sram2 :
-	{
-		. = ALIGN(4);
-		*(.sram2)
-		*(.sram2*)
-		. = ALIGN(4);
-	} >SRAM2
-
-
-	_siccmram = LOADADDR(.ccmram);
-
-	/* CCM-RAM section 
-	* Use for stack and heap if SRAM1 & SRAM2 is full.
-	*/
-	.ccmram :
-	{
-		. = ALIGN(4);
-		_sccmram = .;
-		*(.ccmram)
-		*(.ccmram*)
-		    
-		. = ALIGN(4);
-		_eccmram = .;
-	} >CCMRAM /* AT> FLASH */
+	
 }

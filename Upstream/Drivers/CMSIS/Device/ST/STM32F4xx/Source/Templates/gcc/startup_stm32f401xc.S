@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file      startup_stm32f405xx.s
+  * @file      startup_stm32f401xc.s
   * @author    MCD Application Team
   * @version   V2.2.0
   * @date      15-December-2014 
@@ -144,7 +144,6 @@ Infinite_Loop:
 __Vectors:
   .word  __StackTop
   .word  Reset_Handler
-
   .word  NMI_Handler
   .word  HardFault_Handler
   .word  MemManage_Handler
@@ -179,11 +178,11 @@ __Vectors:
   .word     DMA1_Stream4_IRQHandler           /* DMA1 Stream 4                */                   
   .word     DMA1_Stream5_IRQHandler           /* DMA1 Stream 5                */                   
   .word     DMA1_Stream6_IRQHandler           /* DMA1 Stream 6                */                   
-  .word     ADC_IRQHandler                    /* ADC1, ADC2 and ADC3s         */                   
-  .word     CAN1_TX_IRQHandler                /* CAN1 TX                      */                         
-  .word     CAN1_RX0_IRQHandler               /* CAN1 RX0                     */                          
-  .word     CAN1_RX1_IRQHandler               /* CAN1 RX1                     */                          
-  .word     CAN1_SCE_IRQHandler               /* CAN1 SCE                     */                          
+  .word     ADC_IRQHandler                    /* ADC1                         */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
   .word     EXTI9_5_IRQHandler                /* External Line[9:5]s          */                          
   .word     TIM1_BRK_TIM9_IRQHandler          /* TIM1 Break and TIM9          */         
   .word     TIM1_UP_TIM10_IRQHandler          /* TIM1 Update and TIM10        */         
@@ -200,23 +199,23 @@ __Vectors:
   .word     SPI2_IRQHandler                   /* SPI2                         */                   
   .word     USART1_IRQHandler                 /* USART1                       */                   
   .word     USART2_IRQHandler                 /* USART2                       */                   
-  .word     USART3_IRQHandler                 /* USART3                       */                   
+  .word     0                                 /* Reserved                     */
   .word     EXTI15_10_IRQHandler              /* External Line[15:10]s        */                          
   .word     RTC_Alarm_IRQHandler              /* RTC Alarm (A and B) through EXTI Line */                 
   .word     OTG_FS_WKUP_IRQHandler            /* USB OTG FS Wakeup through EXTI line */                       
-  .word     TIM8_BRK_TIM12_IRQHandler         /* TIM8 Break and TIM12         */         
-  .word     TIM8_UP_TIM13_IRQHandler          /* TIM8 Update and TIM13        */         
-  .word     TIM8_TRG_COM_TIM14_IRQHandler     /* TIM8 Trigger and Commutation and TIM14 */
-  .word     TIM8_CC_IRQHandler                /* TIM8 Capture Compare         */                          
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
   .word     DMA1_Stream7_IRQHandler           /* DMA1 Stream7                 */                          
-  .word     FSMC_IRQHandler                   /* FSMC                         */                   
+  .word     0                                 /* Reserved                     */
   .word     SDIO_IRQHandler                   /* SDIO                         */                   
   .word     TIM5_IRQHandler                   /* TIM5                         */                   
   .word     SPI3_IRQHandler                   /* SPI3                         */                   
-  .word     UART4_IRQHandler                  /* UART4                        */                   
-  .word     UART5_IRQHandler                  /* UART5                        */                   
-  .word     TIM6_DAC_IRQHandler               /* TIM6 and DAC1&2 underrun errors */                   
-  .word     TIM7_IRQHandler                   /* TIM7                         */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
   .word     DMA2_Stream0_IRQHandler           /* DMA2 Stream 0                */                   
   .word     DMA2_Stream1_IRQHandler           /* DMA2 Stream 1                */                   
   .word     DMA2_Stream2_IRQHandler           /* DMA2 Stream 2                */                   
@@ -224,10 +223,10 @@ __Vectors:
   .word     DMA2_Stream4_IRQHandler           /* DMA2 Stream 4                */                   
   .word     0                                 /* Reserved                     */                   
   .word     0                                 /* Reserved                     */                     
-  .word     CAN2_TX_IRQHandler                /* CAN2 TX                      */                          
-  .word     CAN2_RX0_IRQHandler               /* CAN2 RX0                     */                          
-  .word     CAN2_RX1_IRQHandler               /* CAN2 RX1                     */                          
-  .word     CAN2_SCE_IRQHandler               /* CAN2 SCE                     */                          
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
   .word     OTG_FS_IRQHandler                 /* USB OTG FS                   */                   
   .word     DMA2_Stream5_IRQHandler           /* DMA2 Stream 5                */                   
   .word     DMA2_Stream6_IRQHandler           /* DMA2 Stream 6                */                   
@@ -235,16 +234,18 @@ __Vectors:
   .word     USART6_IRQHandler                 /* USART6                       */                    
   .word     I2C3_EV_IRQHandler                /* I2C3 event                   */                          
   .word     I2C3_ER_IRQHandler                /* I2C3 error                   */                          
-  .word     OTG_HS_EP1_OUT_IRQHandler         /* USB OTG HS End Point 1 Out   */                   
-  .word     OTG_HS_EP1_IN_IRQHandler          /* USB OTG HS End Point 1 In    */                   
-  .word     OTG_HS_WKUP_IRQHandler            /* USB OTG HS Wakeup through EXTI */                         
-  .word     OTG_HS_IRQHandler                 /* USB OTG HS                   */                   
-  .word     0                                 /* Reserved                         */                   
-  .word     0                                 /* Reserved                  */                   
-  .word     HASH_RNG_IRQHandler               /* Hash and Rng                 */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
   .word     FPU_IRQHandler                    /* FPU                          */
+  .word     0                                 /* Reserved                     */
+  .word     0                                 /* Reserved                     */
+  .word     SPI4_IRQHandler                   /* SPI4                         */
 
-                      
 /*******************************************************************************
 *
 * Provide weak aliases for each Exception handler to the Default_Handler. 
@@ -335,18 +336,6 @@ __Vectors:
                   
    .weak      ADC_IRQHandler      
    .thumb_set ADC_IRQHandler,Default_Handler
-               
-   .weak      CAN1_TX_IRQHandler   
-   .thumb_set CAN1_TX_IRQHandler,Default_Handler
-            
-   .weak      CAN1_RX0_IRQHandler                  
-   .thumb_set CAN1_RX0_IRQHandler,Default_Handler
-                           
-   .weak      CAN1_RX1_IRQHandler                  
-   .thumb_set CAN1_RX1_IRQHandler,Default_Handler
-            
-   .weak      CAN1_SCE_IRQHandler                  
-   .thumb_set CAN1_SCE_IRQHandler,Default_Handler
             
    .weak      EXTI9_5_IRQHandler   
    .thumb_set EXTI9_5_IRQHandler,Default_Handler
@@ -395,10 +384,7 @@ __Vectors:
                      
    .weak      USART2_IRQHandler      
    .thumb_set USART2_IRQHandler,Default_Handler
-                     
-   .weak      USART3_IRQHandler      
-   .thumb_set USART3_IRQHandler,Default_Handler
-                  
+
    .weak      EXTI15_10_IRQHandler               
    .thumb_set EXTI15_10_IRQHandler,Default_Handler
                
@@ -408,23 +394,8 @@ __Vectors:
    .weak      OTG_FS_WKUP_IRQHandler         
    .thumb_set OTG_FS_WKUP_IRQHandler,Default_Handler
             
-   .weak      TIM8_BRK_TIM12_IRQHandler         
-   .thumb_set TIM8_BRK_TIM12_IRQHandler,Default_Handler
-         
-   .weak      TIM8_UP_TIM13_IRQHandler            
-   .thumb_set TIM8_UP_TIM13_IRQHandler,Default_Handler
-         
-   .weak      TIM8_TRG_COM_TIM14_IRQHandler      
-   .thumb_set TIM8_TRG_COM_TIM14_IRQHandler,Default_Handler
-      
-   .weak      TIM8_CC_IRQHandler   
-   .thumb_set TIM8_CC_IRQHandler,Default_Handler
-                  
    .weak      DMA1_Stream7_IRQHandler               
    .thumb_set DMA1_Stream7_IRQHandler,Default_Handler
-                     
-   .weak      FSMC_IRQHandler            
-   .thumb_set FSMC_IRQHandler,Default_Handler
                      
    .weak      SDIO_IRQHandler            
    .thumb_set SDIO_IRQHandler,Default_Handler
@@ -435,18 +406,6 @@ __Vectors:
    .weak      SPI3_IRQHandler            
    .thumb_set SPI3_IRQHandler,Default_Handler
                      
-   .weak      UART4_IRQHandler         
-   .thumb_set UART4_IRQHandler,Default_Handler
-                  
-   .weak      UART5_IRQHandler         
-   .thumb_set UART5_IRQHandler,Default_Handler
-                  
-   .weak      TIM6_DAC_IRQHandler                  
-   .thumb_set TIM6_DAC_IRQHandler,Default_Handler
-               
-   .weak      TIM7_IRQHandler            
-   .thumb_set TIM7_IRQHandler,Default_Handler
-         
    .weak      DMA2_Stream0_IRQHandler               
    .thumb_set DMA2_Stream0_IRQHandler,Default_Handler
                
@@ -462,18 +421,6 @@ __Vectors:
    .weak      DMA2_Stream4_IRQHandler               
    .thumb_set DMA2_Stream4_IRQHandler,Default_Handler
             
-   .weak      CAN2_TX_IRQHandler   
-   .thumb_set CAN2_TX_IRQHandler,Default_Handler
-                           
-   .weak      CAN2_RX0_IRQHandler                  
-   .thumb_set CAN2_RX0_IRQHandler,Default_Handler
-                           
-   .weak      CAN2_RX1_IRQHandler                  
-   .thumb_set CAN2_RX1_IRQHandler,Default_Handler
-                           
-   .weak      CAN2_SCE_IRQHandler                  
-   .thumb_set CAN2_SCE_IRQHandler,Default_Handler
-                           
    .weak      OTG_FS_IRQHandler      
    .thumb_set OTG_FS_IRQHandler,Default_Handler
                      
@@ -495,23 +442,11 @@ __Vectors:
    .weak      I2C3_ER_IRQHandler   
    .thumb_set I2C3_ER_IRQHandler,Default_Handler
                         
-   .weak      OTG_HS_EP1_OUT_IRQHandler         
-   .thumb_set OTG_HS_EP1_OUT_IRQHandler,Default_Handler
-               
-   .weak      OTG_HS_EP1_IN_IRQHandler            
-   .thumb_set OTG_HS_EP1_IN_IRQHandler,Default_Handler
-               
-   .weak      OTG_HS_WKUP_IRQHandler         
-   .thumb_set OTG_HS_WKUP_IRQHandler,Default_Handler
-            
-   .weak      OTG_HS_IRQHandler      
-   .thumb_set OTG_HS_IRQHandler,Default_Handler
-                                                     
-   .weak      HASH_RNG_IRQHandler                  
-   .thumb_set HASH_RNG_IRQHandler,Default_Handler   
-
    .weak      FPU_IRQHandler                  
    .thumb_set FPU_IRQHandler,Default_Handler  
+
+   .weak      SPI4_IRQHandler
+   .thumb_set SPI4_IRQHandler,Default_Handler
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
   

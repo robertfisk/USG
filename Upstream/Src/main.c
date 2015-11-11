@@ -88,35 +88,36 @@ void CheckFirmwareMatchesHardware(void)
 
     GPIO_InitTypeDef GPIO_InitStruct;
 
-    if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_405_407_415_417)
-    {
-        //The H405 board has a STAT LED on PC12. If there is no pullup on this pin,
-        //then we are probably running on another board.
-        __HAL_RCC_GPIOC_CLK_ENABLE();
-        GPIO_InitStruct.Pin = FAULT_LED_PIN;
-        GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-        GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-        GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-        GPIO_InitStruct.Alternate = 0;
-        HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
-        GPIO_InitStruct.Pull = GPIO_NOPULL;
-        HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+	if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_401xB_xC)
+	{
+		//Read in board revision and ID on port C
+		__HAL_RCC_GPIOC_CLK_ENABLE();
+		GPIO_InitStruct.Pin = BOARD_REV_PIN_MASK | BOARD_ID_PIN_MASK;
+		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStruct.Pull = GPIO_PULLUP;
+		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+		GPIO_InitStruct.Alternate = 0;
+		HAL_GPIO_Init(BOARD_REV_ID_PORT, &GPIO_InitStruct);
 
-        if (FAULT_LED_PORT->IDR & FAULT_LED_PIN)
-        {
-            //Pin pulls up, so this is an H405 board :)
-            return;
-        }
-    }
+		//Correct board revision?
+		if ((BOARD_REV_ID_PORT->IDR & BOARD_REV_PIN_MASK) == BOARD_REV_1_0_BETA)
+		{
+			//Correct board ID: upstream?
+			if ((BOARD_REV_ID_PORT->IDR & BOARD_ID_PIN_MASK))
+			{
+				return;
+			}
+		}
+	}
 
-    //This is not the hardware we expected, so turn on our fault LED(s) and die in a heap.
-    GPIO_InitStruct.Pin = FAULT_LED_PIN | OTHER_BOARDS_FAULT_LED_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
-    FAULT_LED_ON;
-    OTHER_BOARDS_FAULT_LED_ON;
-    while (1);
+	//This is not the hardware we expected, so turn on our fault LED(s) and die in a heap.
+	GPIO_InitStruct.Pin = FAULT_LED_PIN | H405_FAULT_LED_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+	FAULT_LED_ON;
+	H405_FAULT_LED_ON;
+	while (1);
 }
 
 
