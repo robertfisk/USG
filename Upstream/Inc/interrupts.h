@@ -50,10 +50,10 @@
 *         This parameter can be a value between 0 and 15
 *         A lower priority value indicates a higher priority. */
 
-#define INT_PRIORITY_SYSTICK	2
-#define INT_PRIORITY_SPI_DMA	10			//SPI is more important than USB now!
-#define INT_PRIORITY_USB		10
-#define INT_PRIORITY_EXT3I		INT_PRIORITY_USB
+#define INT_PRIORITY_SYSTICK    2
+#define INT_PRIORITY_SPI_DMA    10          //SPI and USB should be equal, no pre-emption allowed
+#define INT_PRIORITY_USB        10
+#define INT_PRIORITY_EXT3I      INT_PRIORITY_USB
 
 
 /* Exported macro ------------------------------------------------------------*/

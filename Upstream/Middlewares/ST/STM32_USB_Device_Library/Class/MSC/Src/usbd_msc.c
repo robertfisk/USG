@@ -540,15 +540,15 @@ uint8_t  USBD_MSC_DataOut (USBD_HandleTypeDef *pdev,
 
 uint8_t USBD_MSC_BufferFreed(USBD_HandleTypeDef *pdev)
 {
-	if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData) != NULL)
-	{
-		if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet != NULL)
-		{
-			Upstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
-			((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
-		}
-	}
-	return 0;
+    if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData) != NULL)
+    {
+        if (((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet != NULL)
+        {
+            Upstream_ReleasePacket(((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet);
+            ((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
+        }
+    }
+    return 0;
 }
 
 

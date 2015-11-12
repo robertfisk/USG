@@ -22,11 +22,11 @@ void LED_DoBlinks(void);
 
 
 
-#define STARTUP_FLASH_DELAY		500		//units = ticks = ms
+#define STARTUP_FLASH_DELAY     500     //units = ticks = ms
 
 //LEDs are on for BLINK_RATE ticks, then off for BLINK_RATE ticks
-#define LED_FAST_BLINK_RATE		100
-#define LED_SLOW_BLINK_RATE		500
+#define LED_FAST_BLINK_RATE     100
+#define LED_SLOW_BLINK_RATE     500
 
 
 

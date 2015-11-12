@@ -223,7 +223,7 @@ USBH_SpeedTypeDef USBH_LL_GetSpeed  (USBH_HandleTypeDef *phost)
   case 2 : 
     speed = USBH_SPEED_LOW;    
     break;
-	
+    
 //  default:
 //   speed = USBH_SPEED_FULL;
 //    break;
@@ -379,21 +379,21 @@ USBH_URBStateTypeDef  USBH_LL_GetURBState (USBH_HandleTypeDef *phost, uint8_t pi
   */
 USBH_StatusTypeDef  USBH_LL_DriverVBUS (USBH_HandleTypeDef *phost, uint8_t state)
 { 
-	//Our VBUS is permanently on, so don't bother with this...
+    //Our VBUS is permanently on, so don't bother with this...
 
-//	if (phost->id == HOST_FS)
-//	{
-//		if(state == 0)
-//		{
-//			//VBUS off
-//		}
-//		else
-//		{
-//			//VBUS on
-//		}
-//	}
-//	HAL_Delay(200);
-	return USBH_OK;
+//  if (phost->id == HOST_FS)
+//  {
+//      if(state == 0)
+//      {
+//          //VBUS off
+//      }
+//      else
+//      {
+//          //VBUS on
+//      }
+//  }
+//  HAL_Delay(200);
+    return USBH_OK;
 }
 
 /**

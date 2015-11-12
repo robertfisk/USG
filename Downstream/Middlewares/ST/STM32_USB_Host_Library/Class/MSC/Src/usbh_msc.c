@@ -151,7 +151,7 @@ USBH_ClassTypeDef  USBH_msc =
   * @retval USBH Status
   */
 static USBH_StatusTypeDef USBH_MSC_InterfaceInit (USBH_HandleTypeDef *phost)
-{	 
+{    
   uint8_t interface = 0; 
   USBH_StatusTypeDef status = USBH_FAIL ;
   MSC_HandleTypeDef *MSC_Handle;
@@ -483,35 +483,35 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
     }
     else
     {
-    	MSC_Handle->current_lun = 0;
-    	MSC_Handle->state = MSC_IDLE;
+        MSC_Handle->current_lun = 0;
+        MSC_Handle->state = MSC_IDLE;
 
-		phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
+        phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
     }
     break;
 
   case MSC_IDLE:
-	  error = USBH_OK;
-	  break;
+      error = USBH_OK;
+      break;
 
   case MSC_READ:
   case MSC_WRITE:
-	error = USBH_MSC_RdWrProcess(phost, MSC_Handle->rw_lun);
-	if(((int32_t)(phost->Timer - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
-	{
-		error = USBH_FAIL;
-	}
+    error = USBH_MSC_RdWrProcess(phost, MSC_Handle->rw_lun);
+    if(((int32_t)(phost->Timer - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
+    {
+        error = USBH_FAIL;
+    }
 
-	if (error != USBH_BUSY)
-	{
-		MSC_Handle->state = MSC_IDLE;
-		if (MSC_Handle->RdWrCompleteCallback != NULL)
-		{
-			MSC_Handle->RdWrCompleteCallback(error);
-			MSC_Handle->RdWrCompleteCallback = NULL;
-		}
-	}
-	break;
+    if (error != USBH_BUSY)
+    {
+        MSC_Handle->state = MSC_IDLE;
+        if (MSC_Handle->RdWrCompleteCallback != NULL)
+        {
+            MSC_Handle->RdWrCompleteCallback(error);
+            MSC_Handle->RdWrCompleteCallback = NULL;
+        }
+    }
+    break;
 
   default:
     break; 
@@ -719,13 +719,13 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-									 MSC_RdWrCompleteCallback callback)
+                                     MSC_RdWrCompleteCallback callback)
 {
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;   
   
   if ((phost->device.is_connected == 0) || 
       (phost->gState != HOST_CLASS) ||
-	  (MSC_Handle->state != MSC_IDLE) ||
+      (MSC_Handle->state != MSC_IDLE) ||
       (MSC_Handle->unit[lun].state != MSC_IDLE))
   {
     return  USBH_FAIL;
@@ -760,13 +760,13 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-									 MSC_RdWrCompleteCallback callback)
+                                     MSC_RdWrCompleteCallback callback)
 {
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;   
   
   if ((phost->device.is_connected == 0) || 
       (phost->gState != HOST_CLASS) ||
-	  (MSC_Handle->state != MSC_IDLE) ||
+      (MSC_Handle->state != MSC_IDLE) ||
       (MSC_Handle->unit[lun].state != MSC_IDLE))
   {
     return  USBH_FAIL;

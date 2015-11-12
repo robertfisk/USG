@@ -84,9 +84,9 @@ void DMA2_Stream3_IRQHandler(void)
 
 void OTG_FS_IRQHandler(void)
 {
-	INT_ACTIVE_ON;
-	HAL_HCD_IRQHandler(&hhcd_USB_OTG_FS);
-	INT_ACTIVE_OFF;
+    INT_ACTIVE_ON;
+    HAL_HCD_IRQHandler(&hhcd_USB_OTG_FS);
+    INT_ACTIVE_OFF;
 }
 
 

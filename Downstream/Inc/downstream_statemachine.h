@@ -20,21 +20,21 @@
 
 typedef enum
 {
-	STATE_DEVICE_NOT_READY,
-	STATE_DEVICE_READY,			//Go here if HOST_USER_CLASS_ACTIVE callback arrives first
-	STATE_WAIT_DEVICE_READY,	//Go here if COMMAND_INTERFACE_NOTIFY_DEVICE message arrives first
-	STATE_ACTIVE,
-	STATE_ERROR
+    STATE_DEVICE_NOT_READY,
+    STATE_DEVICE_READY,         //Go here if HOST_USER_CLASS_ACTIVE callback arrives first
+    STATE_WAIT_DEVICE_READY,    //Go here if COMMAND_INTERFACE_NOTIFY_DEVICE message arrives first
+    STATE_ACTIVE,
+    STATE_ERROR
 } DownstreamStateTypeDef;
 
 
 
-#define DOWNSTREAM_STATEMACHINE_FREAKOUT				\
-	do {												\
-		USB_Host_Disconnect();							\
-		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
-		DownstreamState = STATE_ERROR;					\
-		while (1);										\
+#define DOWNSTREAM_STATEMACHINE_FREAKOUT                \
+    do {                                                \
+        USB_Host_Disconnect();                          \
+        LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);    \
+        DownstreamState = STATE_ERROR;                  \
+        while (1);                                      \
 } while (0);
 
 

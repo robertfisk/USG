@@ -2101,9 +2101,9 @@ static void SPI_DMAEndTransmitReceive(SPI_HandleTypeDef *hspi)
   /* Wait until Busy flag is reset before disabling SPI */
   if(SPI_WaitOnFlagUntilTimeout(hspi, SPI_FLAG_BSY, SET, SPI_TIMEOUT_VALUE) != HAL_OK)
   {
-	//The Busy flag occasionally fails to reset within timeout. No idea why.
-	//But in this case WaitOnFlagUntilTimeout disables the SPI for us,
-	//so we can ignore the error and carry on.
+    //The Busy flag occasionally fails to reset within timeout. No idea why.
+    //But in this case WaitOnFlagUntilTimeout disables the SPI for us,
+    //so we can ignore the error and carry on.
     //hspi->ErrorCode |= HAL_SPI_ERROR_FLAG;
   }
   

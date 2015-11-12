@@ -548,8 +548,8 @@ USBD_StatusTypeDef USBD_DevDisconnected(USBD_HandleTypeDef  *pdev)
 
 USBD_StatusTypeDef USBD_BufferFreed(USBD_HandleTypeDef *pdev)
 {
-	pdev->pClass->FreeDataBuffer(pdev);
-	return USBD_OK;
+    pdev->pClass->FreeDataBuffer(pdev);
+    return USBD_OK;
 }
 /**
 * @}

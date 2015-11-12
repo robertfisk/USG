@@ -44,7 +44,7 @@
 USBH_HandleTypeDef hUsbHostFS;
 
 
-/* init function */				        
+/* init function */                     
 void USB_Host_Init(void)
 {
   /* Init Host Library,Add Supported Class and Start the library*/
@@ -61,7 +61,7 @@ void USB_Host_Init(void)
 void USB_Host_Process()
 {
   /* USB Host Background task */
-	USBH_Process(&hUsbHostFS);
+    USBH_Process(&hUsbHostFS);
 
 }
 
@@ -69,7 +69,7 @@ void USB_Host_Process()
 //Called when Downstream Statemachine or SPI freaks out.
 void USB_Host_Disconnect()
 {
-	USBH_DeInit(&hUsbHostFS);
+    USBH_DeInit(&hUsbHostFS);
 }
 
 

@@ -82,7 +82,7 @@ typedef struct
   uint8_t                    bot_status;
   uint16_t                   bot_data_length;
   uint8_t*                   bot_data;
-  UpstreamPacketTypeDef*	 bot_packet;			//Not NULL indicates we currently own an upstream packet buffer, and should free it when we are done.
+  UpstreamPacketTypeDef*     bot_packet;            //Not NULL indicates we currently own an upstream packet buffer, and should free it when we are done.
   USBD_MSC_BOT_CBWTypeDef    cbw;
   USBD_MSC_BOT_CSWTypeDef    csw;
   
@@ -90,11 +90,11 @@ typedef struct
   uint8_t                  scsi_sense_head;
   uint8_t                  scsi_sense_tail;
   
-  uint16_t                 scsi_blk_size;			//LOGICAL BLOCK LENGTH IN BYTES: Number of bytes of user data in a logical block [SBC-4]
-  uint32_t                 scsi_blk_nbr;			//This is total block count = LOGICAL BLOCK ADDRESS + 1. LOGICAL BLOCK ADDRESS: LBA of the last logical block on the direct access block device [SBC-4]
+  uint16_t                 scsi_blk_size;           //LOGICAL BLOCK LENGTH IN BYTES: Number of bytes of user data in a logical block [SBC-4]
+  uint32_t                 scsi_blk_nbr;            //This is total block count = LOGICAL BLOCK ADDRESS + 1. LOGICAL BLOCK ADDRESS: LBA of the last logical block on the direct access block device [SBC-4]
 
-  uint32_t                 scsi_blk_addr;			//LOGICAL BLOCK ADDRESS: Starting with the logical block referenced [SBC-4]
-  uint16_t                 scsi_blk_len;			//TRANSFER LENGTH: Number of contiguous logical blocks of data that shall be read [SBC-4]
+  uint32_t                 scsi_blk_addr;           //LOGICAL BLOCK ADDRESS: Starting with the logical block referenced [SBC-4]
+  uint16_t                 scsi_blk_len;            //TRANSFER LENGTH: Number of contiguous logical blocks of data that shall be read [SBC-4]
 
 }
 USBD_MSC_BOT_HandleTypeDef; 

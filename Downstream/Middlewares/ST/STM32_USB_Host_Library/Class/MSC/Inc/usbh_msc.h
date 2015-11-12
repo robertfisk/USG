@@ -102,23 +102,23 @@ typedef void (*MSC_RdWrCompleteCallback)(USBH_StatusTypeDef result);
 /* Structure for MSC process */
 typedef struct _MSC_Process
 {
-  uint32_t             		max_lun;
-  uint8_t              		InPipe;
-  uint8_t            		OutPipe;
-  uint8_t            		OutEp;
-  uint8_t            		InEp;
-  uint16_t             		OutEpSize;
-  uint16_t             		InEpSize;
-  MSC_StateTypeDef     		state;
-  MSC_ErrorTypeDef     		error;
-  MSC_ReqStateTypeDef  		req_state;
-  MSC_ReqStateTypeDef  		prev_req_state;
-  BOT_HandleTypeDef    		hbot;
-  MSC_LUNTypeDef       		unit[MAX_SUPPORTED_LUN];
-  uint16_t             		current_lun;
-  uint16_t             		rw_lun;
-  uint32_t             		timeout;
-  MSC_RdWrCompleteCallback	RdWrCompleteCallback;
+  uint32_t                  max_lun;
+  uint8_t                   InPipe;
+  uint8_t                   OutPipe;
+  uint8_t                   OutEp;
+  uint8_t                   InEp;
+  uint16_t                  OutEpSize;
+  uint16_t                  InEpSize;
+  MSC_StateTypeDef          state;
+  MSC_ErrorTypeDef          error;
+  MSC_ReqStateTypeDef       req_state;
+  MSC_ReqStateTypeDef       prev_req_state;
+  BOT_HandleTypeDef         hbot;
+  MSC_LUNTypeDef            unit[MAX_SUPPORTED_LUN];
+  uint16_t                  current_lun;
+  uint16_t                  rw_lun;
+  uint32_t                  timeout;
+  MSC_RdWrCompleteCallback  RdWrCompleteCallback;
 }
 MSC_HandleTypeDef; 
 
@@ -136,7 +136,7 @@ MSC_HandleTypeDef;
 #define USB_REQ_BOT_RESET                0xFF
 #define USB_REQ_GET_MAX_LUN              0xFE
 
-#define MSC_TIMEOUT_FRAMES_PER_BLOCK	1000
+#define MSC_TIMEOUT_FRAMES_PER_BLOCK    1000
 
 /* MSC Class Codes */
 #define USB_MSC_CLASS                                   0x08
@@ -183,13 +183,13 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-									 MSC_RdWrCompleteCallback callback);
+                                     MSC_RdWrCompleteCallback callback);
 
 USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-									 MSC_RdWrCompleteCallback callback);
+                                     MSC_RdWrCompleteCallback callback);
 /**
   * @}
   */ 

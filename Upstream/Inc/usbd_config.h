@@ -71,8 +71,8 @@
 #define MSC_MEDIA_PACKET     512
 /****************************************/
 /* #define for FS and HS identification */
-#define DEVICE_FS 		0
-#define DEVICE_HS 		1
+#define DEVICE_FS       0
+#define DEVICE_HS       1
 
 /** @defgroup USBD_Exported_Macros
   * @{

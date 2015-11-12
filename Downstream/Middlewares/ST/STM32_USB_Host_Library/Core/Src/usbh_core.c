@@ -541,7 +541,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
       }
       else
       {
-    	phost->pUser(phost, HOST_USER_CLASS_FAILED);
+        phost->pUser(phost, HOST_USER_CLASS_FAILED);
         phost->gState  = HOST_ABORT_STATE;
         USBH_UsrLog ("No registered class for this device.");
       }

@@ -47,7 +47,7 @@ USBD_HandleTypeDef hUsbDeviceFS;
 
 void USB_Device_Init(void)
 {
-	USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
+    USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
 
 //  USBD_RegisterClass(&hUsbDeviceFS, &USBD_MSC);
 //  USBD_Start(&hUsbDeviceFS);

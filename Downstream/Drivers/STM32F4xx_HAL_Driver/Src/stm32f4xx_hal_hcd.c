@@ -867,7 +867,7 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
     
     else if((hhcd->hc[chnum].state == HC_XACTERR) ||
             (hhcd->hc[chnum].state == HC_DATATGLERR) ||
-			(hhcd->hc[chnum].state == HC_NAK))
+            (hhcd->hc[chnum].state == HC_NAK))
     {
       if(hhcd->hc[chnum].ErrCnt++ > 3)
       {      
@@ -899,7 +899,7 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
   }
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NAK)
   {  
-	  hhcd->hc[chnum].ErrCnt = 0;
+      hhcd->hc[chnum].ErrCnt = 0;
 //    if(hhcd->hc[chnum].ep_type == EP_TYPE_INTR)
 //    {
       __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
@@ -1090,7 +1090,7 @@ static void HCD_RXQLVL_IRQHandler(HCD_HandleTypeDef *hhcd)
     if ((pktcnt > 0) && (hhcd->hc[channelnum].xfer_buff != (void  *)0))
     {  
       
-      USB_ReadPacket(hhcd->Instance, hhcd->hc[channelnum].xfer_buff, pktcnt);	//Todo: buffer overflow here!
+      USB_ReadPacket(hhcd->Instance, hhcd->hc[channelnum].xfer_buff, pktcnt);   //Todo: buffer overflow here!
       
       /*manage multiple Xfer */
       hhcd->hc[channelnum].xfer_buff += pktcnt;           

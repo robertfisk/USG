@@ -256,7 +256,7 @@ HAL_StatusTypeDef USB_DevInit (USB_OTG_GlobalTypeDef *USBx, USB_OTG_CfgTypeDef c
   /* Clear all pending Device Interrupts */
   USBx_DEVICE->DIEPMSK = 0;
   USBx_DEVICE->DOEPMSK = 0;
-  USBx_DEVICE->DAINT = 0xFFFFFFFF;	//*** Uh, this register is read-only???
+  USBx_DEVICE->DAINT = 0xFFFFFFFF;  //*** Uh, this register is read-only???
   USBx_DEVICE->DAINTMSK = 0;
   
   for (i = 0; i < cfg.dev_endpoints; i++)

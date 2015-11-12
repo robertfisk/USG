@@ -18,19 +18,19 @@
 
 typedef enum
 {
-	STATE_TEST_INTERFACE,
-	STATE_WAIT_DEVICE,
-	STATE_DEVICE_ACTIVE,
-	STATE_ERROR
+    STATE_TEST_INTERFACE,
+    STATE_WAIT_DEVICE,
+    STATE_DEVICE_ACTIVE,
+    STATE_ERROR
 } UpstreamStateTypeDef;
 
 
 
-#define UPSTREAM_STATEMACHINE_FREAKOUT					\
-	do {												\
-		LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);	\
-		Upstream_StateMachine_SetErrorState();			\
-		while (1);										\
+#define UPSTREAM_STATEMACHINE_FREAKOUT                  \
+    do {                                                \
+        LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);    \
+        Upstream_StateMachine_SetErrorState();          \
+        while (1);                                      \
 } while (0);
 
 

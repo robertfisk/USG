@@ -141,7 +141,7 @@ typedef struct _SENSE_ITEM {
       char ASC;
       char ASCQ;
     }b;
-    unsigned int	ASC;
+    unsigned int    ASC;
     char *pData;
   } w;
 } USBD_SCSI_SenseTypeDef; 
@@ -174,7 +174,7 @@ typedef void (*SCSI_ProcessCmdCallbackTypeDef)(int8_t result);
 void SCSI_ProcessCmd(USBD_HandleTypeDef  *pdev,
                            uint8_t lun, 
                            uint8_t *cmd,
-						   SCSI_ProcessCmdCallbackTypeDef process_cmd_callback);
+                           SCSI_ProcessCmdCallbackTypeDef process_cmd_callback);
 
 void   SCSI_SenseCode(USBD_HandleTypeDef  *pdev,
                       uint8_t lun, 

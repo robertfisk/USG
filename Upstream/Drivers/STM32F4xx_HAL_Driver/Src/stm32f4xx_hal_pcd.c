@@ -1133,11 +1133,11 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
           ep->xfer_count < ep->xfer_len &&
             ep->xfer_len != 0)
   {
-	/* Write the FIFO */
-	USB_WritePacket(USBx, ep->xfer_buff, epnum, len, hpcd->Init.dma_enable);
+    /* Write the FIFO */
+    USB_WritePacket(USBx, ep->xfer_buff, epnum, len, hpcd->Init.dma_enable);
 
-	ep->xfer_buff  += len;
-	ep->xfer_count += len;
+    ep->xfer_buff  += len;
+    ep->xfer_count += len;
 
     len = ep->xfer_len - ep->xfer_count;
     if (len > ep->maxpacket)

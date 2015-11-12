@@ -18,24 +18,24 @@
 
 typedef void (*UpstreamMSCCallbackTypeDef)(HAL_StatusTypeDef result);
 typedef void (*UpstreamMSCCallbackPacketTypeDef)(UpstreamPacketTypeDef* upstreamPacket,
-												 uint16_t dataLength8);
+                                                 uint16_t dataLength8);
 typedef void (*UpstreamMSCCallbackUintPacketTypeDef)(UpstreamPacketTypeDef* upstreamPacket,
-													 uint32_t result_uint1,
-													 uint32_t result_uint2);
+                                                     uint32_t result_uint1,
+                                                     uint32_t result_uint2);
 
 
 HAL_StatusTypeDef Upstream_MSC_TestReady(UpstreamMSCCallbackTypeDef callback);
 HAL_StatusTypeDef Upstream_MSC_GetCapacity(UpstreamMSCCallbackUintPacketTypeDef callback);
 HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
-										 uint64_t readBlockStart,
-										 uint32_t readBlockCount,
-										 uint32_t readByteCount);
+                                         uint64_t readBlockStart,
+                                         uint32_t readBlockCount,
+                                         uint32_t readByteCount);
 HAL_StatusTypeDef Upstream_MSC_GetStreamDataPacket(UpstreamMSCCallbackPacketTypeDef callback);
 HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
-										  uint64_t writeBlockStart,
-										  uint32_t writeBlockCount);
+                                          uint64_t writeBlockStart,
+                                          uint32_t writeBlockCount);
 HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packetToSend,
-												   uint32_t dataLength8);
+                                                   uint32_t dataLength8);
 
 
 

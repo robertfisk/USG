@@ -283,7 +283,7 @@ HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef  *RCC_OscInitStruct)
     /* When the HSE is used as system clock or clock source for PLL in these cases HSE will not disabled */
     if((__HAL_RCC_GET_SYSCLK_SOURCE() == RCC_CFGR_SWS_HSE) || ((__HAL_RCC_GET_SYSCLK_SOURCE() == RCC_CFGR_SWS_PLL) && ((RCC->PLLCFGR & RCC_PLLCFGR_PLLSRC) == RCC_PLLCFGR_PLLSRC_HSE)))
     {
-//	*** Even if our new HSE state is ON, we cannot configure it when it is used as the system clock source!
+//  *** Even if our new HSE state is ON, we cannot configure it when it is used as the system clock source!
 //      if((__HAL_RCC_GET_FLAG(RCC_FLAG_HSERDY) != RESET) && (RCC_OscInitStruct->HSEState == RCC_HSE_OFF))
 //      {
         return HAL_ERROR;
@@ -352,7 +352,7 @@ HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef  *RCC_OscInitStruct)
     if((__HAL_RCC_GET_SYSCLK_SOURCE() == RCC_CFGR_SWS_HSI) || ((__HAL_RCC_GET_SYSCLK_SOURCE() == RCC_CFGR_SWS_PLL) && ((RCC->PLLCFGR & RCC_PLLCFGR_PLLSRC) == RCC_PLLCFGR_PLLSRC_HSI)))
     {
       /* When HSI is used as system clock it will not disabled */
-	//*** Why are we checking the HSIRDY flag here? If the clock source is currently HSI then it must be stable!
+    //*** Why are we checking the HSIRDY flag here? If the clock source is currently HSI then it must be stable!
       if(/*(__HAL_RCC_GET_FLAG(RCC_FLAG_HSIRDY) != RESET) &&*/ (RCC_OscInitStruct->HSIState != RCC_HSI_ON))
       {
         return HAL_ERROR;
@@ -521,57 +521,57 @@ HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef  *RCC_OscInitStruct)
   {
       /* Check if the PLL is used as system clock or not */
       if (__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_CFGR_SWS_PLL)
-	{
-	  /* Disable the main PLL. */
-	  __HAL_RCC_PLL_DISABLE();
+    {
+      /* Disable the main PLL. */
+      __HAL_RCC_PLL_DISABLE();
 
-	  /* Get Start Tick*/
-	  tickstart = HAL_GetTick ();
+      /* Get Start Tick*/
+      tickstart = HAL_GetTick ();
 
-	  /* Wait till PLL is ready */
-	  while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) != RESET)
-	    {
-	      if ((HAL_GetTick () - tickstart) > PLL_TIMEOUT_VALUE)
-		{
-		  return HAL_TIMEOUT;
-		}
-	    }
+      /* Wait till PLL is ready */
+      while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) != RESET)
+        {
+          if ((HAL_GetTick () - tickstart) > PLL_TIMEOUT_VALUE)
+        {
+          return HAL_TIMEOUT;
+        }
+        }
 
-	  if ((RCC_OscInitStruct->PLL.PLLState) == RCC_PLL_ON)
-	    {
-	      /* Check the parameters */
-	      assert_param(IS_RCC_PLLSOURCE(RCC_OscInitStruct->PLL.PLLSource));
-	      assert_param(IS_RCC_PLLM_VALUE(RCC_OscInitStruct->PLL.PLLM));
-	      assert_param(IS_RCC_PLLN_VALUE(RCC_OscInitStruct->PLL.PLLN));
-	      assert_param(IS_RCC_PLLP_VALUE(RCC_OscInitStruct->PLL.PLLP));
-	      assert_param(IS_RCC_PLLQ_VALUE(RCC_OscInitStruct->PLL.PLLQ));
+      if ((RCC_OscInitStruct->PLL.PLLState) == RCC_PLL_ON)
+        {
+          /* Check the parameters */
+          assert_param(IS_RCC_PLLSOURCE(RCC_OscInitStruct->PLL.PLLSource));
+          assert_param(IS_RCC_PLLM_VALUE(RCC_OscInitStruct->PLL.PLLM));
+          assert_param(IS_RCC_PLLN_VALUE(RCC_OscInitStruct->PLL.PLLN));
+          assert_param(IS_RCC_PLLP_VALUE(RCC_OscInitStruct->PLL.PLLP));
+          assert_param(IS_RCC_PLLQ_VALUE(RCC_OscInitStruct->PLL.PLLQ));
 
-	      /* Configure the main PLL clock source, multiplication and division factors. */
-	      __HAL_RCC_PLL_CONFIG(RCC_OscInitStruct->PLL.PLLSource,
-				   RCC_OscInitStruct->PLL.PLLM,
-				   RCC_OscInitStruct->PLL.PLLN,
-				   RCC_OscInitStruct->PLL.PLLP,
-				   RCC_OscInitStruct->PLL.PLLQ);
-	      /* Enable the main PLL. */
-	      __HAL_RCC_PLL_ENABLE();
+          /* Configure the main PLL clock source, multiplication and division factors. */
+          __HAL_RCC_PLL_CONFIG(RCC_OscInitStruct->PLL.PLLSource,
+                   RCC_OscInitStruct->PLL.PLLM,
+                   RCC_OscInitStruct->PLL.PLLN,
+                   RCC_OscInitStruct->PLL.PLLP,
+                   RCC_OscInitStruct->PLL.PLLQ);
+          /* Enable the main PLL. */
+          __HAL_RCC_PLL_ENABLE();
 
-	      /* Get Start Tick*/
-	      tickstart = HAL_GetTick ();
+          /* Get Start Tick*/
+          tickstart = HAL_GetTick ();
 
-	      /* Wait till PLL is ready */
-	      while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) == RESET)
-		{
-		  if ((HAL_GetTick () - tickstart) > PLL_TIMEOUT_VALUE)
-		    {
-		      return HAL_TIMEOUT;
-		    }
-		}
-	    }
-	}
+          /* Wait till PLL is ready */
+          while (__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY) == RESET)
+        {
+          if ((HAL_GetTick () - tickstart) > PLL_TIMEOUT_VALUE)
+            {
+              return HAL_TIMEOUT;
+            }
+        }
+        }
+    }
       else
-	{
-	  return HAL_ERROR;
-	}
+    {
+      return HAL_ERROR;
+    }
   }
   return HAL_OK;
 }

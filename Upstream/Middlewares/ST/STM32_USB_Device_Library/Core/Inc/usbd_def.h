@@ -171,7 +171,7 @@ typedef struct _Device_cb
   uint8_t  (*IsoINIncomplete)  (struct _USBD_HandleTypeDef *pdev , uint8_t epnum); 
   uint8_t  (*IsoOUTIncomplete) (struct _USBD_HandleTypeDef *pdev , uint8_t epnum);
 
-  uint8_t	(*FreeDataBuffer)  (struct _USBD_HandleTypeDef *pdev);
+  uint8_t   (*FreeDataBuffer)  (struct _USBD_HandleTypeDef *pdev);
 
   uint8_t  *(*GetHSConfigDescriptor)(uint16_t *length); 
   uint8_t  *(*GetFSConfigDescriptor)(uint16_t *length);   
