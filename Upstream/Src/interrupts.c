@@ -74,16 +74,16 @@ void OTG_FS_IRQHandler(void)
 
 void DMA2_Stream2_IRQHandler(void)
 {
-    INT_ACTIVE_ON;
+//    INT_ACTIVE_ON;
     HAL_DMA_IRQHandler(&spiRxDmaHandle);
-    INT_ACTIVE_OFF;
+//    INT_ACTIVE_OFF;
 }
 
 void DMA2_Stream3_IRQHandler(void)
 {
-    INT_ACTIVE_ON;
+//    INT_ACTIVE_ON;
     HAL_DMA_IRQHandler(&spiTxDmaHandle);
-    INT_ACTIVE_OFF;
+//    INT_ACTIVE_OFF;
 }
 
 void EXTI3_IRQHandler(void)

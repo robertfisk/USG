@@ -79,31 +79,31 @@ int main(void)
 void CheckFirmwareMatchesHardware(void)
 {
     //Check we are running on the expected hardware:
-    //STM32F407 on an Olimex dev board
+    //STM32F401RC on USG v1.0 beta
 
     GPIO_InitTypeDef GPIO_InitStruct;
 
-	if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_401xB_xC)
-	{
-		//Read in board revision and ID on port C
-		__HAL_RCC_GPIOC_CLK_ENABLE();
-		GPIO_InitStruct.Pin = BOARD_REV_PIN_MASK | BOARD_ID_PIN_MASK;
-		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-		GPIO_InitStruct.Pull = GPIO_PULLUP;
-		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-		GPIO_InitStruct.Alternate = 0;
-		HAL_GPIO_Init(BOARD_REV_ID_PORT, &GPIO_InitStruct);
+    if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_401xB_xC)
+    {
+        //Read in board revision and ID on port C
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+        GPIO_InitStruct.Pin = BOARD_REV_PIN_MASK | BOARD_ID_PIN_MASK;
+        GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+        GPIO_InitStruct.Pull = GPIO_PULLUP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+        GPIO_InitStruct.Alternate = 0;
+        HAL_GPIO_Init(BOARD_REV_ID_PORT, &GPIO_InitStruct);
 
-		//Correct board revision?
-		if ((BOARD_REV_ID_PORT->IDR & BOARD_REV_PIN_MASK) == BOARD_REV_1_0_BETA)
-		{
-			//Correct board ID: downstream?
-			if (!(BOARD_REV_ID_PORT->IDR & BOARD_ID_PIN_MASK))
-			{
-				return;
-			}
-		}
-	}
+        //Correct board revision?
+        if ((BOARD_REV_ID_PORT->IDR & BOARD_REV_PIN_MASK) == BOARD_REV_1_0_BETA)
+        {
+            //Correct board ID: downstream?
+            if (!(BOARD_REV_ID_PORT->IDR & BOARD_ID_PIN_MASK))
+            {
+                return;
+            }
+        }
+    }
 
     //This is not the hardware we expected, so turn on our fault LED(s) and die in a heap.
     GPIO_InitStruct.Pin = FAULT_LED_PIN | H405_FAULT_LED_PIN;
@@ -159,13 +159,12 @@ void GPIO_Init(void)
     GPIO_InitTypeDef GPIO_InitStruct;
 
 
-	/* GPIO Ports Clock Enable */
-	//__GPIOH_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_GPIOE_CLK_ENABLE();
+    /* GPIO Ports Clock Enable */
+    //__GPIOH_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
 
     //Bulk initialise all ports as inputs with pullups active,
     //excluding JTAG pins which must remain as AF0!
@@ -180,36 +179,18 @@ void GPIO_Init(void)
     GPIO_InitStruct.Pin = GPIO_PIN_All;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-    //USB VBUS pins are analog input
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pin = USB_FS_VBUS_PIN;
-    HAL_GPIO_Init(USB_FS_VBUS_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = USB_HS_VBUS_PIN;
-    HAL_GPIO_Init(USB_HS_VBUS_PORT, &GPIO_InitStruct);
-
-    //Enable USB_FS power
-    USB_FS_VBUSON_PORT->BSRR = (USB_FS_VBUSON_PIN << BSRR_SHIFT_HIGH);
+    //Fault LED is output
+    GPIO_InitStruct.Pin = FAULT_LED_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Pin = USB_FS_VBUSON_PIN;
-    HAL_GPIO_Init(USB_FS_VBUSON_PORT, &GPIO_InitStruct);
-
-    //Disable USB_HS power
-    USB_HS_VBUSON_PORT->BSRR = (USB_HS_VBUSON_PIN << BSRR_SHIFT_LOW);
-    GPIO_InitStruct.Pin = USB_HS_VBUSON_PIN;
-    HAL_GPIO_Init(USB_HS_VBUSON_PORT, &GPIO_InitStruct);
-
-    //STAT_LED is output
-    FAULT_LED_OFF;
-    GPIO_InitStruct.Pin = FAULT_LED_PIN;
     HAL_GPIO_Init(FAULT_LED_PORT, &GPIO_InitStruct);
+    FAULT_LED_OFF;
 
-    //SPI_INT_ACTIVE indicator
-    GPIO_InitStruct.Pin = INT_ACTIVE_PIN;
-    HAL_GPIO_Init(INT_ACTIVE_PORT, &GPIO_InitStruct);
-    INT_ACTIVE_OFF;
+//    //SPI_INT_ACTIVE indicator
+//    GPIO_InitStruct.Pin = INT_ACTIVE_PIN;
+//    HAL_GPIO_Init(INT_ACTIVE_PORT, &GPIO_InitStruct);
+//    INT_ACTIVE_OFF;
 }
 
 

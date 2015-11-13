@@ -22,16 +22,13 @@
 #define PB_JTDO                 GPIO_PIN_3
 #define PB_NJTRST               GPIO_PIN_4
 
-#define USB_P_PIN               GPIO_PIN_4
-#define USB_P_PORT              GPIOC
-
 #define FAULT_LED_PIN           GPIO_PIN_13
 #define FAULT_LED_PORT          GPIOC
 #define FAULT_LED_ON            (FAULT_LED_PORT->BSRR = (FAULT_LED_PIN << BSRR_SHIFT_LOW))  //Fault LED is active-low
 #define FAULT_LED_OFF           (FAULT_LED_PORT->BSRR = (FAULT_LED_PIN << BSRR_SHIFT_HIGH))
 
-#define H405_FAULT_LED_PIN		GPIO_PIN_12		//Fault LED on Olimex H405 board
-#define H405_FAULT_LED_ON		(FAULT_LED_PORT->BSRR = (H405_FAULT_LED_PIN << BSRR_SHIFT_LOW))
+#define H405_FAULT_LED_PIN      GPIO_PIN_12     //Fault LED on Olimex H405 board
+#define H405_FAULT_LED_ON       (FAULT_LED_PORT->BSRR = (H405_FAULT_LED_PIN << BSRR_SHIFT_LOW))
 
 #define INT_ACTIVE_PIN          GPIO_PIN_5          //Temporary indicator of SPI (or whatever) activity
 #define INT_ACTIVE_PORT         GPIOB
@@ -48,13 +45,13 @@
 #define DOWNSTREAM_TX_OK_ACTIVE (!(DOWNSTREAM_TX_OK_PORT->IDR & DOWNSTREAM_TX_OK_PIN))
 
 #define DBGMCU_IDCODE_DEV_ID_405_407_415_417    0x413
-#define DBGMCU_IDCODE_DEV_ID_401xB_xC			0x423
+#define DBGMCU_IDCODE_DEV_ID_401xB_xC           0x423
 
-#define BOARD_REV_PIN_MASK		0x07
-#define BOARD_ID_PIN_MASK		0x08
-#define BOARD_REV_ID_PORT		GPIOC
+#define BOARD_REV_PIN_MASK      0x07
+#define BOARD_ID_PIN_MASK       0x08
+#define BOARD_REV_ID_PORT       GPIOC
 
-#define BOARD_REV_1_0_BETA		0
+#define BOARD_REV_1_0_BETA      0
 
 
 #endif /* INC_BOARD_CONFIG_H_ */

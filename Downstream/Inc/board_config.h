@@ -23,18 +23,6 @@
 #define PB_JTDO                 GPIO_PIN_3
 #define PB_NJTRST               GPIO_PIN_4
 
-#define USB_FS_VBUS_PIN         GPIO_PIN_9
-#define USB_FS_VBUS_PORT        GPIOA
-#define USB_FS_VBUSON_PIN       GPIO_PIN_10
-#define USB_FS_VBUSON_PORT      GPIOA
-#define USB_FS_FAULT_PIN        GPIO_PIN_6
-#define USB_FS_FAULT_PORT       GPIOB
-
-#define USB_HS_VBUS_PIN         GPIO_PIN_13
-#define USB_HS_VBUS_PORT        GPIOB
-#define USB_HS_VBUSON_PIN       GPIO_PIN_8
-#define USB_HS_VBUSON_PORT      GPIOA
-
 #define FAULT_LED_PIN           GPIO_PIN_13
 #define FAULT_LED_PORT          GPIOC
 #define FAULT_LED_ON            (FAULT_LED_PORT->BSRR = (FAULT_LED_PIN << BSRR_SHIFT_LOW))  //Fault LED is active-low
@@ -57,13 +45,13 @@
 #define UPSTREAM_TX_REQUEST_DEASSERT    (UPSTREAM_TX_REQUEST_PORT->BSRR = (UPSTREAM_TX_REQUEST_PIN << BSRR_SHIFT_HIGH))
 
 #define DBGMCU_IDCODE_DEV_ID_405_407_415_417    0x413
-#define DBGMCU_IDCODE_DEV_ID_401xB_xC			0x423
+#define DBGMCU_IDCODE_DEV_ID_401xB_xC           0x423
 
-#define BOARD_REV_PIN_MASK		0x07
-#define BOARD_ID_PIN_MASK		0x08
-#define BOARD_REV_ID_PORT		GPIOC
+#define BOARD_REV_PIN_MASK      0x07
+#define BOARD_ID_PIN_MASK       0x08
+#define BOARD_REV_ID_PORT       GPIOC
 
-#define BOARD_REV_1_0_BETA		0
+#define BOARD_REV_1_0_BETA      0
 
 
 #endif /* INC_BOARD_CONFIG_H_ */
