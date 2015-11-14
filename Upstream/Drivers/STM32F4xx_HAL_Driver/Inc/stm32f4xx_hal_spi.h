@@ -302,6 +302,8 @@ typedef struct __SPI_HandleTypeDef
   * @}
   */
 
+#define SPI_TIMEOUT_VALUE  2
+
 /**
   * @}
   */
