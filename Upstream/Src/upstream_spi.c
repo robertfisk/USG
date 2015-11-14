@@ -442,13 +442,16 @@ void Upstream_BeginTransmitPacketSize(void)
 {
     UpstreamInterfaceState = UPSTREAM_INTERFACE_TX_SIZE;
     SPI1_NSS_ASSERT;
-    if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+    if (HAL_SPI_TransmitReceive(&Hspi1,
                                     (uint8_t*)&CurrentWorkingPacket->Length16,
                                     (uint8_t*)&TemporaryIncomingPacketLength,
-                                    2) != HAL_OK)       //We only need to write one word, but the peripheral library freaks out...
+                                    2,
+                                    SPI_TIMEOUT_VALUE) != HAL_OK)       //We only need to write one word, but the peripheral library freaks out...
     {
         UPSTREAM_SPI_FREAKOUT;
     }
+
+    HAL_SPI_TxRxCpltCallback(&Hspi1);
 }
 
 
@@ -485,13 +488,16 @@ void Upstream_BeginReceivePacketSize(UpstreamPacketTypeDef* freePacket)
     CurrentWorkingPacket = freePacket;
     CurrentWorkingPacket->Length16 = 0;     //Our RX buffer is used by HAL_SPI_TransmitReceive_DMA as dummy TX data, we set Length to 0 so downstream will know this is a dummy packet.
     SPI1_NSS_ASSERT;
-    if (HAL_SPI_TransmitReceive_DMA(&Hspi1,
+    if (HAL_SPI_TransmitReceive(&Hspi1,
                                     (uint8_t*)&CurrentWorkingPacket->Length16,
                                     (uint8_t*)&CurrentWorkingPacket->Length16,
-                                    2) != HAL_OK)       //We only need to write one word, but the peripheral library freaks out...
+                                    2,
+                                    SPI_TIMEOUT_VALUE) != HAL_OK)       //We only need to write one word, but the peripheral library freaks out...
     {
         UPSTREAM_SPI_FREAKOUT;
     }
+
+    HAL_SPI_TxRxCpltCallback(&Hspi1);
 }
 
 
