@@ -64,6 +64,9 @@ void SysTick_Handler(void);
 void DMA2_Stream2_IRQHandler(void);
 void DMA2_Stream3_IRQHandler(void);
 void EXTI3_IRQHandler(void);
+void BusFault_Handler(void);
+
+void EnableOneBusFault(void);
 
 
 #ifdef __cplusplus
