@@ -41,6 +41,7 @@
 #include "led.h"
 #include "upstream_statemachine.h"
 #include "upstream_spi.h"
+#include "interrupts.h"
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -49,7 +50,8 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void GPIO_Init(void);
+void GPIO_Init(void);
+void DisableFlashWrites(void);
 void CheckFirmwareMatchesHardware(void);
 
 
@@ -57,8 +59,8 @@ void CheckFirmwareMatchesHardware(void);
 int main(void)
 {
     //First things first!
+    DisableFlashWrites();
     CheckFirmwareMatchesHardware();
-
 
     /* Configure the system clock */
     SystemClock_Config();
@@ -78,6 +80,23 @@ int main(void)
     {
 
     }
+}
+
+
+void DisableFlashWrites(void)
+{
+    //Disable flash writes until the next reset
+    //This will cause a bus fault interrupt, so allow one now.
+    EnableOneBusFault();
+    FLASH->KEYR = 999;
+
+    //Confirm that flash cannot be unlocked
+    //This unlock attempt will also cause a bus fault.
+    EnableOneBusFault();
+    if ((FLASH->CR & FLASH_CR_LOCK) == 0) while(1);
+    FLASH->KEYR = FLASH_KEY1;
+    FLASH->KEYR = FLASH_KEY2;
+    if ((FLASH->CR & FLASH_CR_LOCK) == 0) while(1);
 }
 
 

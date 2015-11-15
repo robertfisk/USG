@@ -46,6 +46,9 @@ extern HCD_HandleTypeDef hhcd_USB_OTG_FS;
 extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 
+uint8_t BusFaultAllowed = 0;
+
+
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
 /******************************************************************************/
@@ -87,6 +90,25 @@ void OTG_FS_IRQHandler(void)
     INT_ACTIVE_ON;
     HAL_HCD_IRQHandler(&hhcd_USB_OTG_FS);
     INT_ACTIVE_OFF;
+}
+
+
+//This weird stuff is required when disabling flash writes.
+//The deliberate flash lockout will cause a bus fault that we need to process.
+void EnableOneBusFault(void)
+{
+    SCB->SHCSR = SCB_SHCSR_BUSFAULTENA_Msk;
+    BusFaultAllowed = 1;
+}
+
+void BusFault_Handler(void)
+{
+    if (BusFaultAllowed)
+    {
+        BusFaultAllowed = 0;
+        return;
+    }
+    while(1);
 }
 
 
