@@ -203,25 +203,22 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
 
         //Add other classes here...
 
+
+        }
+
         //Unsupported device classes will cause a slow fault flash.
         //This is distinct from the fast freakout flash caused by internal errors or attacks.
-        default:
+        //We consider supported classes that fail their approval checks to also be unsupported devices.
+        if (newActiveClass == COMMAND_CLASS_INTERFACE)
+        {
             USB_Host_Disconnect();
             LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
             DownstreamState = STATE_ERROR;
             return;
         }
 
-
-        //If the new device has failed its 'approval' checks, we are sufficiently freaked out.
-        if (newActiveClass == COMMAND_CLASS_INTERFACE)
-        {
-            DOWNSTREAM_STATEMACHINE_FREAKOUT;
-            return;
-        }
-
         //If we already configured a device class, we cannot change to a different one without rebooting.
-        //This blocks some BadUSB attacks.
+        //This blocks 'hidden device' BadUSB attacks.
         if ((ConfiguredDeviceClass != COMMAND_CLASS_INTERFACE) &&
             (ConfiguredDeviceClass != newActiveClass))
         {
