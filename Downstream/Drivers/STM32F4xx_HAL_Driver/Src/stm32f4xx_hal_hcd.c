@@ -866,8 +866,8 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
     }
     
     else if((hhcd->hc[chnum].state == HC_XACTERR) ||
-            (hhcd->hc[chnum].state == HC_DATATGLERR) ||
-            (hhcd->hc[chnum].state == HC_NAK))
+            (hhcd->hc[chnum].state == HC_DATATGLERR)) //||
+//            (hhcd->hc[chnum].state == HC_NAK))
     {
       if(hhcd->hc[chnum].ErrCnt++ > 3)
       {      
@@ -900,20 +900,20 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NAK)
   {  
       hhcd->hc[chnum].ErrCnt = 0;
-//    if(hhcd->hc[chnum].ep_type == EP_TYPE_INTR)
-//    {
-      __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-      USB_HC_Halt(hhcd->Instance, chnum);  
-//    }
-//    else if  ((hhcd->hc[chnum].ep_type == EP_TYPE_CTRL)||
-//              (hhcd->hc[chnum].ep_type == EP_TYPE_BULK))
-//    {
-//      /* re-activate the channel */
-//      tmpreg = USBx_HC(chnum)->HCCHAR;
-//      tmpreg &= ~USB_OTG_HCCHAR_CHDIS;
-//      tmpreg |= USB_OTG_HCCHAR_CHENA;
-//      USBx_HC(chnum)->HCCHAR = tmpreg;
-//    }
+    if(hhcd->hc[chnum].ep_type == EP_TYPE_INTR)
+    {
+      __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+      USB_HC_Halt(hhcd->Instance, chnum);
+    }
+    else if  ((hhcd->hc[chnum].ep_type == EP_TYPE_CTRL)||
+              (hhcd->hc[chnum].ep_type == EP_TYPE_BULK))
+    {
+      /* re-activate the channel */
+      tmpreg = USBx_HC(chnum)->HCCHAR;
+      tmpreg &= ~USB_OTG_HCCHAR_CHDIS;
+      tmpreg |= USB_OTG_HCCHAR_CHENA;
+      USBx_HC(chnum)->HCCHAR = tmpreg;
+    }
     hhcd->hc[chnum].state = HC_NAK;
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);
   }
