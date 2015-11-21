@@ -866,8 +866,7 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
     }
     
     else if((hhcd->hc[chnum].state == HC_XACTERR) ||
-            (hhcd->hc[chnum].state == HC_DATATGLERR)) //||
-//            (hhcd->hc[chnum].state == HC_NAK))
+            (hhcd->hc[chnum].state == HC_DATATGLERR))
     {
       if(hhcd->hc[chnum].ErrCnt++ > 3)
       {      
@@ -1015,6 +1014,13 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
   {
     __HAL_HCD_MASK_HALT_HC_INT(chnum); 
     
+    //This shouldn't even exist. So there's a weird host controller hardware bug
+    //on the STM32F407 that manifests when writing to some FAT filesystems.
+    //Transactions will stop partway through a 512-byte write, and nothing can
+    //get them started again. We can avoid this by soft-resetting the 
+    //AHB-interface state machines on every channel halt.
+    USBx->GRSTCTL |= USB_OTG_GRSTCTL_HSRST;
+
     if(hhcd->hc[chnum].state == HC_XFRC)
     {
       hhcd->hc[chnum].urb_state  = URB_DONE;
