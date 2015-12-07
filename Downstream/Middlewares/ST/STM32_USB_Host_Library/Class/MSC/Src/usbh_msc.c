@@ -735,7 +735,7 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
   MSC_Handle->unit[lun].state = MSC_READ;
   MSC_Handle->rw_lun = lun;
   MSC_Handle->RdWrCompleteCallback = callback;
-  MSC_Handle->timeout = phost->Timer + (length * MSC_TIMEOUT_FRAMES_PER_BLOCK);
+  MSC_Handle->timeout = phost->Timer + MSC_TIMEOUT_FIXED;
 
   USBH_MSC_SCSI_Read(phost,
                      lun,
@@ -776,7 +776,7 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
   MSC_Handle->unit[lun].state = MSC_WRITE;
   MSC_Handle->rw_lun = lun;
   MSC_Handle->RdWrCompleteCallback = callback;
-  MSC_Handle->timeout = phost->Timer + (length * MSC_TIMEOUT_FRAMES_PER_BLOCK);
+  MSC_Handle->timeout = phost->Timer + MSC_TIMEOUT_FIXED;
 
   USBH_MSC_SCSI_Write(phost,
                      lun,

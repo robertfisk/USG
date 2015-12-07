@@ -136,7 +136,9 @@ MSC_HandleTypeDef;
 #define USB_REQ_BOT_RESET                0xFF
 #define USB_REQ_GET_MAX_LUN              0xFE
 
-#define MSC_TIMEOUT_FRAMES_PER_BLOCK    1000
+//#define MSC_TIMEOUT_FRAMES_PER_BLOCK    1000
+#define MSC_TIMEOUT_FIXED               5000    //Some flash drives take 2 seconds to write a single block!
+
 
 /* MSC Class Codes */
 #define USB_MSC_CLASS                                   0x08
