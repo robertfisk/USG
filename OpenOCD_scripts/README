@@ -1,4 +1,4 @@
-Merge the files in ./board/ into your OpenOCD/scripts/board directory.
+Copy the *.cfg files from ./board/ to your OpenOCD installation's /scripts/board/ folder.
 
 More info for Eclipse OpenOCD configuration:
 http://gnuarmeclipse.github.io/debug/openocd/
