@@ -59,14 +59,14 @@
 /** @defgroup USBD_DESC_Private_Defines
   * @{
   */ 
-#define USBD_VID     1155
-#define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "The USG is Good, not Bad"
-#define USBD_PID_FS     22314
-#define USBD_PRODUCT_STRING_FS     "USG v1.0"
+#define USBD_VID                        1155
+#define USBD_LANGID_STRING              1033
+#define USBD_MANUFACTURER_STRING        "The USG is Good, not Bad"
+#define USBD_PID_FS                     22314
+#define USBD_PRODUCT_STRING_FS          "USG v1.0"
 #define USBD_SERIALNUMBER_STRING_FS     "00000000001A"
-#define USBD_CONFIGURATION_STRING_FS     "USG multipurpose configuration"
-#define USBD_INTERFACE_STRING_FS     "USG multipurpose interface"
+#define USBD_CONFIGURATION_STRING_FS    "USG multipurpose configuration"
+#define USBD_INTERFACE_STRING_FS        "USG multipurpose interface"
 
 /**
   * @}
@@ -162,10 +162,10 @@ const int8_t  STORAGE_Inquirydata_FS[] = { //36
   0x00,
   0x00,
   0x00,
-  'S', 'T', 'M', ' ', ' ', ' ', ' ', ' ', /* Manufacturer : 8 bytes */
-  'P', 'r', 'o', 'd', 'u', 'c', 't', ' ', /* Product      : 16 Bytes */
-  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-  '0', '.', '0' ,'1',                     /* Version      : 4 Bytes */
+  'T', 'h', 'e', ' ', 'U', 'S', 'G', ' ', /* Manufacturer : 8 bytes */
+  'i', 's', ' ', 'G', 'o', 'o', 'd', ',', /* Product      : 16 Bytes */
+  'n', 'o', 't', ' ', 'b', 'a', 'd', '.',
+  'v', '1', '.' ,'0',                     /* Version      : 4 Bytes */
 };
 
 /**
