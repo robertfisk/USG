@@ -1,4 +1,7 @@
 Copy the *.cfg file from ./board/ to your OpenOCD installation's /scripts/board/ folder.
 
+If your OpenOCD version is <= 0.8, you also need to copy ./target/stm32f4x.cfg to your OpenOCD
+installation's /scripts/target/ folder. If you have OpenOCD >= 0.9, ignore the ./target folder.
+
 More info for Eclipse OpenOCD configuration:
 http://gnuarmeclipse.github.io/debug/openocd/
