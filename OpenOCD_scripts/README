@@ -1,0 +1,4 @@
+Merge the files in ./board/ into your OpenOCD/scripts/board directory.
+
+More info for Eclipse OpenOCD configuration:
+http://gnuarmeclipse.github.io/debug/openocd/
