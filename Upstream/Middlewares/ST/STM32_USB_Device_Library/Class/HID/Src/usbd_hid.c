@@ -48,51 +48,15 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_hid.h"
-#include "usbd_desc.h"
 #include "usbd_ctlreq.h"
 
 
-/** @addtogroup STM32_USB_DEVICE_LIBRARY
-  * @{
-  */
 
+static uint8_t  USBD_HID_InitMouse(USBD_HandleTypeDef *pdev,
+                                   uint8_t cfgidx);
 
-/** @defgroup USBD_HID 
-  * @brief usbd core module
-  * @{
-  */ 
-
-/** @defgroup USBD_HID_Private_TypesDefinitions
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-
-/** @defgroup USBD_HID_Private_Defines
-  * @{
-  */ 
-
-/**
-  * @}
-  */ 
-
-
-/** @defgroup USBD_HID_Private_Macros
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-
-
-
-/** @defgroup USBD_HID_Private_FunctionPrototypes
-  * @{
-  */
-
+static uint8_t  USBD_HID_InitKeyboard(USBD_HandleTypeDef *pdev,
+                                      uint8_t cfgidx);
 
 static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, 
                                uint8_t cfgidx);
@@ -108,17 +72,30 @@ static uint8_t  *USBD_HID_GetCfgDesc (uint16_t *length);
 static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length);
 
 static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum);
-/**
-  * @}
-  */ 
 
-/** @defgroup USBD_HID_Private_Variables
-  * @{
-  */ 
 
-USBD_ClassTypeDef  USBD_HID = 
+
+USBD_ClassTypeDef  USBD_HID_Mouse =
 {
-  USBD_HID_Init,
+  USBD_HID_InitMouse,
+  USBD_HID_DeInit,
+  USBD_HID_Setup,
+  NULL, /*EP0_TxSent*/
+  NULL, /*EP0_RxReady*/
+  USBD_HID_DataIn, /*DataIn*/
+  NULL, /*DataOut*/
+  NULL, /*SOF */
+  NULL,
+  NULL,
+  USBD_HID_GetCfgDesc,
+  USBD_HID_GetCfgDesc,
+  USBD_HID_GetCfgDesc,
+  USBD_HID_GetDeviceQualifierDesc,
+};
+
+USBD_ClassTypeDef  USBD_HID_Keyboard =
+{
+  USBD_HID_InitKeyboard,
   USBD_HID_DeInit,
   USBD_HID_Setup,
   NULL, /*EP0_TxSent*/  
@@ -133,6 +110,12 @@ USBD_ClassTypeDef  USBD_HID =
   USBD_HID_GetCfgDesc,
   USBD_HID_GetDeviceQualifierDesc,
 };
+
+
+
+#define USB_HID_CFGDESC_HID_REPORT_DESC_SIZE_OFFSET     25
+#define USB_HID_DESC_HID_REPORT_DESC_SIZE_OFFSET        7
+
 
 /* USB HID device Configuration Descriptor */
 __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ]  __ALIGN_END =
@@ -187,7 +170,6 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ]  __ALIGN_
 /* USB HID device Configuration Descriptor */
 __ALIGN_BEGIN static uint8_t USBD_HID_Desc[USB_HID_DESC_SIZ]  __ALIGN_END  =
 {
-  /* 18 */
   0x09,         /*bLength: HID Descriptor size*/
   HID_DESCRIPTOR_TYPE, /*bDescriptorType: HID*/
   0x11,         /*bcdHID: HID Class Spec release number*/
@@ -264,6 +246,11 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  _
   0x01,   0xc0
 }; 
 
+
+uint8_t*    ActiveReportDescriptor = NULL;
+uint8_t     ActiveReportDescriptorLength;
+
+
 /**
   * @}
   */ 
@@ -279,6 +266,21 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  _
   * @param  cfgidx: Configuration index
   * @retval status
   */
+static uint8_t  USBD_HID_InitMouse(USBD_HandleTypeDef *pdev,
+                                   uint8_t cfgidx)
+{
+  ActiveReportDescriptor = HID_MOUSE_ReportDesc;
+  ActiveReportDescriptorLength = HID_MOUSE_REPORT_DESC_SIZE;
+
+  USBD_HID_CfgDesc[USB_HID_CFGDESC_HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
+  USBD_HID_Desc[USB_HID_DESC_HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
+
+  return USBD_HID_Init(pdev, cfgidx);
+}
+
+
+
+
 static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, 
                                uint8_t cfgidx)
 {
@@ -313,6 +315,8 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
 static uint8_t  USBD_HID_DeInit (USBD_HandleTypeDef *pdev, 
                                  uint8_t cfgidx)
 {
+  ActiveReportDescriptor = NULL;
+
   /* Close HID EPs */
   USBD_LL_CloseEP(pdev,
                   HID_EPIN_ADDR);
@@ -341,6 +345,12 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
   uint8_t  *pbuf = NULL;
   USBD_HID_HandleTypeDef     *hhid = (USBD_HID_HandleTypeDef*) pdev->pClassData;
   
+  if (ActiveReportDescriptor == NULL)
+  {
+    while (1);
+  }
+
+
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
   case USB_REQ_TYPE_CLASS :  
@@ -380,7 +390,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
     case USB_REQ_GET_DESCRIPTOR: 
       if( req->wValue >> 8 == HID_REPORT_DESC)
       {
-        len = MIN(HID_MOUSE_REPORT_DESC_SIZE , req->wLength);
+        len = MIN(ActiveReportDescriptorLength , req->wLength);
         pbuf = HID_MOUSE_ReportDesc;
       }
       else if( req->wValue >> 8 == HID_DESCRIPTOR_TYPE)
@@ -473,6 +483,11 @@ uint32_t USBD_HID_GetPollingInterval (USBD_HandleTypeDef *pdev)
   */
 static uint8_t  *USBD_HID_GetCfgDesc (uint16_t *length)
 {
+  if (ActiveReportDescriptor == NULL)
+  {
+    while (1);
+  }
+
   *length = sizeof (USBD_HID_CfgDesc);
   return USBD_HID_CfgDesc;
 }

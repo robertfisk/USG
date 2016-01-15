@@ -113,8 +113,10 @@ USBD_HID_HandleTypeDef;
   * @{
   */ 
 
-extern USBD_ClassTypeDef  USBD_HID;
-#define USBD_HID_CLASS    &USBD_HID
+extern USBD_ClassTypeDef  USBD_HID_Mouse;
+extern USBD_ClassTypeDef  USBD_HID_Keyboard;
+
+//#define USBD_HID_CLASS    &USBD_HID
 /**
   * @}
   */ 
