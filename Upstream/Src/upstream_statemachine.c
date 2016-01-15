@@ -16,6 +16,7 @@
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_msc.h"
+#include "usbd_hid.h"
 
 
 UpstreamStateTypeDef            UpstreamState           = STATE_TEST_INTERFACE;
@@ -173,6 +174,11 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
         newActiveClass = COMMAND_CLASS_MASS_STORAGE;
         newClassPointer = &USBD_MSC;
         break;
+
+    case COMMAND_CLASS_HID_MOUSE:
+      newActiveClass = COMMAND_CLASS_HID_MOUSE;
+      newClassPointer = &USBD_HID_Mouse;
+      break;
 
     //Add other supported classes here...
     }
