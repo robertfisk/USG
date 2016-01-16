@@ -44,11 +44,14 @@
   * limitations under the License.
   *
   ******************************************************************************
-  */ 
+  *
+  * Modifications by Robert Fisk
+  */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_hid.h"
 #include "usbd_ctlreq.h"
+#include "upstream_hid.h"
 
 
 
@@ -113,8 +116,8 @@ USBD_ClassTypeDef  USBD_HID_Keyboard =
 
 
 
-#define USB_HID_CFGDESC_HID_REPORT_DESC_SIZE_OFFSET     25
-#define USB_HID_DESC_HID_REPORT_DESC_SIZE_OFFSET        7
+#define USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET     25
+#define USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET        7
 
 
 /* USB HID device Configuration Descriptor */
@@ -198,57 +201,52 @@ __ALIGN_BEGIN static uint8_t USBD_HID_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
 
 __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  __ALIGN_END =
 {
-  0x05,   0x01,
-  0x09,   0x02,
-  0xA1,   0x01,
-  0x09,   0x01,
+  0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
+  0x09, 0x02,        // Usage (Mouse)
+  0xA1, 0x01,        // Collection (Application)
+  0x09, 0x01,        //   Usage (Pointer)
+  0xA1, 0x00,        //   Collection (Physical)
+  0x05, 0x09,        //     Usage Page (Button)
+  0x19, 0x01,        //     Usage Minimum (0x01)
+  0x29, 0x03,        //     Usage Maximum (0x03)
+  0x15, 0x00,        //     Logical Minimum (0)
+  0x25, 0x01,        //     Logical Maximum (1)
+  0x95, 0x03,        //     Report Count (3)
+  0x75, 0x01,        //     Report Size (1)
+  0x81, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+  0x95, 0x01,        //     Report Count (1)
+  0x75, 0x05,        //     Report Size (5)
+  0x81, 0x01,        //     Input (Const,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+  0x05, 0x01,        //     Usage Page (Generic Desktop Ctrls)
+  0x09, 0x30,        //     Usage (X)
+  0x09, 0x31,        //     Usage (Y)
+  0x09, 0x38,        //     Usage (Wheel)
+  0x15, 0x81,        //     Logical Minimum (129)
+  0x25, 0x7F,        //     Logical Maximum (127)
+  0x75, 0x08,        //     Report Size (8)
+  0x95, 0x03,        //     Report Count (3)
+  0x81, 0x06,        //     Input (Data,Var,Rel,No Wrap,Linear,Preferred State,No Null Position)
+  0xC0,              //   End Collection
+  0x09, 0x3C,        //   Usage (Motion Wakeup)
+  0x05, 0xFF,        //   Usage Page (Reserved 0xFF)
+  0x09, 0x01,        //   Usage (0x01)
+  0x15, 0x00,        //   Logical Minimum (0)
+  0x25, 0x01,        //   Logical Maximum (1)
+  0x75, 0x01,        //   Report Size (1)
+  0x95, 0x01,        //   Report Count (1)
+  0xB1, 0x22,        //   Feature (Data,Var,Abs,No Wrap,Linear,No Preferred State,No Null Position,Non-volatile)
+  0x75, 0x07,        //   Report Size (7)
+  0x95, 0x01,        //   Report Count (1)
+  0xB1, 0x01,        //   Feature (Const,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+  0xC0,              // End Collection
   
-  0xA1,   0x00,
-  0x05,   0x09,
-  0x19,   0x01,
-  0x29,   0x03,
-  
-  0x15,   0x00,
-  0x25,   0x01,
-  0x95,   0x03,
-  0x75,   0x01,
-  
-  0x81,   0x02,
-  0x95,   0x01,
-  0x75,   0x05,
-  0x81,   0x01,
-  
-  0x05,   0x01,
-  0x09,   0x30,
-  0x09,   0x31,
-  0x09,   0x38,
-  
-  0x15,   0x81,
-  0x25,   0x7F,
-  0x75,   0x08,
-  0x95,   0x03,
-  
-  0x81,   0x06,
-  0xC0,   0x09,
-  0x3c,   0x05,
-  0xff,   0x09,
-  
-  0x01,   0x15,
-  0x00,   0x25,
-  0x01,   0x75,
-  0x01,   0x95,
-  
-  0x02,   0xb1,
-  0x22,   0x75,
-  0x06,   0x95,
-  0x01,   0xb1,
-  
-  0x01,   0xc0
+  // 74 bytes
 }; 
 
 
-uint8_t*    ActiveReportDescriptor = NULL;
-uint8_t     ActiveReportDescriptorLength;
+USBD_HandleTypeDef  *USBD_HID_pdev;
+uint8_t*            ActiveReportDescriptor = NULL;
+uint8_t             ActiveReportDescriptorLength;
 
 
 /**
@@ -266,14 +264,16 @@ uint8_t     ActiveReportDescriptorLength;
   * @param  cfgidx: Configuration index
   * @retval status
   */
-static uint8_t  USBD_HID_InitMouse(USBD_HandleTypeDef *pdev,
-                                   uint8_t cfgidx)
+static uint8_t USBD_HID_InitMouse(USBD_HandleTypeDef *pdev,
+                                  uint8_t cfgidx)
 {
   ActiveReportDescriptor = HID_MOUSE_ReportDesc;
   ActiveReportDescriptorLength = HID_MOUSE_REPORT_DESC_SIZE;
 
-  USBD_HID_CfgDesc[USB_HID_CFGDESC_HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
-  USBD_HID_Desc[USB_HID_DESC_HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
+  USBD_HID_CfgDesc[USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
+  USBD_HID_Desc[USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
+
+  Upstream_HID_Init(COMMAND_CLASS_HID_MOUSE);
 
   return USBD_HID_Init(pdev, cfgidx);
 }
@@ -301,7 +301,11 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
   else
   {
     ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
+
+    USBD_HID_pdev = pdev;
+    Upstream_HID_GetNextReport(USBD_HID_SendReport);
   }
+
   return ret;
 }
 
@@ -316,6 +320,7 @@ static uint8_t  USBD_HID_DeInit (USBD_HandleTypeDef *pdev,
                                  uint8_t cfgidx)
 {
   ActiveReportDescriptor = NULL;
+  Upstream_HID_DeInit();
 
   /* Close HID EPs */
   USBD_LL_CloseEP(pdev,
@@ -426,18 +431,17 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
   * @param  buff: pointer to report
   * @retval status
   */
-uint8_t USBD_HID_SendReport     (USBD_HandleTypeDef  *pdev, 
-                                 uint8_t *report,
-                                 uint16_t len)
+uint8_t USBD_HID_SendReport(uint8_t *report,
+                            uint16_t len)
 {
-  USBD_HID_HandleTypeDef     *hhid = (USBD_HID_HandleTypeDef*)pdev->pClassData;
+  USBD_HID_HandleTypeDef *hhid = (USBD_HID_HandleTypeDef*)USBD_HID_pdev->pClassData;
   
-  if (pdev->dev_state == USBD_STATE_CONFIGURED )
+  if (USBD_HID_pdev->dev_state == USBD_STATE_CONFIGURED )
   {
     if(hhid->state == HID_IDLE)
     {
       hhid->state = HID_BUSY;
-      USBD_LL_Transmit (pdev, 
+      USBD_LL_Transmit (USBD_HID_pdev,
                         HID_EPIN_ADDR,                                      
                         report,
                         len);
@@ -501,12 +505,15 @@ static uint8_t  *USBD_HID_GetCfgDesc (uint16_t *length)
   * @retval status
   */
 static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev, 
-                              uint8_t epnum)
+                                 uint8_t epnum)
 {
-  
   /* Ensure that the FIFO is empty before a new transfer, this condition could 
   be caused by  a new transfer before the end of the previous transfer */
   ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
+
+  USBD_HID_pdev = pdev;
+  Upstream_HID_GetNextReport(USBD_HID_SendReport);
+
   return USBD_OK;
 }
 

@@ -58,6 +58,13 @@ InterfaceCommandMscTypeDef;
 
 typedef enum
 {
+  COMMAND_HID_REPORT,               //Downstream initiates HID report transfer to Upstream. Upstream just needs to Upstream_ReceivePacket each time.
+}
+InterfaceCommandHidTypeDef;
+
+
+typedef enum
+{
     COMMAND_ERROR_GENERIC,
     COMMAND_ERROR_DEVICE_DISCONNECTED,
 }
