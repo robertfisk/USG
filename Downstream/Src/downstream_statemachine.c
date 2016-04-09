@@ -16,6 +16,7 @@
 #include "downstream_msc.h"
 #include "usbh_core.h"
 #include "usbh_msc.h"
+#include "usbh_hid.h"
 #include "led.h"
 
 
@@ -190,7 +191,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
     }
 
     //Called from main()
-    if (id == HOST_USER_CLASS_SELECTED)
+    if (id == HOST_USER_CLASS_ACTIVE)
     {
         switch (phost->pActiveClass->ClassCode)
         {
@@ -199,6 +200,13 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
             {
                 newActiveClass = COMMAND_CLASS_MASS_STORAGE;
             }
+            break;
+
+        case USB_HID_CLASS:
+
+            //FIXME!
+
+            newActiveClass = COMMAND_CLASS_HID_MOUSE;
             break;
 
         //Add other classes here...

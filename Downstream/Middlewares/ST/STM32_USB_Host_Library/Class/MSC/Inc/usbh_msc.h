@@ -145,7 +145,7 @@ MSC_HandleTypeDef;
 
 /* Interface Descriptor field values for MSC Protocol */
 #define MSC_BOT                                        0x50 
-#define MSC_TRANSPARENT                                0x06     
+#define MSC_TRANSPARENT                                0x06
 /**
   * @}
   */ 

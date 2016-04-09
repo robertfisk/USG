@@ -38,7 +38,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
-#include "usbh_msc_bot.h"
 #include "downstream_spi.h"
 
 
@@ -176,8 +175,6 @@ BOT_HandleTypeDef;
 #define BOT_DIR_IN                   0
 #define BOT_DIR_OUT                  1
 #define BOT_DIR_BOTH                 2
-
-#define BOT_PAGE_LENGTH              512
 
 
 #define BOT_CBW_CB_LENGTH            16

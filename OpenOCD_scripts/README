@@ -1,4 +1,5 @@
-These OpenOCD scripts are used in-place by the Eclipse debug configurations.
+The OpenOCD scripts in ./board/ are used in-place by the Eclipse debug configurations. You
+don't need to copy them anywhere.
 
 More info for Eclipse OpenOCD configuration:
 http://gnuarmeclipse.github.io/debug/openocd/

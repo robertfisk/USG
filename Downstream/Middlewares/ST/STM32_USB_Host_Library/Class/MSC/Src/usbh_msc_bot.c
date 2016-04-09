@@ -243,7 +243,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
                 {
                     //Dispatch current bot_packet, then get a new one
                     if (Downstream_MSC_PutStreamDataPacket(MSC_Handle->hbot.bot_packet,
-                                                           (BOT_PAGE_LENGTH - MSC_Handle->hbot.bot_packet_bytes_remaining)) != HAL_OK)
+                                                           BOT_PAGE_LENGTH) != HAL_OK)
                     {
                         MSC_Handle->hbot.state  = BOT_ERROR_IN;
                         break;
