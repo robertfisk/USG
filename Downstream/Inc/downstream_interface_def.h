@@ -15,7 +15,7 @@
 
 //***************
 // Attention!
-// Keep this file synchronised with downstream_interface_def.h
+// Keep this file synchronised with upstream_interface_def.h
 // in the Upstream project.
 //***************
 
@@ -29,6 +29,7 @@ typedef enum
 {
     COMMAND_CLASS_INTERFACE,
     COMMAND_CLASS_MASS_STORAGE,
+    COMMAND_CLASS_HID_MOUSE,
     //...
     COMMAND_CLASS_ERROR
 }
@@ -51,6 +52,13 @@ typedef enum
     COMMAND_MSC_WRITE,              //Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
 }
 InterfaceCommandMscTypeDef;
+
+
+typedef enum
+{
+    COMMAND_HID_REPORT,               //Downstream initiates HID report transfer to Upstream. Upstream just needs to Upstream_ReceivePacket each time.
+}
+InterfaceCommandHidTypeDef;
 
 
 typedef enum

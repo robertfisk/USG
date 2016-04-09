@@ -190,7 +190,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
     }
 
     //Called from main()
-    if (id == HOST_USER_CLASS_ACTIVE)
+    if (id == HOST_USER_CLASS_SELECTED)
     {
         switch (phost->pActiveClass->ClassCode)
         {
