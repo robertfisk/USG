@@ -21,7 +21,7 @@
 
 
 
-InterfaceCommandClassTypeDef    ActiveHidClass = COMMAND_CLASS_INTERFACE;
+InterfaceCommandClassTypeDef    ActiveHidClass    = COMMAND_CLASS_INTERFACE;
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 
 
@@ -37,7 +37,8 @@ void Upstream_HID_Init(InterfaceCommandClassTypeDef newClass)
         return;
     }
 
-    if (UpstreamHidPacket != NULL)
+    if ((ActiveHidClass != COMMAND_CLASS_INTERFACE) ||
+        (UpstreamHidPacket != NULL))
     {
         UPSTREAM_SPI_FREAKOUT;
         return;
@@ -81,7 +82,7 @@ void Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback)
 
 void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket)
 {
-    uint8_t reportLength;
+    uint8_t reportLength = 0;
 
     if (UpstreamHidPacket != NULL)
     {
@@ -111,7 +112,14 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
     //Other HID classes go here...
 
 
+    if (reportLength == 0)
+    {
+        UPSTREAM_SPI_FREAKOUT;
+        return;
+    }
+
     UpstreamHidPacket = receivedPacket;           //Save packet so we can free it when upstream USB transaction is done
     USBD_HID_SendReport(receivedPacket->Data, reportLength);
 }
+
 

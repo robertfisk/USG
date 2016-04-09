@@ -176,11 +176,11 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
         break;
 
     case COMMAND_CLASS_HID_MOUSE:
-      newActiveClass = COMMAND_CLASS_HID_MOUSE;
-      newClassPointer = &USBD_HID_Mouse;
-      break;
+        newActiveClass = COMMAND_CLASS_HID_MOUSE;
+        newClassPointer = &USBD_HID_Mouse;
+        break;
 
-    //Add other supported classes here...
+        //Add other supported classes here...
     }
 
     Upstream_ReleasePacket(replyPacket);

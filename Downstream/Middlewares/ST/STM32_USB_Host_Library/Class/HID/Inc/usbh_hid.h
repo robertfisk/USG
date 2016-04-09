@@ -112,8 +112,8 @@ typedef enum
 {
   HID_INIT= 0,  
   HID_IDLE,
-  HID_SEND_DATA,
-  HID_BUSY,
+//  HID_SEND_DATA,
+//  HID_BUSY,
   HID_GET_DATA,   
   HID_SYNC,     
   HID_POLL,
@@ -227,9 +227,9 @@ typedef struct _HID_Process
   uint8_t              ep_addr;
   uint16_t             poll; 
   uint32_t             timer;
-  uint8_t              DataReady;
+//  uint8_t              DataReady;
   HID_DescTypeDef      HID_Desc;  
-  USBH_StatusTypeDef  ( * Init)(USBH_HandleTypeDef *phost);
+  //USBH_StatusTypeDef  ( * Init)(USBH_HandleTypeDef *phost);
 }
 HID_HandleTypeDef;
 
