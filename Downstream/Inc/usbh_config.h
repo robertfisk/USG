@@ -75,9 +75,10 @@
  
 /*----------   -----------*/
 #define USBH_USE_OS      0 
+
  
- 
- 
+#define BOT_PAGE_LENGTH           512       //Moved here from usbh_msc_bot.h to avoid a circular include loop :(
+
 
 /****************************************/
 /* #define for FS and HS identification */

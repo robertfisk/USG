@@ -17,7 +17,7 @@
 
 
 #define DOWNSTREAM_PACKET_HEADER_LEN        (2)         //Min length = CommandClass & Command bytes
-#define DOWNSTREAM_PACKET_LEN               (DOWNSTREAM_PACKET_HEADER_LEN + USBH_MAX_DATA_BUFFER)
+#define DOWNSTREAM_PACKET_LEN               (DOWNSTREAM_PACKET_HEADER_LEN + BOT_PAGE_LENGTH)
 #define DOWNSTREAM_PACKET_LEN_MIN           (DOWNSTREAM_PACKET_HEADER_LEN)
 
 #define DOWNSTREAM_PACKET_HEADER_LEN_16     (DOWNSTREAM_PACKET_HEADER_LEN / 2)
@@ -59,7 +59,7 @@ typedef struct
     uint16_t            Length16 __ALIGN_END;       //Packet length includes CommandClass, Command, and Data
     uint8_t             CommandClass;
     uint8_t             Command;
-    uint8_t             Data[USBH_MAX_DATA_BUFFER]; //Should (must?) be word-aligned, for USB copy routine
+    uint8_t             Data[BOT_PAGE_LENGTH];      //Should (must?) be word-aligned, for USB copy routine
 }
 DownstreamPacketTypeDef;
 

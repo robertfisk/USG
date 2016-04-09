@@ -1,7 +1,9 @@
-Copy these files into your OpenOCD/scripts directory, then configure Eclipse and OpenOCD to use them.
+The OpenOCD scripts in ./board/ are used in-place by the Eclipse debug configurations. You
+don't need to copy them anywhere.
 
-Example OpenOCD options:
--f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f board/OpenOCD_USG_v1.0.cfg
+If your OpenOCD version is <= 0.8, you will need to copy ./target/stm32f4x.cfg to your OpenOCD
+installation's /scripts/target/ folder, replacing the version currently there.
+If you have OpenOCD >= 0.9, this is not necessary.
 
 More info for Eclipse OpenOCD configuration:
 http://gnuarmeclipse.github.io/debug/openocd/
