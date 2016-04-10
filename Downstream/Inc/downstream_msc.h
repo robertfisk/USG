@@ -13,6 +13,7 @@
 #define INC_DOWNSTREAM_MSC_H_
 
 
+#include "downstream_interface_def.h"
 #include "downstream_spi.h"
 
 
@@ -24,7 +25,7 @@ typedef void (*DownstreamMSCCallbackPacketTypeDef)(DownstreamPacketTypeDef* rece
                                                    uint16_t dataLength8);
 
 
-HAL_StatusTypeDef Downstream_MSC_ApproveConnectedDevice(void);
+InterfaceCommandClassTypeDef Downstream_MSC_ApproveConnectedDevice(void);
 void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
 HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* packetToSend,
                                                      uint32_t dataLength8);

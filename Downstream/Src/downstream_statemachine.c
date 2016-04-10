@@ -10,10 +10,12 @@
  */
 
 
+#include <downstream_hid.h>
 #include "downstream_statemachine.h"
 #include "downstream_interface_def.h"
 #include "downstream_spi.h"
 #include "downstream_msc.h"
+#include "downstream_hid.h"
 #include "usbh_core.h"
 #include "usbh_msc.h"
 #include "usbh_hid.h"
@@ -32,6 +34,13 @@ void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketType
 
 void Downstream_InitStateMachine(void)
 {
+    if ((DownstreamState       != STATE_DEVICE_NOT_READY) ||
+        (ConfiguredDeviceClass != COMMAND_CLASS_INTERFACE))
+    {
+        DOWNSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
     Downstream_InitSPI();
 
     //Prepare to receive our first packet from Upstream!
@@ -69,18 +78,27 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         return;
     }
 
-    //We should only receive class-specific messages when we are in the Active state.
-    if (DownstreamState != STATE_ACTIVE)
+    //We should only receive class-specific messages when we are in the Active state,
+    //and only to our currently active device class.
+    if ((DownstreamState != STATE_ACTIVE) ||
+        (receivedPacket->CommandClass != ConfiguredDeviceClass))
     {
         DOWNSTREAM_STATEMACHINE_FREAKOUT;
         return;
     }
 
-    switch (receivedPacket->CommandClass)
+
+    switch (ConfiguredDeviceClass)
     {
     case COMMAND_CLASS_MASS_STORAGE:
         Downstream_MSC_PacketProcessor(receivedPacket);
         break;
+
+    case COMMAND_CLASS_HID_MOUSE:
+    case COMMAND_CLASS_HID_KEYBOARD:
+        Downstream_HID_PacketProcessor(receivedPacket);
+        break;
+
 
     //Add other classes here...
 
@@ -196,17 +214,11 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
         switch (phost->pActiveClass->ClassCode)
         {
         case USB_MSC_CLASS:
-            if (Downstream_MSC_ApproveConnectedDevice() == HAL_OK)
-            {
-                newActiveClass = COMMAND_CLASS_MASS_STORAGE;
-            }
+            newActiveClass = Downstream_MSC_ApproveConnectedDevice();
             break;
 
         case USB_HID_CLASS:
-
-            //FIXME!
-
-            newActiveClass = COMMAND_CLASS_HID_MOUSE;
+            newActiveClass = Downstream_HID_ApproveConnectedDevice();
             break;
 
         //Add other classes here...

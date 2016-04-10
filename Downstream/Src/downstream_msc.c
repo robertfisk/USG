@@ -37,27 +37,27 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receive
 
 //High-level checks on the connected device. We don't want some weirdly
 //configured device to bomb our USB stack, accidentally or otherwise.
-HAL_StatusTypeDef Downstream_MSC_ApproveConnectedDevice(void)
+InterfaceCommandClassTypeDef Downstream_MSC_ApproveConnectedDevice(void)
 {
     MSC_HandleTypeDef* MSC_Handle =  (MSC_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
     if (MSC_Handle->unit[MSC_FIXED_LUN].error != MSC_OK)
     {
-        return HAL_ERROR;
+        return COMMAND_CLASS_INTERFACE;         //fail
     }
 
     if ((MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr == 0) ||
         (MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_nbr == UINT32_MAX))
     {
-        return HAL_ERROR;
+        return COMMAND_CLASS_INTERFACE;         //fail
     }
 
     if (MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_size != MSC_SUPPORTED_BLOCK_SIZE)
     {
-        return HAL_ERROR;
+        return COMMAND_CLASS_INTERFACE;         //fail
     }
 
-    return HAL_OK;
+    return COMMAND_CLASS_MASS_STORAGE;
 }
 
 

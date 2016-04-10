@@ -181,7 +181,8 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
     HID_Handle->ctl_state = HID_REQ_INIT; 
     HID_Handle->ep_addr   = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].bEndpointAddress;
     HID_Handle->length    = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].wMaxPacketSize;
-    HID_Handle->poll      = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].bInterval ;
+    HID_Handle->poll      = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].bInterval;
+    HID_Handle->Protocol  = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol;
     
     if (HID_Handle->poll  < HID_MIN_POLL) 
     {
@@ -298,7 +299,7 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
     {
       
       USBH_HID_ParseHIDDesc(&HID_Handle->HID_Desc, phost->device.Data);
-      HID_Handle->ctl_state = HID_REQ_SET_IDLE;     //HID_REQ_GET_REPORT_DESC;
+      HID_Handle->ctl_state = HID_REQ_SET_IDLE;
     }
     
     break;     
@@ -364,50 +365,29 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
   switch (HID_Handle->state)
   {
   case HID_INIT:
-//    HID_Handle->Init(phost);
-      HID_Handle->pData = phost->device.Data;
-
-//  case HID_IDLE:
-//    if(USBH_HID_GetReport (phost,
-//                           0x01,
-//                            0,
-//                            HID_Handle->pData,
-//                            HID_Handle->length) == USBH_OK)
-//    {
-//
-//      fifo_write(&HID_Handle->fifo, HID_Handle->pData, HID_Handle->length);
-//      HID_Handle->state = HID_SYNC;
-//    }
-//
-//    break;
-    
-  case HID_SYNC:
-    /* Sync with start of Even Frame */
-    //Uhhh, doesn't this sync with an odd frame?
-    //Also, do we need to sync at all?
-
-    if(phost->Timer & 1)
-    {
-      HID_Handle->state = HID_GET_DATA; 
-    }
-    break;
+      HID_Handle->timer = phost->Timer;
+      HID_Handle->state = HID_IDLE;
+      break;
     
   case HID_GET_DATA:
-    USBH_InterruptReceiveData(phost, 
-                              HID_Handle->pData,
-                              HID_Handle->length,
-                              HID_Handle->InPipe);
-    
-    HID_Handle->state = HID_POLL;
-    HID_Handle->timer = phost->Timer;
+      if ((int32_t)(phost->Timer - HID_Handle->timer) >= HID_Handle->poll)
+      {
+        USBH_InterruptReceiveData(phost,
+                                  HID_Handle->hid_packet_pbuf,
+                                  HID_Handle->length,
+                                  HID_Handle->InPipe);
+
+        HID_Handle->state = HID_POLL;
+        HID_Handle->timer = phost->Timer;
+      }
     break;
     
   case HID_POLL:
-    urbStatus = USBH_LL_GetURBState(phost , HID_Handle->InPipe);
+    urbStatus = USBH_LL_GetURBState(phost, HID_Handle->InPipe);
     
     if (urbStatus == USBH_URB_DONE)
     {
-        USBH_HID_EventCallback(phost);
+        HID_Handle->ReportCallback(HID_Handle->hid_packet);
         HID_Handle->state = HID_IDLE;
         break;
     }
@@ -447,17 +427,34 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
   */
 static USBH_StatusTypeDef USBH_HID_SOFProcess(USBH_HandleTypeDef *phost)
 {
-  HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
-  
-  if (HID_Handle->state == HID_IDLE)
-  {
-    if ((int32_t)(phost->Timer - HID_Handle->timer) >= HID_Handle->poll)
-    {
-      HID_Handle->state = HID_GET_DATA;
-    }
-  }
+
   return USBH_OK;
 }
+
+
+
+//Downstream_HID calls into here at main() priority,
+//to request a new report for Upstream.
+HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
+                                              HID_InterruptReportCallback callback,
+                                              DownstreamPacketTypeDef* packetToUse)
+{
+    HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
+
+    if (HID_Handle->state == HID_IDLE)
+    {
+        HID_Handle->ReportCallback = callback;
+        HID_Handle->hid_packet = packetToUse;
+        HID_Handle->hid_packet_pbuf = packetToUse->Data;
+        HID_Handle->state = HID_GET_DATA;
+        return HAL_OK;
+    }
+
+    return HAL_ERROR;
+}
+
+
+
 
 /**
 * @brief  USBH_Get_HID_ReportDescriptor
