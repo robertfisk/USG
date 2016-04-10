@@ -35,8 +35,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
-//#include "usbh_hid_mouse.h"
-//#include "usbh_hid_keybd.h"
+#include "downstream_spi.h"
+
  
 /** @addtogroup USBH_LIB
   * @{
@@ -112,8 +112,6 @@ typedef enum
 {
   HID_INIT= 0,  
   HID_IDLE,
-//  HID_SEND_DATA,
-//  HID_BUSY,
   HID_GET_DATA,   
   HID_SYNC,     
   HID_POLL,
@@ -212,26 +210,31 @@ typedef struct
 } FIFO_TypeDef;
 
 
+
+typedef void (*HID_InterruptReportCallback)(DownstreamPacketTypeDef* packetToSend);
+
+
 /* Structure for HID process */
 typedef struct _HID_Process
 {
   uint8_t              OutPipe; 
   uint8_t              InPipe; 
-  HID_StateTypeDef     state; 
   uint8_t              OutEp;
   uint8_t              InEp;
+  HID_StateTypeDef     state;
   HID_CtlStateTypeDef  ctl_state;
-  FIFO_TypeDef         fifo; 
-  uint8_t              *pData;   
   uint16_t             length;
-  uint8_t              ep_addr;
   uint16_t             poll; 
   uint32_t             timer;
-//  uint8_t              DataReady;
-  HID_DescTypeDef      HID_Desc;  
-  //USBH_StatusTypeDef  ( * Init)(USBH_HandleTypeDef *phost);
+  uint8_t              ep_addr;
+  uint8_t              Protocol;
+  HID_DescTypeDef      HID_Desc;
+  HID_InterruptReportCallback   ReportCallback;
+  DownstreamPacketTypeDef*      hid_packet;
+  uint8_t*                      hid_packet_pbuf;
 }
 HID_HandleTypeDef;
+
 
 /**
   * @}
@@ -320,6 +323,11 @@ void fifo_init(FIFO_TypeDef * f, uint8_t * buf, uint16_t size);
 uint16_t  fifo_read(FIFO_TypeDef * f, void * buf, uint16_t  nbytes);
 
 uint16_t  fifo_write(FIFO_TypeDef * f, const void * buf, uint16_t  nbytes);
+
+HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
+                                              HID_InterruptReportCallback callback,
+                                              DownstreamPacketTypeDef* packetToUse);
+
 
 /**
   * @}
