@@ -14,15 +14,17 @@
 #include "upstream_hid.h"
 #include "upstream_spi.h"
 #include "upstream_interface_def.h"
-#include "usbd_hid.h"
 
 
-#define HID_MOUSE_REPORT_LEN    4
+#define HID_REPORT_DATA_LEN     8
+#define HID_MOUSE_DATA_LEN      4
 
 
 
 InterfaceCommandClassTypeDef    ActiveHidClass    = COMMAND_CLASS_INTERFACE;
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
+UpstreamHidSendReportCallback   ReportCallback    = NULL;
+
 
 
 void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket);
@@ -74,6 +76,13 @@ void Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback)
         UpstreamHidPacket = NULL;
     }
 
+    if (ReportCallback != NULL)
+    {
+        UPSTREAM_SPI_FREAKOUT;
+        return;
+    }
+    ReportCallback = callback;
+
     //Get next packet
     Upstream_SetExpectedReceivedCommand(ActiveHidClass, COMMAND_HID_REPORT);
     Upstream_ReceivePacket(Upstream_HID_GetNextReportReceiveCallback);
@@ -82,9 +91,12 @@ void Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback)
 
 void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket)
 {
-    uint8_t reportLength = 0;
+    UpstreamHidSendReportCallback tempReportCallback;
+    uint8_t dataLength = 0;
+    uint8_t i;
 
-    if (UpstreamHidPacket != NULL)
+    if ((UpstreamHidPacket != NULL) ||
+        (ReportCallback == NULL))
     {
         UPSTREAM_SPI_FREAKOUT;
         return;
@@ -98,7 +110,7 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
 
     if (ActiveHidClass == COMMAND_CLASS_HID_MOUSE)
     {
-        if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_REPORT_LEN + 1) / 2)))
+        if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_DATA_LEN + 1) / 2)))
         {
             UPSTREAM_SPI_FREAKOUT;
             return;
@@ -106,20 +118,27 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
 
         //Mouse sanity checks & stuff go here...
 
-        reportLength = HID_MOUSE_REPORT_LEN;
+        dataLength = HID_MOUSE_DATA_LEN;
     }
 
     //Other HID classes go here...
 
 
-    if (reportLength == 0)
+    if (dataLength == 0)
     {
         UPSTREAM_SPI_FREAKOUT;
         return;
     }
 
-    UpstreamHidPacket = receivedPacket;           //Save packet so we can free it when upstream USB transaction is done
-    USBD_HID_SendReport(receivedPacket->Data, reportLength);
+    for (i = dataLength; i > HID_REPORT_DATA_LEN; i++)
+    {
+        receivedPacket->Data[i] = 0;            //Zero out unused bytes before we send report upstream
+    }
+
+    UpstreamHidPacket = receivedPacket;         //Save packet so we can free it when upstream USB transaction is done
+    tempReportCallback = ReportCallback;
+    ReportCallback = NULL;
+    tempReportCallback(receivedPacket->Data, HID_REPORT_DATA_LEN);
 }
 
 

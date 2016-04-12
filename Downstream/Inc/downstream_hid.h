@@ -17,9 +17,6 @@
 #include "downstream_spi.h"
 
 
-#define HID_MOUSE_TRANSFER_BYTES        5
-#define HID_KEYBOARD_TRANSFER_BYTES     0
-
 
 
 InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void);

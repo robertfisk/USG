@@ -17,6 +17,10 @@
 
 
 
+#define HID_MOUSE_DATA_LEN        4
+#define HID_KEYBOARD_DATA_LEN     0
+
+
 extern USBH_HandleTypeDef hUsbHostFS;                       //Hard-link ourselves to usb_host.c
 extern InterfaceCommandClassTypeDef ConfiguredDeviceClass;  //Do a cheap hard-link to downstream_statemachine.c, rather than keep a duplicate here
 
@@ -61,7 +65,7 @@ void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSen
 {
     if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
     {
-        packetToSend->Length16 = (HID_MOUSE_TRANSFER_BYTES / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        packetToSend->Length16 = ((HID_MOUSE_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
     }
     //else if...
     else

@@ -113,8 +113,8 @@ USBD_HID_HandleTypeDef;
   * @{
   */ 
 
-extern USBD_ClassTypeDef  USBD_HID_Mouse;
-extern USBD_ClassTypeDef  USBD_HID_Keyboard;
+extern USBD_ClassTypeDef  USBD_HID;
+
 
 //#define USBD_HID_CLASS    &USBD_HID
 /**
@@ -124,10 +124,12 @@ extern USBD_ClassTypeDef  USBD_HID_Keyboard;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */ 
-uint8_t USBD_HID_SendReport (uint8_t *report,
-                             uint16_t len);
 
 uint32_t USBD_HID_GetPollingInterval (USBD_HandleTypeDef *pdev);
+
+void  USBD_HID_PreinitMouse(void);
+void  USBD_HID_PreinitKeyboard(void);
+
 
 /**
   * @}
