@@ -20,8 +20,9 @@
 #include "upstream_interface_def.h"
 
 
-typedef uint8_t UpstreamHidSendReportCallback(uint8_t *report,
-                                              uint16_t len);
+typedef uint8_t (*UpstreamHidSendReportCallback)(uint8_t *report,
+                                                 uint16_t len);
+
 
 
 void Upstream_HID_Init(InterfaceCommandClassTypeDef newClass);

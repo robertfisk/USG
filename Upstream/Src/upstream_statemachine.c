@@ -177,7 +177,8 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
 
     case COMMAND_CLASS_HID_MOUSE:
         newActiveClass = COMMAND_CLASS_HID_MOUSE;
-        newClassPointer = &USBD_HID_Mouse;
+        newClassPointer = &USBD_HID;
+        USBD_HID_PreinitMouse();
         break;
 
         //Add other supported classes here...
