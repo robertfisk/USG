@@ -21,7 +21,6 @@
 
 
 
-InterfaceCommandClassTypeDef    ActiveHidClass    = COMMAND_CLASS_INTERFACE;
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 UpstreamHidSendReportCallback   ReportCallback    = NULL;
 
@@ -31,28 +30,8 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
 
 
 
-void Upstream_HID_Init(InterfaceCommandClassTypeDef newClass)
-{
-    if ((newClass != COMMAND_CLASS_HID_MOUSE))          //add classes here
-    {
-        UPSTREAM_SPI_FREAKOUT;
-        return;
-    }
-
-    if ((ActiveHidClass != COMMAND_CLASS_INTERFACE) ||
-        (UpstreamHidPacket != NULL))
-    {
-        UPSTREAM_SPI_FREAKOUT;
-        return;
-    }
-
-    ActiveHidClass = newClass;
-}
-
-
 void Upstream_HID_DeInit(void)
 {
-    ActiveHidClass = COMMAND_CLASS_INTERFACE;
     if (UpstreamHidPacket != NULL)
     {
         Upstream_ReleasePacket(UpstreamHidPacket);
@@ -61,12 +40,17 @@ void Upstream_HID_DeInit(void)
 }
 
 
-void Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback)
+
+HAL_StatusTypeDef Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback)
 {
-    if ((ActiveHidClass != COMMAND_CLASS_HID_MOUSE))      //add classes here
+	UpstreamPacketTypeDef* freePacket;
+	InterfaceCommandClassTypeDef activeClass;
+
+	activeClass = Upstream_StateMachine_CheckActiveClass();
+    if ((activeClass != COMMAND_CLASS_HID_MOUSE))      //add classes here
     {
-        UPSTREAM_SPI_FREAKOUT;
-        return;
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return HAL_ERROR;
     }
 
     //Release packet used for last transaction (if any)
@@ -78,22 +62,46 @@ void Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback)
 
     if (ReportCallback != NULL)
     {
-        UPSTREAM_SPI_FREAKOUT;
-        return;
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return HAL_ERROR;
     }
     ReportCallback = callback;
 
-    //Get next packet
-    Upstream_SetExpectedReceivedCommand(ActiveHidClass, COMMAND_HID_REPORT);
-    Upstream_ReceivePacket(Upstream_HID_GetNextReportReceiveCallback);
+    freePacket = Upstream_GetFreePacketImmediately();
+    if (freePacket == NULL)
+    {
+        return HAL_ERROR;
+    }
+
+	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
+	freePacket->CommandClass = activeClass;
+	freePacket->Command = COMMAND_HID_REPORT;
+
+	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
+	{
+		return Upstream_ReceivePacket(Upstream_HID_GetNextReportReceiveCallback);
+	}
+
+	//else:
+	Upstream_ReleasePacket(freePacket);
+	return HAL_ERROR;
 }
+
 
 
 void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket)
 {
     UpstreamHidSendReportCallback tempReportCallback;
+	InterfaceCommandClassTypeDef activeClass;
     uint8_t dataLength = 0;
     uint8_t i;
+
+	activeClass = Upstream_StateMachine_CheckActiveClass();
+    if ((activeClass != COMMAND_CLASS_HID_MOUSE))      //add classes here
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
 
     if ((UpstreamHidPacket != NULL) ||
         (ReportCallback == NULL))
@@ -108,7 +116,7 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
     }
 
 
-    if (ActiveHidClass == COMMAND_CLASS_HID_MOUSE)
+    if (activeClass == COMMAND_CLASS_HID_MOUSE)
     {
         if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_DATA_LEN + 1) / 2)))
         {

@@ -540,12 +540,4 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 }
 
 
-//Used by USB interface classes.
-//This is required when Downstream sends a packet without an initiating request from us
-void Upstream_SetExpectedReceivedCommand(uint8_t expectedCommandClass,
-                                         uint8_t expectedCommand)
-{
-    SentCommandClass = expectedCommandClass;
-    SentCommand = expectedCommand;
-}
 
