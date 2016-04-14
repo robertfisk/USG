@@ -14,6 +14,7 @@
 
 
 #include "led.h"
+#include "upstream_interface_def.h"
 
 
 typedef enum
@@ -37,7 +38,7 @@ typedef enum
 
 void Upstream_InitStateMachine(void);
 void Upstream_StateMachine_SetErrorState(void);
-HAL_StatusTypeDef Upstream_StateMachine_CheckClassOperationOk(void);
+InterfaceCommandClassTypeDef Upstream_StateMachine_CheckActiveClass(void);
 void Upstream_StateMachine_DeviceDisconnected(void);
 
 

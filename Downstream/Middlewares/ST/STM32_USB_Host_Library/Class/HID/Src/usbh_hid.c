@@ -394,7 +394,7 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
 
     if (urbStatus == USBH_URB_NOTREADY)
     {
-        HID_Handle->state = HID_IDLE;
+        HID_Handle->state = HID_GET_DATA;
         break;
     }
 
@@ -404,7 +404,7 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
       if(USBH_ClrFeature(phost,
                          HID_Handle->ep_addr) == USBH_OK)
       {
-        HID_Handle->state = HID_IDLE;
+        HID_Handle->state = HID_GET_DATA;
       }
     }
     break;

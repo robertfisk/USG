@@ -74,8 +74,7 @@ void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSen
         return;
     }
 
-
-    Downstream_TransmitPacket(packetToSend);
+    Downstream_PacketProcessor_ClassReply(packetToSend);
 }
 
 

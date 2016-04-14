@@ -15,9 +15,7 @@
 
 
 
-//#include "usbd_def.h"
 #include "stm32f4xx_hal.h"
-#include "upstream_interface_def.h"
 
 
 typedef uint8_t (*UpstreamHidSendReportCallback)(uint8_t *report,
@@ -25,9 +23,8 @@ typedef uint8_t (*UpstreamHidSendReportCallback)(uint8_t *report,
 
 
 
-void Upstream_HID_Init(InterfaceCommandClassTypeDef newClass);
 void Upstream_HID_DeInit(void);
-void Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback);
+HAL_StatusTypeDef Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback);
 
 
 

@@ -87,8 +87,7 @@ HAL_StatusTypeDef Upstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callba
 void Upstream_TxOkInterrupt(void);
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);
-void Upstream_SetExpectedReceivedCommand(uint8_t expectedCommandClass,
-                                         uint8_t expectedCommand);
+
 
 
 #endif /* INC_UPSTREAM_SPI_H_ */
