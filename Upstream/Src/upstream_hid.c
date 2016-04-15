@@ -17,8 +17,8 @@
 
 
 #define HID_REPORT_DATA_LEN     8
-#define HID_MOUSE_DATA_LEN      4
-
+#define HID_MOUSE_DATA_LEN      3
+#define HID_KEYBOARD_DATA_LEN   0
 
 
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
@@ -138,7 +138,7 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
         return;
     }
 
-    for (i = dataLength; i > HID_REPORT_DATA_LEN; i++)
+    for (i = dataLength; i < HID_REPORT_DATA_LEN; i++)
     {
         receivedPacket->Data[i] = 0;            //Zero out unused bytes before we send report upstream
     }
