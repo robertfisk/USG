@@ -1,4 +1,5 @@
-The OpenOCD scripts in ./board/ are used in-place by the Eclipse debug configurations.
+The OpenOCD scripts in ./board/ are used in-place by the Eclipse debug configurations. You
+don't need to copy them anywhere.
 
 If your OpenOCD version is <= 0.8, you will need to copy ./target/stm32f4x.cfg to your OpenOCD
 installation's /scripts/target/ folder, replacing the version currently there.

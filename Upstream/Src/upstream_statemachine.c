@@ -12,10 +12,10 @@
 
 #include "upstream_statemachine.h"
 #include "upstream_spi.h"
-#include "upstream_interface_def.h"
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_msc.h"
+#include "usbd_hid.h"
 
 
 UpstreamStateTypeDef            UpstreamState           = STATE_TEST_INTERFACE;
@@ -75,20 +75,20 @@ void Upstream_StateMachine_SetErrorState(void)
 }
 
 
-HAL_StatusTypeDef Upstream_StateMachine_CheckClassOperationOk(void)
+InterfaceCommandClassTypeDef Upstream_StateMachine_CheckActiveClass(void)
 {
     if (UpstreamState == STATE_ERROR)
     {
-        return HAL_ERROR;
+        return COMMAND_CLASS_ERROR;
     }
 
     if (UpstreamState != STATE_DEVICE_ACTIVE)
     {
         UPSTREAM_STATEMACHINE_FREAKOUT;
-        return HAL_ERROR;
+        return COMMAND_CLASS_INTERFACE;
     }
 
-    return HAL_OK;
+    return ConfiguredDeviceClass;
 }
 
 
@@ -174,7 +174,13 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
         newClassPointer = &USBD_MSC;
         break;
 
-    //Add other supported classes here...
+    case COMMAND_CLASS_HID_MOUSE:
+        newActiveClass = COMMAND_CLASS_HID_MOUSE;
+        newClassPointer = &USBD_HID;
+        USBD_HID_PreinitMouse();
+        break;
+
+        //Add other supported classes here...
     }
 
     Upstream_ReleasePacket(replyPacket);

@@ -31,6 +31,8 @@ typedef enum
 {
     COMMAND_CLASS_INTERFACE,
     COMMAND_CLASS_MASS_STORAGE,
+    COMMAND_CLASS_HID_MOUSE,
+    COMMAND_CLASS_HID_KEYBOARD,
     //...
     COMMAND_CLASS_ERROR
 }
@@ -53,6 +55,13 @@ typedef enum
     COMMAND_MSC_WRITE,              //Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
 }
 InterfaceCommandMscTypeDef;
+
+
+typedef enum
+{
+    COMMAND_HID_REPORT,				//Returns HID report
+}
+InterfaceCommandHidTypeDef;
 
 
 typedef enum

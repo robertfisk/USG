@@ -62,22 +62,23 @@
 #define USBH_KEEP_CFG_DESCRIPTOR      1 
  
 /*----------   -----------*/
-#define USBH_MAX_NUM_SUPPORTED_CLASS      1 
+#define USBH_MAX_NUM_SUPPORTED_CLASS      2
  
 /*----------   -----------*/
 #define USBH_MAX_SIZE_CONFIGURATION      256 
  
 /*----------   -----------*/
-#define USBH_MAX_DATA_BUFFER      512 
+#define USBH_MAX_DATA_BUFFER      256       //was 512, string descriptors are max 255 bytes
  
 /*----------   -----------*/
 #define USBH_DEBUG_LEVEL      0 
  
 /*----------   -----------*/
 #define USBH_USE_OS      0 
+
  
- 
- 
+#define BOT_PAGE_LENGTH           512       //Moved here from usbh_msc_bot.h to avoid a circular include loop :(
+
 
 /****************************************/
 /* #define for FS and HS identification */

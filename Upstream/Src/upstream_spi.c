@@ -11,9 +11,7 @@
 
 #include "upstream_interface_def.h"
 #include "upstream_spi.h"
-#include "upstream_statemachine.h"
 #include "stm32f4xx_hal.h"
-#include "usbd_def.h"
 #include "board_config.h"
 #include "interrupts.h"
 
@@ -143,6 +141,12 @@ void Upstream_ReleasePacket(UpstreamPacketTypeDef* packetToRelease)
 
     if ((packetToRelease != &UpstreamPacket0) &&
         (packetToRelease != &UpstreamPacket1))
+    {
+        UPSTREAM_SPI_FREAKOUT;
+        return;
+    }
+
+    if (packetToRelease->Busy != BUSY)
     {
         UPSTREAM_SPI_FREAKOUT;
         return;
@@ -445,8 +449,8 @@ void Upstream_BeginTransmitPacketSize(void)
     if (HAL_SPI_TransmitReceive(&Hspi1,
                                     (uint8_t*)&CurrentWorkingPacket->Length16,
                                     (uint8_t*)&TemporaryIncomingPacketLength,
-                                    2,
-                                    SPI_TIMEOUT_VALUE) != HAL_OK)       //We only need to write one word, but the peripheral library freaks out...
+                                    2,                                  //We only need to write one word, but the peripheral library freaks out...
+                                    SPI_TIMEOUT_VALUE) != HAL_OK)
     {
         UPSTREAM_SPI_FREAKOUT;
     }
@@ -491,8 +495,8 @@ void Upstream_BeginReceivePacketSize(UpstreamPacketTypeDef* freePacket)
     if (HAL_SPI_TransmitReceive(&Hspi1,
                                     (uint8_t*)&CurrentWorkingPacket->Length16,
                                     (uint8_t*)&CurrentWorkingPacket->Length16,
-                                    2,
-                                    SPI_TIMEOUT_VALUE) != HAL_OK)       //We only need to write one word, but the peripheral library freaks out...
+                                    2,                                     //We only need to write one word, but the peripheral library freaks out...
+                                    SPI_TIMEOUT_VALUE) != HAL_OK)
     {
         UPSTREAM_SPI_FREAKOUT;
     }
@@ -515,7 +519,6 @@ void Upstream_BeginReceivePacketBody(void)
 }
 
 
-
 //Something bad happened! Possibly CRC error...
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
@@ -535,5 +538,6 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
         tempPacketCallback(NULL);           //Call back with a NULL packet to indicate error
     }
 }
+
 
 

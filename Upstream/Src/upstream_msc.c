@@ -41,8 +41,9 @@ static void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPac
 
 HAL_StatusTypeDef Upstream_MSC_TestReady(UpstreamMSCCallbackTypeDef callback)
 {
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
+    	//UPSTREAM_STATEMACHINE_FREAKOUT;
         return HAL_ERROR;
     }
     
@@ -60,7 +61,7 @@ void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        Upstream_ReleasePacket(freePacket);
+        //Upstream_ReleasePacket(freePacket);					/////////!!!!!!!!!!!!!???????????
         if (Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback) != HAL_OK)
         {
             TestReadyCallback(HAL_ERROR);
@@ -77,7 +78,7 @@ void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 
 void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return;
     }
@@ -89,7 +90,7 @@ void Upstream_MSC_TestReadyReplyCallback(UpstreamPacketTypeDef* replyPacket)
     }
 
     if ((replyPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + 1)) ||
-        (replyPacket->Data[0] != HAL_OK))
+        (replyPacket->Data[0]  != HAL_OK))
     {
         Upstream_ReleasePacket(replyPacket);
         TestReadyCallback(HAL_ERROR);
@@ -106,7 +107,7 @@ HAL_StatusTypeDef Upstream_MSC_GetCapacity(UpstreamMSCCallbackUintPacketTypeDef 
 {
     UpstreamPacketTypeDef* freePacket;
 
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return HAL_ERROR;
     }
@@ -126,6 +127,7 @@ HAL_StatusTypeDef Upstream_MSC_GetCapacity(UpstreamMSCCallbackUintPacketTypeDef 
         return Upstream_ReceivePacket(Upstream_MSC_GetCapacityReplyCallback);
     }
     //else:
+    Upstream_ReleasePacket(freePacket); ////////?????????
     return HAL_ERROR;
 }
 
@@ -135,7 +137,7 @@ void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
     uint32_t uint1;
     uint32_t uint2;
 
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return;
     }
@@ -164,7 +166,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
                                          uint32_t readBlockCount,
                                          uint32_t readByteCount)
 {
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return HAL_ERROR;
     }
@@ -207,7 +209,7 @@ void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 
 HAL_StatusTypeDef Upstream_MSC_GetStreamDataPacket(UpstreamMSCCallbackPacketTypeDef callback)
 {
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return HAL_ERROR;
     }
@@ -236,7 +238,7 @@ void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket
 
     ReadStreamBusy = 0;
 
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return;
     }
@@ -256,7 +258,7 @@ void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket
     dataLength8 = (replyPacket->Length16 - UPSTREAM_PACKET_HEADER_LEN_16) * 2;
 
     if (((replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) == 0) ||     //Any 'command' reply (as opposed to 'data' reply) is an automatic fail here
-         (replyPacket->Length16 <= UPSTREAM_PACKET_HEADER_LEN_16) ||            //Should be at least one data byte in the reply.
+         (replyPacket->Length16 <= UPSTREAM_PACKET_HEADER_LEN_16) ||        //Should be at least one data byte in the reply.
          (dataLength8 > ByteCount))                                         //No more data than expected transfer length
     {
         GetStreamDataCallback(NULL, 0);
@@ -277,7 +279,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
                                           uint64_t writeBlockStart,
                                           uint32_t writeBlockCount)
 {
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return HAL_ERROR;
     }
@@ -318,7 +320,7 @@ void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
     uint8_t tempResult;
 
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return;
     }
@@ -347,7 +349,7 @@ void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)
 HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packetToSend,
                                                    uint32_t dataLength8)
 {
-    if (Upstream_StateMachine_CheckClassOperationOk() != HAL_OK)
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
         return HAL_ERROR;
     }
