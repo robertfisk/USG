@@ -61,7 +61,7 @@ void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        Upstream_ReleasePacket(freePacket);					/////////!!!!!!!!!!!!!???????????
+        //Upstream_ReleasePacket(freePacket);					/////////!!!!!!!!!!!!!???????????
         if (Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback) != HAL_OK)
         {
             TestReadyCallback(HAL_ERROR);
