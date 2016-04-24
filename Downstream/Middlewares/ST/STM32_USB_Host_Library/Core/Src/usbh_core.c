@@ -24,7 +24,9 @@
   * limitations under the License.
   *
   ******************************************************************************
-  */ 
+  *
+  * Modifications by Robert Fisk
+  */
 /* Includes ------------------------------------------------------------------*/
 
 #include "usbh_core.h"
@@ -401,7 +403,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
   
   switch (phost->gState)
   {
-  case HOST_IDLE :
+  case HOST_IDLE:
     
     if (phost->device.is_connected)  
     {
@@ -426,7 +428,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     USBH_Delay(100);
           
     phost->device.speed = USBH_LL_GetSpeed(phost);
-    
+
     phost->gState = HOST_ENUMERATION;
     
     phost->Control.pipe_out = USBH_AllocPipe (phost, 0x00);
@@ -835,17 +837,28 @@ USBH_StatusTypeDef  USBH_LL_Connect  (USBH_HandleTypeDef *phost)
     {    
       phost->pUser(phost, HOST_USER_CONNECTION);
     }
-  } 
-  else if(phost->gState == HOST_DEV_WAIT_FOR_ATTACHMENT )
-  {
-    phost->gState = HOST_DEV_ATTACHED ;
   }
-#if (USBH_USE_OS == 1)
-  osMessagePut ( phost->os_event, USBH_PORT_EVENT, 0);
-#endif 
-  
+  else if (phost->gState == HOST_DEV_WAIT_FOR_ATTACHMENT)
+  {
+      //On the first boot after a power cycle with a low-speed device pre-attached,
+      //we get a second port-connected interrupt!???
+      //So go back and do the port reset again...
+      phost->gState = HOST_IDLE;
+  }
   return USBH_OK;
 }
+
+
+
+USBH_StatusTypeDef  USBH_LL_PortEnabled (USBH_HandleTypeDef *phost)
+{
+    if(phost->gState == HOST_DEV_WAIT_FOR_ATTACHMENT )
+    {
+        phost->gState = HOST_DEV_ATTACHED ;
+    }
+    return USBH_OK;
+}
+
 
 /**
   * @brief  USBH_LL_Disconnect 

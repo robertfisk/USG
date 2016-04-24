@@ -23,7 +23,10 @@
   * limitations under the License.
   *
   ******************************************************************************
-  */ 
+  *
+  * Modifications by Robert Fisk
+  */
+
 /* Includes ------------------------------------------------------------------*/
 
 #include "usbh_ctlreq.h"
@@ -654,7 +657,13 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
 #if (USBH_USE_OS == 1)
     osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
 #endif      
-    }    
+    }
+    else if (URB_Status == USBH_URB_NOTREADY)
+    {
+        //Some mice cause a transaction error interrupt (HCINT_TXERR) at this point,
+        //so we retry and hope for the best!
+        phost->Control.state = CTRL_SETUP;
+    }
     break;
     
   case CTRL_DATA_IN:  
