@@ -112,6 +112,13 @@ void HAL_HCD_Connect_Callback(HCD_HandleTypeDef *hhcd)
   USBH_LL_Connect(hhcd->pData);
 }
 
+
+void HAL_HCD_PortEnabled_Callback(HCD_HandleTypeDef *hhcd)
+{
+  USBH_LL_PortEnabled(hhcd->pData);
+}
+
+
 /**
   * @brief  SOF callback.
   * @param  hhcd: HCD handle

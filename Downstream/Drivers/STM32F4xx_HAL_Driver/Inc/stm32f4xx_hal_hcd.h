@@ -193,6 +193,7 @@ HAL_StatusTypeDef   HAL_HCD_HC_SubmitRequest(HCD_HandleTypeDef *hhcd,
 void                HAL_HCD_IRQHandler(HCD_HandleTypeDef *hhcd);
 void                HAL_HCD_SOF_Callback(HCD_HandleTypeDef *hhcd);
 void                HAL_HCD_Connect_Callback(HCD_HandleTypeDef *hhcd);
+void                HAL_HCD_PortEnabled_Callback(HCD_HandleTypeDef *hhcd);
 void                HAL_HCD_Disconnect_Callback(HCD_HandleTypeDef *hhcd);
 void                HAL_HCD_HC_NotifyURBChange_Callback(HCD_HandleTypeDef *hhcd, 
                                                         uint8_t chnum, 
