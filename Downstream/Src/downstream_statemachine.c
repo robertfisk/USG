@@ -201,12 +201,6 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
         return;
     }
 
-    //Called from main()
-    if (id == HOST_USER_UNRECOVERED_ERROR)
-    {
-        DOWNSTREAM_STATEMACHINE_FREAKOUT;
-        return;
-    }
 
     //Called from main()
     if (id == HOST_USER_CLASS_ACTIVE)
@@ -263,8 +257,10 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
         return;
     }
 
+
     //Called from main():
-    if (id == HOST_USER_CLASS_FAILED)
+    if ((id == HOST_USER_CLASS_FAILED) ||
+        (id == HOST_USER_UNRECOVERED_ERROR))        //Probably due to a crappy device that won't enumerate!
     {
         //Unsupported device classes will cause a slow fault flash.
         //This is distinct from the fast freakout flash caused by internal errors or attacks.
@@ -273,5 +269,6 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
         DownstreamState = STATE_ERROR;
         return;
     }
+
 }
 

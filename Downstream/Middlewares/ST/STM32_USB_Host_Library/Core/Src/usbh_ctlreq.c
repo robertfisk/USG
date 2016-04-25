@@ -603,15 +603,14 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
   {
   case CTRL_SETUP:
     /* send a SETUP packet */
-    USBH_CtlSendSetup     (phost, 
+      phost->Control.timer = phost->Timer;
+      USBH_CtlSendSetup(phost,
                        (uint8_t *)phost->Control.setup.d8 , 
                        phost->Control.pipe_out); 
-    
     phost->Control.state = CTRL_SETUP_WAIT; 
     break; 
     
   case CTRL_SETUP_WAIT:
-    
     URB_Status = USBH_LL_GetURBState(phost, phost->Control.pipe_out); 
     /* case SETUP packet sent successfully */
     if(URB_Status == USBH_URB_DONE)
@@ -647,22 +646,24 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
           phost->Control.state = CTRL_STATUS_IN;
         } 
       }          
-#if (USBH_USE_OS == 1)
-      osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif
     }
     else if(URB_Status == USBH_URB_ERROR)
     {
       phost->Control.state = CTRL_ERROR;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }
     else if (URB_Status == USBH_URB_NOTREADY)
     {
-        //Some mice cause a transaction error interrupt (HCINT_TXERR) at this point,
-        //so we retry and hope for the best!
-        phost->Control.state = CTRL_SETUP;
+        //Some mice cause a transaction error interrupt (HCINT_TXERR) at this point.
+        //Other mice just NAK our transaction.
+        //Either way we need to retry, but keep our original timeout so we don't wait forever.
+        USBH_CtlSendSetup(phost,
+                          (uint8_t *)phost->Control.setup.d8 ,
+                          phost->Control.pipe_out);
+    }
+
+    if ((int32_t)(phost->Timer - phost->Control.timer) >= USBH_CTRL_TRANSACTION_TIMEOUT_MS)
+    {
+        phost->Control.state = CTRL_ERROR;
     }
     break;
     
@@ -678,171 +679,139 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
     break;    
     
   case CTRL_DATA_IN_WAIT:
-    
     URB_Status = USBH_LL_GetURBState(phost , phost->Control.pipe_in); 
     
     /* check is DATA packet transferred successfully */
     if  (URB_Status == USBH_URB_DONE)
     { 
       phost->Control.state = CTRL_STATUS_OUT;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }
    
     /* manage error cases*/
     if  (URB_Status == USBH_URB_STALL) 
     { 
-      /* In stall case, return to previous machine state*/
-      status = USBH_NOT_SUPPORTED;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
+        //Retry transaction
+        phost->Control.state = CTRL_ERROR;
     }   
     else if (URB_Status == USBH_URB_ERROR)
     {
       /* Device error */
-      phost->Control.state = CTRL_ERROR;  
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
+      phost->Control.state = CTRL_ERROR;
+    }
+
+    if ((int32_t)(phost->Timer - phost->Control.timer) >= USBH_CTRL_TRANSACTION_TIMEOUT_MS)
+    {
+        phost->Control.state = CTRL_ERROR;
     }
     break;
     
   case CTRL_DATA_OUT:
-    
+    phost->Control.timer = phost->Timer;
     USBH_CtlSendData (phost,
                       phost->Control.buff, 
                       phost->Control.length , 
                       phost->Control.pipe_out,
                       1);
-     phost->Control.timer = phost->Timer;
     phost->Control.state = CTRL_DATA_OUT_WAIT;
     break;
     
   case CTRL_DATA_OUT_WAIT:
-    
-    URB_Status = USBH_LL_GetURBState(phost , phost->Control.pipe_out);     
+    URB_Status = USBH_LL_GetURBState(phost, phost->Control.pipe_out);
     
     if  (URB_Status == USBH_URB_DONE)
     { /* If the Setup Pkt is sent successful, then change the state */
       phost->Control.state = CTRL_STATUS_IN;
-#if (USBH_USE_OS == 1)
-      osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }
     
     /* handle error cases */
     else if  (URB_Status == USBH_URB_STALL) 
     { 
-      /* In stall case, return to previous machine state*/
-      phost->Control.state = CTRL_STALLED; 
-      status = USBH_NOT_SUPPORTED;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
+        //Retry transaction
+        phost->Control.state = CTRL_ERROR;
     } 
     else if  (URB_Status == USBH_URB_NOTREADY)
     { 
       /* Nack received from device */
       phost->Control.state = CTRL_DATA_OUT;
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }    
     else if (URB_Status == USBH_URB_ERROR)
     {
       /* device error */
       phost->Control.state = CTRL_ERROR;  
       status = USBH_FAIL;    
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
-    } 
+    }
+
+    if ((int32_t)(phost->Timer - phost->Control.timer) >= USBH_CTRL_TRANSACTION_TIMEOUT_MS)
+    {
+        phost->Control.state = CTRL_ERROR;
+    }
     break;
     
     
   case CTRL_STATUS_IN:
     /* Send 0 bytes out packet */
+    phost->Control.timer = phost->Timer;
     USBH_CtlReceiveData (phost,
                          0,
                          0,
                          phost->Control.pipe_in);
-    phost->Control.timer = phost->Timer;
     phost->Control.state = CTRL_STATUS_IN_WAIT;
-    
     break;
     
   case CTRL_STATUS_IN_WAIT:
-    
     URB_Status = USBH_LL_GetURBState(phost , phost->Control.pipe_in); 
     
     if  ( URB_Status == USBH_URB_DONE)
     { /* Control transfers completed, Exit the State Machine */
       phost->Control.state = CTRL_COMPLETE;
       status = USBH_OK;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }
     
     else if (URB_Status == USBH_URB_ERROR)
     {
       phost->Control.state = CTRL_ERROR;
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }
      else if(URB_Status == USBH_URB_STALL)
     {
-      /* Control transfers completed, Exit the State Machine */
-      status = USBH_NOT_SUPPORTED;
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
+         //Retry transaction
+         phost->Control.state = CTRL_ERROR;
+    }
+
+    if ((int32_t)(phost->Timer - phost->Control.timer) >= USBH_CTRL_TRANSACTION_TIMEOUT_MS)
+    {
+        phost->Control.state = CTRL_ERROR;
     }
     break;
     
   case CTRL_STATUS_OUT:
+    phost->Control.timer = phost->Timer;
     USBH_CtlSendData (phost,
                       0,
                       0,
                       phost->Control.pipe_out,
                       1);
-     phost->Control.timer = phost->Timer;
     phost->Control.state = CTRL_STATUS_OUT_WAIT;
     break;
     
   case CTRL_STATUS_OUT_WAIT: 
-    
     URB_Status = USBH_LL_GetURBState(phost , phost->Control.pipe_out);  
     if  (URB_Status == USBH_URB_DONE)
     { 
       status = USBH_OK;      
-      phost->Control.state = CTRL_COMPLETE; 
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
+      phost->Control.state = CTRL_COMPLETE;
     }
     else if  (URB_Status == USBH_URB_NOTREADY)
     { 
       phost->Control.state = CTRL_STATUS_OUT;
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
     }      
     else if (URB_Status == USBH_URB_ERROR)
     {
-      phost->Control.state = CTRL_ERROR; 
-      
-#if (USBH_USE_OS == 1)
-    osMessagePut ( phost->os_event, USBH_CONTROL_EVENT, 0);
-#endif      
+      phost->Control.state = CTRL_ERROR;
+    }
+
+    if ((int32_t)(phost->Timer - phost->Control.timer) >= USBH_CTRL_TRANSACTION_TIMEOUT_MS)
+    {
+        phost->Control.state = CTRL_ERROR;
     }
     break;
     

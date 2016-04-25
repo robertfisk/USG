@@ -190,6 +190,8 @@
 #define USBH_MAX_ERROR_COUNT                            2
 #define USBH_DEVICE_ADDRESS                             1
 
+#define USBH_CTRL_TRANSACTION_TIMEOUT_MS                100
+
 
 /**
   * @}
@@ -413,8 +415,8 @@ typedef struct
   uint8_t               pipe_out; 
   uint8_t               pipe_size;  
   uint8_t               *buff;
+  uint32_t              timer;
   uint16_t              length;
-  uint16_t              timer;  
   USB_Setup_TypeDef     setup;
   CTRL_StateTypeDef     state;  
   uint8_t               errorcount;  
