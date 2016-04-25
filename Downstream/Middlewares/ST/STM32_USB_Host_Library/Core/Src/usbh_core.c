@@ -152,6 +152,8 @@ USBH_StatusTypeDef  USBH_DeInit(USBH_HandleTypeDef *phost)
     USBH_LL_Stop(phost);
   }
 
+  USBH_LL_DeInit(phost);
+
   return USBH_OK;
 }
 
@@ -187,6 +189,7 @@ static USBH_StatusTypeDef  DeInitStateMachine(USBH_HandleTypeDef *phost)
   
   phost->device.address = USBH_ADDRESS_DEFAULT;
   phost->device.speed   = USBH_SPEED_FULL;
+  phost->device.is_connected = 0;
   
   return USBH_OK;
 }
@@ -840,7 +843,7 @@ USBH_StatusTypeDef  USBH_LL_Connect  (USBH_HandleTypeDef *phost)
   }
   else if (phost->gState == HOST_DEV_WAIT_FOR_ATTACHMENT)
   {
-      //On the first boot after a power cycle with a low-speed device pre-attached,
+      //On a cold boot with a low-speed device pre-attached,
       //we get a second port-connected interrupt!???
       //So go back and do the port reset again...
       phost->gState = HOST_IDLE;
