@@ -17,7 +17,7 @@
 
 
 
-#define HID_REPORT_DATA_LEN     8
+#define HID_MAX_REPORT_LEN      8
 #define HID_MOUSE_DATA_LEN      3
 #define HID_KEYBOARD_DATA_LEN   0
 
@@ -33,7 +33,7 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
 
     if (HID_Handle->Protocol == HID_MOUSE_BOOT_CODE)
     {
-        if ((HID_Handle->length >= HID_MOUSE_DATA_LEN) && (HID_Handle->length <= HID_REPORT_DATA_LEN))
+        if ((HID_Handle->length >= HID_MOUSE_DATA_LEN) && (HID_Handle->length <= HID_MAX_REPORT_LEN))
         {
             return COMMAND_CLASS_HID_MOUSE;
         }

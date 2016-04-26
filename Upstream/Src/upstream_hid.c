@@ -14,9 +14,9 @@
 #include "upstream_hid.h"
 #include "upstream_spi.h"
 #include "upstream_interface_def.h"
+#include "usbd_hid.h"
 
 
-#define HID_REPORT_DATA_LEN     8
 #define HID_MOUSE_DATA_LEN      3
 #define HID_KEYBOARD_DATA_LEN   0
 
@@ -138,7 +138,7 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
         return;
     }
 
-    for (i = dataLength; i < HID_REPORT_DATA_LEN; i++)
+    for (i = dataLength; i < HID_EPIN_SIZE; i++)
     {
         receivedPacket->Data[i] = 0;            //Zero out unused bytes before we send report upstream
     }
@@ -146,7 +146,7 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
     UpstreamHidPacket = receivedPacket;         //Save packet so we can free it when upstream USB transaction is done
     tempReportCallback = ReportCallback;
     ReportCallback = NULL;
-    tempReportCallback(receivedPacket->Data, HID_REPORT_DATA_LEN);
+    tempReportCallback(receivedPacket->Data, HID_EPIN_SIZE);
 }
 
 
