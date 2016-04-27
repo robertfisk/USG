@@ -17,7 +17,7 @@
 #include "usbd_hid.h"
 
 
-#define HID_MOUSE_DATA_LEN      3
+#define HID_MOUSE_DATA_LEN      4
 #define HID_KEYBOARD_DATA_LEN   0
 
 
