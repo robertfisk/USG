@@ -71,7 +71,6 @@ typedef void (*SpiPacketReceivedCallbackTypeDef)(DownstreamPacketTypeDef* receiv
 
 void Downstream_InitSPI(void);
 HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback);
-DownstreamPacketTypeDef* Downstream_GetFreePacketImmediately(void);
 void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease);
 HAL_StatusTypeDef Downstream_ReceivePacket(SpiPacketReceivedCallbackTypeDef callback);
 HAL_StatusTypeDef Downstream_TransmitPacket(DownstreamPacketTypeDef* packetToWrite);
