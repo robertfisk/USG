@@ -116,6 +116,11 @@ USBH_StatusTypeDef USBH_Get_DevDesc(USBH_HandleTypeDef *phost, uint8_t length)
 {
   USBH_StatusTypeDef status;
   
+  if (length > USBH_MAX_DATA_BUFFER)
+  {
+      length = USBH_MAX_DATA_BUFFER;
+  }
+
   if((status = USBH_GetDescriptor(phost,
                                   USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,                          
                                   USB_DESC_DEVICE, 
@@ -191,6 +196,12 @@ USBH_StatusTypeDef USBH_Get_StringDesc(USBH_HandleTypeDef *phost,
                                 uint16_t length)
 {
   USBH_StatusTypeDef status;
+
+  if (length > USBH_MAX_DATA_BUFFER)
+  {
+      length = USBH_MAX_DATA_BUFFER;
+  }
+
   if((status = USBH_GetDescriptor(phost,
                                   USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,                                    
                                   USB_DESC_STRING | string_index, 

@@ -184,6 +184,11 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
       HID_Handle->poll = HID_MIN_POLL;
     }
     
+    if (HID_Handle->length > HID_MAX_REPORT_SIZE)
+    {
+        return USBH_FAIL;
+    }
+
     /* Check fo available number of endpoints */
     /* Find the number of EPs in the Interface Descriptor */      
     /* Choose the lower number in order not to overrun the buffer allocated */
@@ -294,25 +299,20 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
     {
       
       USBH_HID_ParseHIDDesc(&HID_Handle->HID_Desc, phost->device.Data);
-      HID_Handle->ctl_state = HID_REQ_SET_IDLE;
+      HID_Handle->ctl_state = HID_REQ_GET_REPORT_DESC;
     }
     
     break;     
-//  case HID_REQ_GET_REPORT_DESC:
-//
-//
-//    /* Get Report Desc */
-//    if (USBH_HID_GetHIDReportDescriptor(phost, HID_Handle->HID_Desc.wItemLength) == USBH_OK)
-//    {
-//      /* The descriptor is available in phost->device.Data */
-//
-//      HID_Handle->ctl_state = HID_REQ_SET_IDLE;
-//    }
-//
-//    break;
+  case HID_REQ_GET_REPORT_DESC:
+    /* Get Report Desc */
+    if (USBH_HID_GetHIDReportDescriptor(phost, HID_Handle->HID_Desc.wItemLength) == USBH_OK)
+    {
+      /* The descriptor is available in phost->device.Data */
+      HID_Handle->ctl_state = HID_REQ_SET_IDLE;
+    }
+    break;
     
   case HID_REQ_SET_IDLE:
-    
     classReqStatus = USBH_HID_SetIdle (phost, 0, 0);
     
     /* set Idle */
@@ -328,7 +328,7 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
     
   case HID_REQ_SET_PROTOCOL:
     /* set protocol */
-    if (USBH_HID_SetProtocol (phost, 0) == USBH_OK)
+    if (USBH_HID_SetProtocol (phost, 1) == USBH_OK)
     {
       HID_Handle->ctl_state = HID_REQ_IDLE;
       
@@ -368,7 +368,7 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
       if ((int32_t)(phost->Timer - HID_Handle->timer) >= HID_Handle->poll)
       {
         USBH_InterruptReceiveData(phost,
-                                  HID_Handle->hid_packet_pbuf,
+                                  HID_Handle->Data,
                                   HID_Handle->length,
                                   HID_Handle->InPipe);
 
@@ -382,7 +382,7 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
     
     if (urbStatus == USBH_URB_DONE)
     {
-        HID_Handle->ReportCallback(HID_Handle->hid_packet);
+        HID_Handle->ReportCallback(HID_Handle->Data);
         HID_Handle->state = HID_IDLE;
         break;
     }
@@ -431,16 +431,13 @@ static USBH_StatusTypeDef USBH_HID_SOFProcess(USBH_HandleTypeDef *phost)
 //Downstream_HID calls into here at main() priority,
 //to request a new report for Upstream.
 HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
-                                              HID_InterruptReportCallback callback,
-                                              DownstreamPacketTypeDef* packetToUse)
+                                              HID_InterruptReportCallback callback)
 {
     HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
 
     if (HID_Handle->state == HID_IDLE)
     {
         HID_Handle->ReportCallback = callback;
-        HID_Handle->hid_packet = packetToUse;
-        HID_Handle->hid_packet_pbuf = packetToUse->Data;
         HID_Handle->state = HID_GET_DATA;
         return HAL_OK;
     }
@@ -465,6 +462,11 @@ USBH_StatusTypeDef USBH_HID_GetHIDReportDescriptor (USBH_HandleTypeDef *phost,
   
   USBH_StatusTypeDef status;
   
+  if (length > USBH_MAX_DATA_BUFFER)
+  {
+      length = USBH_MAX_DATA_BUFFER;
+  }
+
   status = USBH_GetDescriptor(phost,
                               USB_REQ_RECIPIENT_INTERFACE | USB_REQ_TYPE_STANDARD,                                  
                               USB_DESC_HID_REPORT, 
@@ -495,6 +497,11 @@ USBH_StatusTypeDef USBH_HID_GetHIDDescriptor (USBH_HandleTypeDef *phost,
   
   USBH_StatusTypeDef status;
   
+  if (length > USBH_MAX_DATA_BUFFER)
+  {
+      length = USBH_MAX_DATA_BUFFER;
+  }
+
   status = USBH_GetDescriptor( phost,
                               USB_REQ_RECIPIENT_INTERFACE | USB_REQ_TYPE_STANDARD,                                  
                               USB_DESC_HID,

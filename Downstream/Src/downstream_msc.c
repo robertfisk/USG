@@ -57,7 +57,7 @@ InterfaceCommandClassTypeDef Downstream_MSC_ApproveConnectedDevice(void)
         return COMMAND_CLASS_INTERFACE;         //fail
     }
 
-    return COMMAND_CLASS_MASS_STORAGE;
+    return COMMAND_CLASS_MASS_STORAGE;          //success!
 }
 
 

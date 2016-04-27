@@ -61,7 +61,7 @@
   */ 
 
 #define HID_MIN_POLL                                10
-#define HID_REPORT_SIZE                             16    
+#define HID_MAX_REPORT_SIZE                         8
 #define HID_MAX_USAGE                               10
 #define HID_MAX_NBR_REPORT_FMT                      10 
 #define HID_QUEUE_SIZE                              10    
@@ -211,7 +211,7 @@ typedef struct
 
 
 
-typedef void (*HID_InterruptReportCallback)(DownstreamPacketTypeDef* packetToSend);
+typedef void (*HID_InterruptReportCallback)(uint8_t* reportBuffer);
 
 
 /* Structure for HID process */
@@ -230,8 +230,7 @@ typedef struct _HID_Process
   uint8_t              Protocol;
   HID_DescTypeDef      HID_Desc;
   HID_InterruptReportCallback   ReportCallback;
-  DownstreamPacketTypeDef*      hid_packet;
-  uint8_t*                      hid_packet_pbuf;
+  uint8_t              Data[HID_MAX_REPORT_SIZE];
 }
 HID_HandleTypeDef;
 
@@ -325,8 +324,7 @@ uint16_t  fifo_read(FIFO_TypeDef * f, void * buf, uint16_t  nbytes);
 uint16_t  fifo_write(FIFO_TypeDef * f, const void * buf, uint16_t  nbytes);
 
 HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
-                                              HID_InterruptReportCallback callback,
-                                              DownstreamPacketTypeDef* packetToUse);
+                                              HID_InterruptReportCallback callback);
 
 
 /**
