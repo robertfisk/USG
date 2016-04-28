@@ -25,6 +25,10 @@
 #define HID_ITEM_USAGE_PAGE_BUTTON  0x09
 #define HID_ITEM_USAGE_PAGE_DESKTOP 0x01
 
+#define HID_ITEM_COLLECTION         0xA1
+#define HID_ITEM_COLLECTION_PHYS    0x00
+#define HID_ITEM_END_COLLECTION     0xC0
+
 #define HID_ITEM_USAGE              0x09        //'local' usage
 #define HID_ITEM_USAGE_X            0x30
 #define HID_ITEM_USAGE_Y            0x31

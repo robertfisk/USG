@@ -106,6 +106,23 @@ HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
             wheelUsageIndex = 0xFF;
             break;
 
+        case HID_ITEM_COLLECTION:               //Physical collections also clear the usage index...
+            if (ItemData == HID_ITEM_COLLECTION_PHYS)
+            {
+                currentUsageIndex = 0;
+                xUsageIndex = 0xFF;
+                yUsageIndex = 0xFF;
+                wheelUsageIndex = 0xFF;
+            }
+            break;
+
+        case HID_ITEM_END_COLLECTION:           //...and so do collection ends
+            currentUsageIndex = 0;
+            xUsageIndex = 0xFF;
+            yUsageIndex = 0xFF;
+            wheelUsageIndex = 0xFF;
+            break;
+
         case HID_ITEM_USAGE:
             switch (ItemData)
             {
