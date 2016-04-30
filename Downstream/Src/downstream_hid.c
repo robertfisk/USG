@@ -194,6 +194,10 @@ HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
                 }
                 break;
             }
+            currentUsageIndex = 0;
+            xUsageIndex = 0xFF;
+            yUsageIndex = 0xFF;
+            wheelUsageIndex = 0xFF;
             currentReportBitIndex += (currentReportSize * currentReportCount);
             if (currentReportBitIndex >= (HID_MAX_REPORT_LEN * 8))
             {
