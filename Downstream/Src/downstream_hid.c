@@ -25,7 +25,6 @@
 #define HID_MOUSE_MAX_BUTTONS   4
 
 
-DownstreamPacketTypeDef*        SavedPacket;
 
 extern USBH_HandleTypeDef hUsbHostFS;                       //Hard-link ourselves to usb_host.c
 extern InterfaceCommandClassTypeDef ConfiguredDeviceClass;  //Do a cheap hard-link to downstream_statemachine.c, rather than keep a duplicate here
@@ -50,7 +49,7 @@ uint8_t ItemData;
 
 static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void);
 static HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void);
-static void Downstream_HID_Mouse_ExtractDataFromReport(uint8_t* reportBuffer);
+static void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend);
 
 
 
@@ -259,23 +258,22 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         return;
     }
 
-    SavedPacket = receivedPacket;
-
+    Downstream_ReleasePacket(receivedPacket);
     if (USBH_HID_GetInterruptReport(&hUsbHostFS,
                                     Downstream_HID_InterruptReportCallback) != HAL_OK)
     {
         Downstream_PacketProcessor_FreakOut();
     }
-
+    Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
 }
 
 
-void Downstream_HID_InterruptReportCallback(uint8_t* reportBuffer)
+void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSend)
 {
     if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
     {
-        Downstream_HID_Mouse_ExtractDataFromReport(reportBuffer);
-        SavedPacket->Length16 = ((HID_MOUSE_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        Downstream_HID_Mouse_ExtractDataFromReport(packetToSend);
+        packetToSend->Length16 = ((HID_MOUSE_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
     }
     //else if...
     else
@@ -284,35 +282,37 @@ void Downstream_HID_InterruptReportCallback(uint8_t* reportBuffer)
         return;
     }
 
-    Downstream_PacketProcessor_ClassReply(SavedPacket);
+    packetToSend->CommandClass = ConfiguredDeviceClass;
+    packetToSend->Command = COMMAND_HID_REPORT;
+    Downstream_PacketProcessor_ClassReply(packetToSend);
 }
 
 
-
-void Downstream_HID_Mouse_ExtractDataFromReport(uint8_t* reportBuffer)
+void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
 {
+    HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
     uint16_t readData;
 
     //Grab the buttons
-    readData = *(uint16_t*)&(reportBuffer[(ReportButtonBitOffset / 8)]);
+    readData = *(uint16_t*)&(HID_Handle->Data[(ReportButtonBitOffset / 8)]);
     readData >>= (ReportButtonBitOffset % 8);
     readData &= ((1 << ReportButtonBitLength) - 1);
-    SavedPacket->Data[0] = readData;
+    packetToSend->Data[0] = readData;
 
     //Grab X
-    readData = *(uint16_t*)&(reportBuffer[(ReportXBitOffset / 8)]);
+    readData = *(uint16_t*)&(HID_Handle->Data[(ReportXBitOffset / 8)]);
     readData >>= (ReportXBitOffset % 8);
-    SavedPacket->Data[1] = (uint8_t)readData;
+    packetToSend->Data[1] = (uint8_t)readData;
 
     //Grab Y
-    readData = *(uint16_t*)&(reportBuffer[(ReportYBitOffset / 8)]);
+    readData = *(uint16_t*)&(HID_Handle->Data[(ReportYBitOffset / 8)]);
     readData >>= (ReportYBitOffset % 8);
-    SavedPacket->Data[2] = (uint8_t)readData;
+    packetToSend->Data[2] = (uint8_t)readData;
 
     //Grab wheel
-    readData = *(uint16_t*)&(reportBuffer[(ReportWheelBitOffset / 8)]);
+    readData = *(uint16_t*)&(HID_Handle->Data[(ReportWheelBitOffset / 8)]);
     readData >>= (ReportWheelBitOffset % 8);
-    SavedPacket->Data[3] = (uint8_t)readData;
+    packetToSend->Data[3] = (uint8_t)readData;
 }
 
 

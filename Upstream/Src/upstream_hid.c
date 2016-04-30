@@ -20,6 +20,8 @@
 #define HID_MOUSE_DATA_LEN      4
 #define HID_KEYBOARD_DATA_LEN   0
 
+#define HID_MOUSE_MAX_BUTTONS   4
+
 
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 UpstreamHidSendReportCallback   ReportCallback    = NULL;
@@ -60,11 +62,6 @@ HAL_StatusTypeDef Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callb
         UpstreamHidPacket = NULL;
     }
 
-    if (ReportCallback != NULL)
-    {
-        UPSTREAM_STATEMACHINE_FREAKOUT;
-        return HAL_ERROR;
-    }
     ReportCallback = callback;
 
     freePacket = Upstream_GetFreePacketImmediately();
@@ -123,6 +120,8 @@ void Upstream_HID_GetNextReportReceiveCallback(UpstreamPacketTypeDef* receivedPa
             UPSTREAM_SPI_FREAKOUT;
             return;
         }
+
+        receivedPacket->Data[0] &= ((1 << HID_MOUSE_MAX_BUTTONS) - 1);      //Limit number of buttons received
 
         //Mouse sanity checks & stuff go here...
 

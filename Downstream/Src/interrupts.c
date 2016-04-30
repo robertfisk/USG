@@ -73,23 +73,19 @@ void SysTick_Handler(void)
 
 void DMA2_Stream2_IRQHandler(void)
 {
-  //SPI_INT_ACTIVE_ON;
   HAL_DMA_IRQHandler(&hdma_spi1_rx);
-  //SPI_INT_ACTIVE_OFF;
 }
 
 void DMA2_Stream3_IRQHandler(void)
 {
-  //SPI_INT_ACTIVE_ON;
   HAL_DMA_IRQHandler(&hdma_spi1_tx);
-  //SPI_INT_ACTIVE_OFF;
 }
 
 void OTG_FS_IRQHandler(void)
 {
-    INT_ACTIVE_ON;
+    //INT_ACTIVE_ON;
     HAL_HCD_IRQHandler(&hhcd_USB_OTG_FS);
-    INT_ACTIVE_OFF;
+    //INT_ACTIVE_OFF;
 }
 
 

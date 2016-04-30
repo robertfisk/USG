@@ -150,6 +150,7 @@ void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
 
     if (replyPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + (8 / 2)))
     {
+        Upstream_ReleasePacket(replyPacket);
         GetCapacityCallback(NULL, 0, 0);
         return;
     }

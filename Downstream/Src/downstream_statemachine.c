@@ -25,10 +25,12 @@
 
 DownstreamStateTypeDef          DownstreamState         = STATE_DEVICE_NOT_READY;
 InterfaceCommandClassTypeDef    ConfiguredDeviceClass   = COMMAND_CLASS_INTERFACE;
+uint8_t                         NotifyDisconnectReply   = 0;
 
 
-void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketTypeDef* replyPacket);
+static void Downstream_PacketProcessor_Interface(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_PacketProcessor_Interface_ReplyNotifyDevice(DownstreamPacketTypeDef* replyPacket);
+static void Downstream_PacketProcessor_NotifyDisconnectReply(DownstreamPacketTypeDef* packetToSend);
 
 
 
@@ -71,10 +73,7 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
     //we need to tell Upstream of the fact (and not freak out).
     if (DownstreamState == STATE_DEVICE_NOT_READY)
     {
-        receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
-        receivedPacket->CommandClass = COMMAND_CLASS_ERROR;
-        receivedPacket->Command = COMMAND_ERROR_DEVICE_DISCONNECTED;
-        Downstream_PacketProcessor_ClassReply(receivedPacket);
+        Downstream_PacketProcessor_NotifyDisconnectReply(receivedPacket);
         return;
     }
 
@@ -172,6 +171,7 @@ void Downstream_PacketProcessor_GenericErrorReply(DownstreamPacketTypeDef* reply
 
     Downstream_TransmitPacket(replyPacket);
     Downstream_ReceivePacket(Downstream_PacketProcessor);
+    NotifyDisconnectReply = 0;
 }
 
 
@@ -179,6 +179,31 @@ void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket)
 {
     Downstream_TransmitPacket(replyPacket);
     Downstream_ReceivePacket(Downstream_PacketProcessor);
+    NotifyDisconnectReply = 0;
+}
+
+
+void Downstream_PacketProcessor_NotifyDisconnectReplyRequired(void)
+{
+    NotifyDisconnectReply = 1;
+}
+
+
+void Downstream_PacketProcessor_CheckNotifyDisconnectReply(void)
+{
+    if (NotifyDisconnectReply == 2)
+    {
+        Downstream_GetFreePacket(Downstream_PacketProcessor_NotifyDisconnectReply);
+    }
+}
+
+
+void Downstream_PacketProcessor_NotifyDisconnectReply(DownstreamPacketTypeDef* packetToSend)
+{
+    packetToSend->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
+    packetToSend->CommandClass = COMMAND_CLASS_ERROR;
+    packetToSend->Command = COMMAND_ERROR_DEVICE_DISCONNECTED;
+    Downstream_PacketProcessor_ClassReply(packetToSend);
 }
 
 
@@ -198,6 +223,10 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
     if (id == HOST_USER_DISCONNECTION)
     {
         DownstreamState = STATE_DEVICE_NOT_READY;
+        if (NotifyDisconnectReply == 1)
+        {
+            NotifyDisconnectReply = 2;          //Request a 'device disconnected' reply when we get back to main()
+        }
         return;
     }
 

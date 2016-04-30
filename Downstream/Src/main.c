@@ -73,6 +73,7 @@ int main(void)
     {
         USB_Host_Process();
         Downstream_SPIProcess();
+        Downstream_PacketProcessor_CheckNotifyDisconnectReply();
     }
 }
 

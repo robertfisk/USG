@@ -45,6 +45,8 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id);
 void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
 void Downstream_PacketProcessor_GenericErrorReply(DownstreamPacketTypeDef* replyPacket);
 void Downstream_PacketProcessor_ClassReply(DownstreamPacketTypeDef* replyPacket);
+void Downstream_PacketProcessor_NotifyDisconnectReplyRequired(void);
+void Downstream_PacketProcessor_CheckNotifyDisconnectReply(void);
 void Downstream_PacketProcessor_SetErrorState(void);
 void Downstream_PacketProcessor_FreakOut(void);
 

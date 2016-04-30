@@ -382,7 +382,7 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
     
     if (urbStatus == USBH_URB_DONE)
     {
-        HID_Handle->ReportCallback(HID_Handle->Data);
+        Downstream_GetFreePacket(HID_Handle->ReportCallback);
         HID_Handle->state = HID_IDLE;
         break;
     }
@@ -431,7 +431,7 @@ static USBH_StatusTypeDef USBH_HID_SOFProcess(USBH_HandleTypeDef *phost)
 //Downstream_HID calls into here at main() priority,
 //to request a new report for Upstream.
 HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
-                                              HID_InterruptReportCallback callback)
+                                              FreePacketCallbackTypeDef callback)
 {
     HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
 
