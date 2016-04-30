@@ -45,7 +45,7 @@
 
 InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void);
 void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_HID_InterruptReportCallback(uint8_t* reportBuffer);
+void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSend);
 
 
 
