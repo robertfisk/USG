@@ -52,6 +52,9 @@
   * @{
   */
 
+#define USBD_PID_LOBYTE_OFFSET          0x0A
+#define USBD_PID_HIBYTE_OFFSET          0x0B
+
 /**
   * @}
   */ 
@@ -74,6 +77,7 @@
   * @{
   */ 
 extern USBD_DescriptorsTypeDef FS_Desc;
+extern uint8_t USBD_FS_DeviceDesc[];
 extern const int8_t  STORAGE_Inquirydata_FS[];
 /**
   * @}

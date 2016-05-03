@@ -27,6 +27,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_core.h"
+#include "usbd_descriptors.h"
+
 
 /** @addtogroup STM32_USBD_DEVICE_LIBRARY
 * @{
@@ -159,6 +161,8 @@ USBD_StatusTypeDef  USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeD
   {
     /* link the class to the USB Device handle */
     pdev->pClass = pclass;
+    USBD_FS_DeviceDesc[USBD_PID_LOBYTE_OFFSET] = LOBYTE(pclass->USBDevPid);
+    USBD_FS_DeviceDesc[USBD_PID_HIBYTE_OFFSET] = HIBYTE(pclass->USBDevPid);
     status = USBD_OK;
   }
   else
