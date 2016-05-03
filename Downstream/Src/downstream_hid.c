@@ -50,7 +50,9 @@ uint8_t ItemData;
 static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void);
 static HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void);
 static void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend);
-
+static uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
+                                                     uint8_t valueBitOffset,
+                                                     uint8_t valueBitLength);
 
 
 InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
@@ -295,28 +297,46 @@ void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSen
 void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
-    uint16_t readData;
+    uint32_t readData;
 
-    //Grab the buttons
-    readData = *(uint16_t*)&(HID_Handle->Data[(ReportButtonBitOffset / 8)]);
+    readData = *(uint32_t*)&(HID_Handle->Data[(ReportButtonBitOffset / 8)]);
     readData >>= (ReportButtonBitOffset % 8);
-    readData &= ((1 << ReportButtonBitLength) - 1);
+    readData &= ((1 << ReportButtonBitLength) - 1);             //Truncate extra buttons
     packetToSend->Data[0] = readData;
 
-    //Grab X
-    readData = *(uint16_t*)&(HID_Handle->Data[(ReportXBitOffset / 8)]);
-    readData >>= (ReportXBitOffset % 8);
-    packetToSend->Data[1] = (uint8_t)readData;
+    packetToSend->Data[1] = Downstream_HID_Mouse_Extract8BitValue(HID_Handle,
+                                                                  ReportXBitOffset,
+                                                                  ReportXBitLength);
 
-    //Grab Y
-    readData = *(uint16_t*)&(HID_Handle->Data[(ReportYBitOffset / 8)]);
-    readData >>= (ReportYBitOffset % 8);
-    packetToSend->Data[2] = (uint8_t)readData;
+    packetToSend->Data[2] = Downstream_HID_Mouse_Extract8BitValue(HID_Handle,
+                                                                  ReportYBitOffset,
+                                                                  ReportYBitLength);
 
-    //Grab wheel
-    readData = *(uint16_t*)&(HID_Handle->Data[(ReportWheelBitOffset / 8)]);
-    readData >>= (ReportWheelBitOffset % 8);
-    packetToSend->Data[3] = (uint8_t)readData;
+    packetToSend->Data[3] = Downstream_HID_Mouse_Extract8BitValue(HID_Handle,
+                                                                  ReportWheelBitOffset,
+                                                                  ReportWheelBitLength);
 }
 
+
+
+uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
+                                              uint8_t valueBitOffset,
+                                              uint8_t valueBitLength)
+{
+    int32_t readData;
+
+    readData = *(uint32_t*)&(hidHandle->Data[(valueBitOffset / 8)]);
+    readData >>= (valueBitOffset % 8);
+    if (readData & (1 << (valueBitLength - 1)))             //If value is negative...
+    {
+        readData |= ~((1 << valueBitLength) - 1);           //...sign-extend to full width...
+    }
+    else
+    {
+        readData &= (1 << valueBitLength) - 1;              //...else zero out unwanted bits
+    }
+    if (readData < INT8_MIN) readData = INT8_MIN;           //Limit to 8-bit values
+    if (readData > INT8_MAX) readData = INT8_MAX;
+    return (int8_t)readData;
+}
 
