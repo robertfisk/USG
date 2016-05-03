@@ -69,6 +69,7 @@
   * @{
   */ 
 
+
 /**
   * @}
   */ 
@@ -122,6 +123,10 @@ uint8_t USBD_MSC_BufferFreed(USBD_HandleTypeDef *pdev);
   */ 
 
 
+#define USBD_PID_MSC    0x0001
+
+
+
 USBD_ClassTypeDef  USBD_MSC = 
 {
   USBD_MSC_Init,
@@ -139,6 +144,7 @@ USBD_ClassTypeDef  USBD_MSC =
   USBD_MSC_GetFSCfgDesc,  
   USBD_MSC_GetOtherSpeedCfgDesc,
   USBD_MSC_GetDeviceQualifierDescriptor,
+  USBD_PID_MSC
 };
 
 /* USB Mass storage device Configuration Descriptor */

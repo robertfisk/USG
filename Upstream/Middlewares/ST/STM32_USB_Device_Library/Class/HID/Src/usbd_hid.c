@@ -75,6 +75,9 @@ static uint8_t USBD_HID_SendReport (uint8_t *report,
 
 
 
+#define USBD_PID_HID       0x0002
+
+
 USBD_ClassTypeDef  USBD_HID =
 {
   USBD_HID_Init,
@@ -92,6 +95,7 @@ USBD_ClassTypeDef  USBD_HID =
   USBD_HID_GetCfgDesc,
   USBD_HID_GetCfgDesc,
   USBD_HID_GetDeviceQualifierDesc,
+  USBD_PID_HID
 };
 
 

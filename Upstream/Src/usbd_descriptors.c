@@ -59,14 +59,14 @@
 /** @defgroup USBD_DESC_Private_Defines
   * @{
   */ 
-#define USBD_VID                        1155
+#define USBD_VID                        0xF000          //TODO: get a real VID :)  We also need a separate PID for each supported device class.
 #define USBD_LANGID_STRING              1033
 #define USBD_MANUFACTURER_STRING        "The USG is Good, not Bad"
-#define USBD_PID_FS                     22314
 #define USBD_PRODUCT_STRING_FS          "USG v1.0"
 #define USBD_SERIALNUMBER_STRING_FS     "00000000001A"
 #define USBD_CONFIGURATION_STRING_FS    "USG multipurpose configuration"
 #define USBD_INTERFACE_STRING_FS        "USG multipurpose interface"
+
 
 /**
   * @}
@@ -121,8 +121,8 @@ __ALIGN_BEGIN uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END =
     USB_MAX_EP0_SIZE,          /*bMaxPacketSize*/
     LOBYTE(USBD_VID),           /*idVendor*/
     HIBYTE(USBD_VID),           /*idVendor*/
-    LOBYTE(USBD_PID_FS),           /*idVendor*/
-    HIBYTE(USBD_PID_FS),           /*idVendor*/
+    0x00,       //LOBYTE(USBD_PID_FS),           /*idVendor*/
+    0x00,       //HIBYTE(USBD_PID_FS),           /*idVendor*/
     0x00,                       /*bcdDevice rel. 2.00*/
     0x02,
     USBD_IDX_MFC_STR,           /*Index of manufacturer  string*/
