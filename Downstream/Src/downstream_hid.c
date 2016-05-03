@@ -180,25 +180,33 @@ HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
                     {
                         ReportXBitOffset = currentReportBitIndex + (currentReportSize * xUsageIndex);
                         ReportXBitLength = currentReportSize;
+                        if ((ReportXBitOffset + ReportXBitLength) > (HID_MAX_REPORT_LEN * 8))
+                        {
+                            return HAL_ERROR;
+                        }
                     }
                     if (yUsageIndex != 0xFF)
                     {
                         ReportYBitOffset = currentReportBitIndex + (currentReportSize * yUsageIndex);
                         ReportYBitLength = currentReportSize;
+                        if ((ReportYBitOffset + ReportYBitLength) > (HID_MAX_REPORT_LEN * 8))
+                        {
+                            return HAL_ERROR;
+                        }
                     }
                     if (wheelUsageIndex != 0xFF)
                     {
                         ReportWheelBitOffset = currentReportBitIndex + (currentReportSize * wheelUsageIndex);
                         ReportWheelBitLength = currentReportSize;
+                        if ((ReportWheelBitOffset + ReportWheelBitLength) > (HID_MAX_REPORT_LEN * 8))
+                        {
+                            return HAL_ERROR;
+                        }
                     }
                 }
                 break;
             }
             currentReportBitIndex += (currentReportSize * currentReportCount);
-            if (currentReportBitIndex >= (HID_MAX_REPORT_LEN * 8))
-            {
-                return HAL_ERROR;
-            }
             break;
         }
     }
