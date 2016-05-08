@@ -78,9 +78,10 @@ int main(void)
 
     while (1)
     {
-
+        __WFI();            //sleep time!
     }
 }
+
 
 
 void DisableFlashWrites(void)
