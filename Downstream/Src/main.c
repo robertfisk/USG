@@ -52,6 +52,8 @@ void CheckFirmwareMatchesHardware(void);
 
 int main(void)
 {
+    uint32_t iterationCount = 0;
+
     //First things first!
     DisableFlashWrites();
     CheckFirmwareMatchesHardware();
@@ -74,6 +76,15 @@ int main(void)
         USB_Host_Process();
         Downstream_SPIProcess();
         Downstream_PacketProcessor_CheckNotifyDisconnectReply();
+
+        //Some USB host state transitions take 3 iterations to fully apply.
+        //We'll be generous and give it 5 before sleeping.
+        iterationCount++;
+        if (iterationCount > 4)
+        {
+            iterationCount = 0;
+            __WFI();                //sleep time!
+        }
     }
 }
 
