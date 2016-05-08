@@ -55,14 +55,19 @@ HAL_StatusTypeDef Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callb
         return HAL_ERROR;
     }
 
+    //Just return if we already have an outstanding request
+    if (ReportCallback != NULL)
+    {
+        return HAL_OK;
+    }
+    ReportCallback = callback;
+
     //Release packet used for last transaction (if any)
     if (UpstreamHidPacket != NULL)
     {
         Upstream_ReleasePacket(UpstreamHidPacket);
         UpstreamHidPacket = NULL;
     }
-
-    ReportCallback = callback;
 
     freePacket = Upstream_GetFreePacketImmediately();
     if (freePacket == NULL)
