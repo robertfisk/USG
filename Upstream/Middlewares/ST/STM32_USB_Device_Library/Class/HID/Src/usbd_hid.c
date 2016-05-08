@@ -298,7 +298,6 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
 static uint8_t  USBD_HID_DeInit (USBD_HandleTypeDef *pdev, 
                                  uint8_t cfgidx)
 {
-  ActiveReportDescriptor = NULL;
   Upstream_HID_DeInit();
 
   /* Close HID EPs */
