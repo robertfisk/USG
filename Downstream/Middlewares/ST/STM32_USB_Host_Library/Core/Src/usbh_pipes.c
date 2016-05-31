@@ -157,7 +157,7 @@ uint8_t USBH_AllocPipe  (USBH_HandleTypeDef *phost, uint8_t ep_addr)
   */
 USBH_StatusTypeDef USBH_FreePipe  (USBH_HandleTypeDef *phost, uint8_t idx)
 {
-   if(idx < 11)
+   if (idx < HOST_PIPE_COUNT)
    {
      phost->Pipes[idx] &= 0x7FFF;
    }
@@ -173,8 +173,9 @@ USBH_StatusTypeDef USBH_FreePipe  (USBH_HandleTypeDef *phost, uint8_t idx)
 static uint16_t USBH_GetFreePipe (USBH_HandleTypeDef *phost)
 {
   uint8_t idx = 0;
-  
-  for (idx = 0 ; idx < 11 ; idx++)
+
+  //We need to limit allocated pipes to the number actually provided by hardware!
+  for (idx = 0 ; idx < ((HCD_HandleTypeDef*)phost->pData)->Init.Host_channels; idx++)
   {
     if ((phost->Pipes[idx] & 0x8000) == 0)
     {

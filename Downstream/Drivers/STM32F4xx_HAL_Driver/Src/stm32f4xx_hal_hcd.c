@@ -202,6 +202,8 @@ HAL_StatusTypeDef HAL_HCD_HC_Init(HCD_HandleTypeDef *hhcd,
   hhcd->hc[ch_num].ep_num = epnum & 0x7F;
   hhcd->hc[ch_num].ep_is_in = ((epnum & 0x80) == 0x80);
   hhcd->hc[ch_num].speed = speed;
+  hhcd->hc[ch_num].xfer_len = 0;
+  hhcd->hc[ch_num].xfer_count = 0;
   
   status =  USB_HC_Init(hhcd->Instance, 
                         ch_num,
@@ -462,30 +464,16 @@ void HAL_HCD_IRQHandler(HCD_HandleTypeDef *hhcd)
       return;
     }
     
-    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_PXFR_INCOMPISOOUT))
+    /* Handle Rx Queue Level Interrupts */
+    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_RXFLVL))
     {
-      /* Incorrect mode, acknowledge the interrupt */
-      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_PXFR_INCOMPISOOUT);
+    USB_MASK_INTERRUPT(hhcd->Instance, USB_OTG_GINTSTS_RXFLVL);
+
+    HCD_RXQLVL_IRQHandler (hhcd);
+
+    USB_UNMASK_INTERRUPT(hhcd->Instance, USB_OTG_GINTSTS_RXFLVL);
     }
-    
-    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_IISOIXFR))
-    {
-      /* Incorrect mode, acknowledge the interrupt */
-      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_IISOIXFR);
-    }
-    
-    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_PTXFE))
-    {
-      /* Incorrect mode, acknowledge the interrupt */
-      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_PTXFE);
-    }   
-    
-    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_MMIS))
-    {
-      /* Incorrect mode, acknowledge the interrupt */
-      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_MMIS);
-    }     
-    
+
     /* Handle Host Disconnect Interrupts */
     if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_DISCINT))
     {
@@ -532,17 +520,85 @@ void HAL_HCD_IRQHandler(HCD_HandleTypeDef *hhcd)
         }
       }
       __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_HCINT);
-    } 
-    
-    /* Handle Rx Queue Level Interrupts */
-    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_RXFLVL))
-    {
-      USB_MASK_INTERRUPT(hhcd->Instance, USB_OTG_GINTSTS_RXFLVL);
-      
-      HCD_RXQLVL_IRQHandler (hhcd);
-      
-      USB_UNMASK_INTERRUPT(hhcd->Instance, USB_OTG_GINTSTS_RXFLVL);
     }
+
+    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_PXFR_INCOMPISOOUT))
+    {
+      /* Incorrect mode, acknowledge the interrupt */
+      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_PXFR_INCOMPISOOUT);
+    }
+
+    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_IISOIXFR))
+    {
+      /* Incorrect mode, acknowledge the interrupt */
+      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_IISOIXFR);
+    }
+
+    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_MMIS))
+    {
+      /* Incorrect mode, acknowledge the interrupt */
+      __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_MMIS);
+    }
+
+//If I needed FIFO (half-)empty interrupt handlers, this is what they would look like:
+//
+//    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_NPTXFE))
+//    {
+//        halResult = HAL_OK;
+//
+//        //Find a channel that wants to write something:
+//        for (i = 0; i < hhcd->Init.Host_channels; i++)
+//        {
+//            if (hhcd->hc[i].ep_is_in == 0)
+//            {
+//                if ((hhcd->hc[i].ep_type == EP_TYPE_CTRL) ||
+//                    (hhcd->hc[i].ep_type == EP_TYPE_BULK))
+//                {
+//                    if (hhcd->hc[i].xfer_count < hhcd->hc[i].xfer_len)
+//                    {
+//                        halResult = USB_HC_WriteEmptyTxFifo(hhcd->Instance, &hhcd->hc[i], 0);
+//                        if (halResult == HAL_BUSY) break;       //Fifo is full, so bail out now
+//                    }
+//                }
+//            }
+//        }
+//        if (halResult != HAL_BUSY)
+//        {
+//            //Fifo is not full, ergo we have sent all the data we have to transmit.
+//            //So we can disable the fifo interrupt now:
+//            USB_MASK_INTERRUPT(hhcd->Instance, USB_OTG_GINTMSK_NPTXFEM);
+//        }
+//    }
+//
+//    if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_PTXFE))
+//    {
+//        halResult = HAL_OK;
+//
+//        //Find a channel that wants to write something:
+//        for (i = 0; i < hhcd->Init.Host_channels; i++)
+//        {
+//            if (hhcd->hc[i].ep_is_in == 0)
+//            {
+//                if ((hhcd->hc[i].ep_type == EP_TYPE_INTR) ||
+//                    (hhcd->hc[i].ep_type == EP_TYPE_ISOC))
+//                {
+//                    if (hhcd->hc[i].xfer_count < hhcd->hc[i].xfer_len)
+//                    {
+//                        halResult = USB_HC_WriteEmptyTxFifo(hhcd->Instance, &hhcd->hc[i], 1);
+//                        if (halResult == HAL_BUSY) break;       //Fifo is full, so bail out now
+//                    }
+//                }
+//            }
+//        }
+//
+//        if (halResult != HAL_BUSY)
+//        {
+//            //Fifo is not full, ergo we have sent all the data we have to transmit.
+//            //So we can disable the fifo interrupt now:
+//            USB_MASK_INTERRUPT(hhcd->Instance, USB_OTG_GINTMSK_PTXFEM);
+//        }
+//    }
+
   }
 }
 
@@ -796,36 +852,38 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
   {
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_AHBERR);
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
-  }  
+  }
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_ACK)
   {
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_ACK);
   }
-  
-  else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_STALL)  
+
+  else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_STALL)
   {
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
     hhcd->hc[chnum].state = HC_STALL;
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);
-    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_STALL);    
-    USB_HC_Halt(hhcd->Instance, chnum);    
+    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_STALL);
+    USB_HC_Halt(hhcd->Instance, chnum);
   }
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_DTERR)
   {
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
-    USB_HC_Halt(hhcd->Instance, chnum);  
-    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);    
+    USB_HC_Halt(hhcd->Instance, chnum);
+    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);
     hhcd->hc[chnum].state = HC_DATATGLERR;
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_DTERR);
-  }    
-  
-  if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_FRMOR)
+  }
+
+  else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_FRMOR)
   {
-    __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-    USB_HC_Halt(hhcd->Instance, chnum);  
+    __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+    USB_HC_Halt(hhcd->Instance, chnum);
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_FRMOR);
   }
-  
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_XFRC)
   {
     if (hhcd->Init.dma_enable)
@@ -853,9 +911,9 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
       hhcd->hc[chnum].urb_state = URB_DONE; 
       HAL_HCD_HC_NotifyURBChange_Callback(hhcd, chnum, hhcd->hc[chnum].urb_state);
     }
-    hhcd->hc[chnum].toggle_in ^= 1;
-    
+//    hhcd->hc[chnum].toggle_in ^= 1;
   }
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_CHH)
   {
     __HAL_HCD_MASK_HALT_HC_INT(chnum); 
@@ -905,6 +963,7 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum)
     USB_HC_Halt(hhcd->Instance, chnum);     
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_TXERR);
   }
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NAK)
   {  
       hhcd->hc[chnum].ErrCnt = 0;
@@ -943,16 +1002,17 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
   {
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_AHBERR);
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
-  }  
+  }
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_ACK)
   {
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_ACK);
-    
+
     if( hhcd->hc[chnum].do_ping == 1)
     {
-      hhcd->hc[chnum].state = HC_NYET;     
-      __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-      USB_HC_Halt(hhcd->Instance, chnum); 
+      hhcd->hc[chnum].state = HC_NYET;
+      __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+      USB_HC_Halt(hhcd->Instance, chnum);
       hhcd->hc[chnum].urb_state  = URB_NOTREADY;
     }
   }
@@ -960,12 +1020,11 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NYET)
   {
     hhcd->hc[chnum].state = HC_NYET;
-    hhcd->hc[chnum].ErrCnt= 0;    
-    __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-    USB_HC_Halt(hhcd->Instance, chnum);      
+    hhcd->hc[chnum].ErrCnt= 0;
+    __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+    USB_HC_Halt(hhcd->Instance, chnum);
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NYET);
-    
-  }  
+  }
   
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_FRMOR)
   {
@@ -984,41 +1043,40 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
 
   }  
 
-  else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_STALL)  
+  else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_STALL)
   {
-    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_STALL);  
+    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_STALL);
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
-    USB_HC_Halt(hhcd->Instance, chnum);   
-    hhcd->hc[chnum].state = HC_STALL;    
+    USB_HC_Halt(hhcd->Instance, chnum);
+    hhcd->hc[chnum].state = HC_STALL;
   }
 
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NAK)
-  {  
-    hhcd->hc[chnum].ErrCnt = 0;  
-    __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-    USB_HC_Halt(hhcd->Instance, chnum);   
+  {
+    hhcd->hc[chnum].ErrCnt = 0;
+    __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+    USB_HC_Halt(hhcd->Instance, chnum);
     hhcd->hc[chnum].state = HC_NAK;
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);
   }
 
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_TXERR)
   {
-    __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-    USB_HC_Halt(hhcd->Instance, chnum);      
-    hhcd->hc[chnum].state = HC_XACTERR;  
+    __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+    USB_HC_Halt(hhcd->Instance, chnum);
+    hhcd->hc[chnum].state = HC_XACTERR;
      __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_TXERR);
   }
-  
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_DTERR)
   {
-    __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 
-    USB_HC_Halt(hhcd->Instance, chnum);      
+    __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+    USB_HC_Halt(hhcd->Instance, chnum);
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);
-    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_DTERR);    
+    __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_DTERR);
     hhcd->hc[chnum].state = HC_DATATGLERR;
   }
-  
-  
+
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_CHH)
   {
     __HAL_HCD_MASK_HALT_HC_INT(chnum); 
@@ -1028,7 +1086,10 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
       hhcd->hc[chnum].urb_state  = URB_DONE;
       if (hhcd->hc[chnum].ep_type == EP_TYPE_BULK)
       {
-        hhcd->hc[chnum].toggle_out ^= 1; 
+          if (hhcd->hc[chnum].packet_count & 1)
+          {
+              hhcd->hc[chnum].toggle_out ^= 1;
+          }
       }      
     }
     else if (hhcd->hc[chnum].state == HC_NAK)
@@ -1094,25 +1155,24 @@ static void HCD_RXQLVL_IRQHandler(HCD_HandleTypeDef *hhcd)
   switch (pktsts)
   {
   case GRXSTS_PKTSTS_IN:
+    if((USBx_HC(channelnum)->HCTSIZ & USB_OTG_HCTSIZ_PKTCNT) > 0)
+    {
+    /* re-activate the channel when more packets are expected */
+    tmpreg = USBx_HC(channelnum)->HCCHAR;
+    tmpreg &= ~USB_OTG_HCCHAR_CHDIS;
+    tmpreg |= USB_OTG_HCCHAR_CHENA;
+    USBx_HC(channelnum)->HCCHAR = tmpreg;
+    }
+
     /* Read the data into the host buffer. */
     if ((pktcnt > 0) && (hhcd->hc[channelnum].xfer_buff != (void  *)0))
-    {  
-      
+    {
       USB_ReadPacket(hhcd->Instance, hhcd->hc[channelnum].xfer_buff, pktcnt);   //Todo: buffer overflow here!
+      hhcd->hc[channelnum].toggle_in ^= 1;
       
       /*manage multiple Xfer */
       hhcd->hc[channelnum].xfer_buff += pktcnt;           
       hhcd->hc[channelnum].xfer_count  += pktcnt;
-      
-      if((USBx_HC(channelnum)->HCTSIZ & USB_OTG_HCTSIZ_PKTCNT) > 0)
-      {
-        /* re-activate the channel when more packets are expected */
-        tmpreg = USBx_HC(channelnum)->HCCHAR;
-        tmpreg &= ~USB_OTG_HCCHAR_CHDIS;
-        tmpreg |= USB_OTG_HCCHAR_CHENA;
-        USBx_HC(channelnum)->HCCHAR = tmpreg;
-        hhcd->hc[channelnum].toggle_in ^= 1;
-      }
     }
     break;
     
