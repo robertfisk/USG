@@ -172,6 +172,25 @@ typedef struct
 
 typedef struct
 {
+  uint8_t   *xfer_buff;    /*!< Pointer to transfer buffer.                                                */
+
+  uint32_t  xfer_len;      /*!< Current transfer length.                                                   */
+
+  uint32_t  xfer_count;    /*!< Partial transfer length in case of multi packet transfer.                  */
+
+  uint32_t  dma_addr;      /*!< 32 bits aligned transfer buffer address.                                   */
+
+  uint32_t  ErrCnt;        /*!< Host channel error count.*/
+
+  USB_OTG_URBStateTypeDef  urb_state;  /*!< URB state.
+                                           This parameter can be any value of @ref USB_OTG_URBStateTypeDef */
+
+  USB_OTG_HCStateTypeDef   state;     /*!< Host Channel state.
+                                           This parameter can be any value of @ref USB_OTG_HCStateTypeDef  */
+
+  uint16_t  max_packet;    /*!< Endpoint Max packet size.
+                                This parameter must be a number between Min_Data = 0 and Max_Data = 64KB   */
+
   uint8_t   dev_addr ;     /*!< USB device address.
                                 This parameter must be a number between Min_Data = 1 and Max_Data = 255    */ 
 
@@ -194,17 +213,8 @@ typedef struct
   uint8_t   ep_type;       /*!< Endpoint Type.
                                 This parameter can be any value of @ref USB_EP_Type_                       */
                                 
-  uint16_t  max_packet;    /*!< Endpoint Max packet size.
-                                This parameter must be a number between Min_Data = 0 and Max_Data = 64KB   */
-                                
   uint8_t   data_pid;      /*!< Initial data PID.
                                 This parameter must be a number between Min_Data = 0 and Max_Data = 1      */
-                                
-  uint8_t   *xfer_buff;    /*!< Pointer to transfer buffer.                                                */
-  
-  uint32_t  xfer_len;      /*!< Current transfer length.                                                   */
-  
-  uint32_t  xfer_count;    /*!< Partial transfer length in case of multi packet transfer.                  */
   
   uint8_t   toggle_in;     /*!< IN transfer current toggle flag.
                                 This parameter must be a number between Min_Data = 0 and Max_Data = 1      */
@@ -212,15 +222,8 @@ typedef struct
   uint8_t   toggle_out;    /*!< OUT transfer current toggle flag
                                 This parameter must be a number between Min_Data = 0 and Max_Data = 1      */
   
-  uint32_t  dma_addr;      /*!< 32 bits aligned transfer buffer address.                                   */
+  uint8_t   packet_count;
   
-  uint32_t  ErrCnt;        /*!< Host channel error count.*/
-  
-  USB_OTG_URBStateTypeDef  urb_state;  /*!< URB state. 
-                                           This parameter can be any value of @ref USB_OTG_URBStateTypeDef */ 
-  
-  USB_OTG_HCStateTypeDef   state;     /*!< Host Channel state. 
-                                           This parameter can be any value of @ref USB_OTG_HCStateTypeDef  */ 
                                              
 }USB_OTG_HCTypeDef;
   
@@ -355,7 +358,7 @@ typedef struct
 #define HPRT0_PRTSPD_LOW_SPEED                 2
 /**
   * @}
-  */  
+  */
    
 #define HCCHAR_CTRL                            0
 #define HCCHAR_ISOC                            1
@@ -371,6 +374,9 @@ typedef struct
 #define GRXSTS_PKTSTS_IN_XFER_COMP             3
 #define GRXSTS_PKTSTS_DATA_TOGGLE_ERR          5
 #define GRXSTS_PKTSTS_CH_HALTED                7
+
+#define HxTXSTS_xTXQSAV_SHIFT                  16
+#define HxTXSTS_xTXQSAV_MASK                   0xFF
     
 #define USBx_PCGCCTL    *(__IO uint32_t *)((uint32_t)USBx + USB_OTG_PCGCCTL_BASE)
 #define USBx_HPRT0      *(__IO uint32_t *)((uint32_t)USBx + USB_OTG_HOST_PORT_BASE)
@@ -440,6 +446,7 @@ HAL_StatusTypeDef USB_HC_Init(USB_OTG_GlobalTypeDef *USBx,
                                   uint8_t ep_type,
                                   uint16_t mps);
 HAL_StatusTypeDef USB_HC_StartXfer(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDef *hc, uint8_t dma);
+HAL_StatusTypeDef USB_HC_WriteEmptyTxFifo(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDef *hc, uint8_t periodic);
 uint32_t          USB_HC_ReadInterrupt (USB_OTG_GlobalTypeDef *USBx);
 HAL_StatusTypeDef USB_HC_Halt(USB_OTG_GlobalTypeDef *USBx , uint8_t hc_num);
 HAL_StatusTypeDef USB_DoPing(USB_OTG_GlobalTypeDef *USBx , uint8_t ch_num);

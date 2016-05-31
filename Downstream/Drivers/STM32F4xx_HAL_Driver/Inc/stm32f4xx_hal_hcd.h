@@ -82,12 +82,15 @@ typedef USB_OTG_HCStateTypeDef  HCD_HCStateTypeDef ;
 
 /** @defgroup HCD_Exported_Types_Group2 HCD Handle Structure definition   
   * @{
-  */ 
+  */
+
+#define HOST_CHANNEL_COUNT      15
+
 typedef struct
 {
   HCD_TypeDef               *Instance;  /*!< Register base address    */ 
   HCD_InitTypeDef           Init;       /*!< HCD required parameters  */
-  HCD_HCTypeDef             hc[15];     /*!< Host channels parameters */
+  HCD_HCTypeDef             hc[HOST_CHANNEL_COUNT];     /*!< Host channels parameters */
   HAL_LockTypeDef           Lock;       /*!< HCD peripheral status    */
   __IO HCD_StateTypeDef     State;      /*!< HCD communication state  */
   void                      *pData;     /*!< Pointer Stack Handler    */     

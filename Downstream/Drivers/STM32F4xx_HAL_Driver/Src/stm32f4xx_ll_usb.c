@@ -1433,19 +1433,18 @@ HAL_StatusTypeDef USB_HC_Init(USB_OTG_GlobalTypeDef *USBx,
   *           1 : DMA feature used  
   * @retval HAL state
   */
-#if defined   (__CC_ARM) /*!< ARM Compiler */
-#pragma O0
-#elif defined (__GNUC__) /*!< GNU Compiler */
-#pragma GCC optimize ("O0")
-#endif /* __CC_ARM */
+//#if defined   (__CC_ARM) /*!< ARM Compiler */
+//#pragma O0
+//#elif defined (__GNUC__) /*!< GNU Compiler */
+//#pragma GCC optimize ("O0")
+//#endif /* __CC_ARM */
 HAL_StatusTypeDef USB_HC_StartXfer(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDef *hc, uint8_t dma)
 {
   uint8_t  is_oddframe = 0; 
-  uint16_t len_words = 0;   
   uint16_t num_packets = 0;
   uint16_t max_hc_pkt_count = 256;
   uint32_t tmpreg = 0;
-    
+
   if((USBx != USB_OTG_FS) && (hc->speed == USB_OTG_SPEED_HIGH))
   {
     if((dma == 0) && (hc->do_ping == 1))
@@ -1475,6 +1474,8 @@ HAL_StatusTypeDef USB_HC_StartXfer(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDe
   {
     num_packets = 1;
   }
+  hc->packet_count = (uint8_t)num_packets;
+
   if (hc->ep_is_in)
   {
     hc->xfer_len = num_packets * hc->max_packet;
@@ -1505,44 +1506,89 @@ HAL_StatusTypeDef USB_HC_StartXfer(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDe
   {  
     if((hc->ep_is_in == 0) && (hc->xfer_len > 0))
     {
-      switch(hc->ep_type) 
+
+      switch(hc->ep_type)
       {
         /* Non periodic transfer */
       case EP_TYPE_CTRL:
       case EP_TYPE_BULK:
-        
-        len_words = (hc->xfer_len + 3) / 4;
-        
-        /* check if there is enough space in FIFO space */
-        if(len_words > (USBx->HNPTXSTS & 0xFFFF))
+
+        if (USB_HC_WriteEmptyTxFifo(USBx, hc, 0) == HAL_BUSY)
         {
-          /* need to process data in nptxfempty interrupt */
-          USBx->GINTMSK |= USB_OTG_GINTMSK_NPTXFEM;
+            while (1);
+//If transaction doesn't fit in fifo, enable interrupt like so:
+//            USB_UNMASK_INTERRUPT(USBx, USB_OTG_GINTMSK_NPTXFEM);
         }
         break;
-        /* Periodic transfer */
+
+      /* Periodic transfer */
       case EP_TYPE_INTR:
       case EP_TYPE_ISOC:
-        len_words = (hc->xfer_len + 3) / 4;
-        /* check if there is enough space in FIFO space */
-        if(len_words > (USBx_HOST->HPTXSTS & 0xFFFF)) /* split the transfer */
+
+        if (USB_HC_WriteEmptyTxFifo(USBx, hc, 1) == HAL_BUSY)
         {
-          /* need to process data in ptxfempty interrupt */
-          USBx->GINTMSK |= USB_OTG_GINTMSK_PTXFEM;          
+            while (1);
+//If transaction doesn't fit in fifo, enable interrupt like so:
+//            USB_UNMASK_INTERRUPT(USBx, USB_OTG_GINTMSK_PTXFEM);
         }
         break;
         
       default:
         break;
       }
-      
-      /* Write packet into the Tx FIFO. */
-      USB_WritePacket(USBx, hc->xfer_buff, hc->ch_num, hc->xfer_len, 0);
     }
   }
-  
+
   return HAL_OK;
 }
+
+
+
+
+HAL_StatusTypeDef USB_HC_WriteEmptyTxFifo(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDef *hc, uint8_t periodic)
+{
+    int32_t len;
+    uint32_t len32b;
+
+
+    while (1)
+    {
+        len = hc->xfer_len - hc->xfer_count;
+        if (len > hc->max_packet)
+        {
+            len = hc->max_packet;
+        }
+        if (len <= 0)
+        {
+            return HAL_OK;              //transfer complete
+        }
+
+        len32b = (len + 3) / 4;
+        if (periodic == 0)
+        {
+            if ((len32b > (USBx->HNPTXSTS & 0xFFFF)) ||
+                (((USBx->HNPTXSTS >> HxTXSTS_xTXQSAV_SHIFT) & HxTXSTS_xTXQSAV_MASK) == 0))
+            {
+                return HAL_BUSY;        //fifo is full
+            }
+        }
+        else
+        {
+            if ((len32b > (USBx_HOST->HPTXSTS & 0xFFFF)) ||
+                (((USBx_HOST->HPTXSTS >> HxTXSTS_xTXQSAV_SHIFT) & HxTXSTS_xTXQSAV_MASK) == 0))
+            {
+                return HAL_BUSY;        //fifo is full
+            }
+        }
+
+        /* Write packet into the Tx FIFO. */
+        USB_WritePacket(USBx, hc->xfer_buff, hc->ch_num, len, 0);
+
+        hc->xfer_count += len;
+        hc->xfer_buff += len;
+    }
+}
+
 
 /**
   * @brief Read all host channel interrupts status

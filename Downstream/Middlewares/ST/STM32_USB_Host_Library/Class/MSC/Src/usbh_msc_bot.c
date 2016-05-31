@@ -239,8 +239,8 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
             else
             {
                 //Still more data to receive
-                if (MSC_Handle->hbot.bot_packet_bytes_remaining == 0)
-                {
+//                if (MSC_Handle->hbot.bot_packet_bytes_remaining == 0)
+//                {
                     //Dispatch current bot_packet, then get a new one
                     if (Downstream_MSC_PutStreamDataPacket(MSC_Handle->hbot.bot_packet,
                                                            BOT_PAGE_LENGTH) != HAL_OK)
@@ -254,12 +254,12 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
                         MSC_Handle->hbot.state  = BOT_ERROR_IN;
                         break;
                     }
-                }
-                else
-                {
-                    //Continue filling the current bot_packet
-                    USBH_MSC_BOT_Read_Multipacket_PrepareURB(phost);
-                }
+//                }
+//                else
+//                {
+//                    //Continue filling the current bot_packet
+//                    USBH_MSC_BOT_Read_Multipacket_PrepareURB(phost);
+//                }
             }
         }
     }
@@ -488,10 +488,10 @@ void USBH_MSC_BOT_Read_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
     {
         temp_URB_size = MSC_Handle->hbot.bot_packet_bytes_remaining;
     }
-    if (temp_URB_size > MSC_Handle->InEpSize)
-    {
-        temp_URB_size = MSC_Handle->InEpSize;
-    }
+//    if (temp_URB_size > MSC_Handle->InEpSize)
+//    {
+//        temp_URB_size = MSC_Handle->InEpSize;
+//    }
     MSC_Handle->hbot.this_URB_size = (uint16_t)temp_URB_size;
 
     USBH_BulkReceiveData(phost,
@@ -530,9 +530,9 @@ void USBH_MSC_BOT_Write_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
     {
         temp_URB_size = MSC_Handle->hbot.bot_packet_bytes_remaining;
     }
-    if (temp_URB_size > MSC_Handle->OutEpSize)
+    if (temp_URB_size > MSC_Handle->OutEpSize * 4)          //4 x 64-byte packets is the magic number. Anything more than this will fail.
     {
-        temp_URB_size = MSC_Handle->OutEpSize;
+        temp_URB_size = MSC_Handle->OutEpSize * 4;
     }
     MSC_Handle->hbot.this_URB_size = (uint16_t)temp_URB_size;
 
