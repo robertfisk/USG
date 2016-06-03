@@ -156,7 +156,7 @@ static USBH_StatusTypeDef USBH_MSC_InterfaceInit (USBH_HandleTypeDef *phost)
   USBH_StatusTypeDef status = USBH_FAIL ;
   MSC_HandleTypeDef *MSC_Handle;
   
-  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, MSC_TRANSPARENT, MSC_BOT);
+  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, 0xFF, MSC_BOT);//MSC_TRANSPARENT, MSC_BOT); //Ignore subclass?!!
   
   if(interface == 0xFF) /* Not Valid Interface */
   {
