@@ -62,7 +62,7 @@
 #define USBD_VID                        0xF000          //TODO: get a real VID :)  We also need a separate PID for each supported device class.
 #define USBD_LANGID_STRING              1033
 #define USBD_MANUFACTURER_STRING        "The USG is Good, not Bad"
-#define USBD_PRODUCT_STRING_FS          "USG v1.0"
+#define USBD_PRODUCT_STRING_FS          "USG v0.9"
 #define USBD_SERIALNUMBER_STRING_FS     "00000000001A"
 #define USBD_CONFIGURATION_STRING_FS    "USG multipurpose configuration"
 #define USBD_INTERFACE_STRING_FS        "USG multipurpose interface"
@@ -164,8 +164,8 @@ const int8_t  STORAGE_Inquirydata_FS[] = { //36
   0x00,
   'T', 'h', 'e', ' ', 'U', 'S', 'G', ' ', /* Manufacturer : 8 bytes */
   'i', 's', ' ', 'G', 'o', 'o', 'd', ',', /* Product      : 16 Bytes */
-  'n', 'o', 't', ' ', 'b', 'a', 'd', '.',
-  'v', '1', '.' ,'0',                     /* Version      : 4 Bytes */
+  ' ', 'n', 'o', 't', ' ', 'b', 'a', 'd',
+  'v', '0', '.' ,'9',                     /* Version      : 4 Bytes */
 };
 
 /**
