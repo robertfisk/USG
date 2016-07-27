@@ -108,11 +108,12 @@ void CheckFirmwareMatchesHardware(void)
 
     GPIO_InitTypeDef GPIO_InitStruct;
 
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+
     if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_405_407_415_417)
     {
         //The H405 board has a STAT LED on PC12. If there is no pullup on this pin,
         //then we are probably running on another board.
-        __HAL_RCC_GPIOC_CLK_ENABLE();
         GPIO_InitStruct.Pin = FAULT_LED_PIN;
         GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
         GPIO_InitStruct.Pull = GPIO_PULLDOWN;
