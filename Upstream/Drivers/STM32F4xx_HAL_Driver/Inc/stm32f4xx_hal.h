@@ -163,6 +163,7 @@ HAL_StatusTypeDef HAL_Init(void);
 HAL_StatusTypeDef HAL_DeInit(void);
 void HAL_MspInit(void);
 void HAL_MspDeInit(void);
+uint32_t HAL_GetHSECrystalFreqMHz(void);
 HAL_StatusTypeDef HAL_InitTick (uint32_t TickPriority);
 /**
   * @}

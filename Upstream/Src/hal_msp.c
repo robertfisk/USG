@@ -59,6 +59,19 @@ void HAL_MspInit(void)
 }
 
 
+uint32_t HAL_GetHSECrystalFreqMHz(void)
+{
+    if ((BOARD_REV_ID_PORT->IDR & BOARD_REV_PIN_MASK) < BOARD_REV_1_0_BETA_3)
+    {
+        return BOARD_REV_1_0_BETA_FREQ;
+    }
+    else
+    {
+        return BOARD_REV_1_0_BETA_3_FREQ;
+    }
+}
+
+
 void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 {
   GPIO_InitTypeDef GPIO_InitStruct;

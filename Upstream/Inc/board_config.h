@@ -52,6 +52,10 @@
 #define BOARD_REV_ID_PORT       GPIOC
 
 #define BOARD_REV_1_0_BETA      0
+#define BOARD_REV_1_0_BETA_3    1
+
+#define BOARD_REV_1_0_BETA_FREQ     8
+#define BOARD_REV_1_0_BETA_3_FREQ   16
 
 
 #endif /* INC_BOARD_CONFIG_H_ */

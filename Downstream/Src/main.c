@@ -58,11 +58,11 @@ int main(void)
     DisableFlashWrites();
     CheckFirmwareMatchesHardware();
 
-    /* Configure the system clock */
-    SystemClock_Config();
-
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
+
+    /* Configure the system clock */
+    SystemClock_Config();
 
     /* Initialize all configured peripherals */
     GPIO_Init();
@@ -113,10 +113,11 @@ void CheckFirmwareMatchesHardware(void)
 
     GPIO_InitTypeDef GPIO_InitStruct;
 
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+
     if ((*(uint32_t*)DBGMCU_BASE & DBGMCU_IDCODE_DEV_ID) == DBGMCU_IDCODE_DEV_ID_401xB_xC)
     {
         //Read in board revision and ID on port C
-        __HAL_RCC_GPIOC_CLK_ENABLE();
         GPIO_InitStruct.Pin = BOARD_REV_PIN_MASK | BOARD_ID_PIN_MASK;
         GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -125,7 +126,7 @@ void CheckFirmwareMatchesHardware(void)
         HAL_GPIO_Init(BOARD_REV_ID_PORT, &GPIO_InitStruct);
 
         //Correct board revision?
-        if ((BOARD_REV_ID_PORT->IDR & BOARD_REV_PIN_MASK) == BOARD_REV_1_0_BETA)
+        if ((BOARD_REV_ID_PORT->IDR & BOARD_REV_PIN_MASK) <= BOARD_REV_1_0_BETA_3)
         {
             //Correct board ID: downstream?
             if (!(BOARD_REV_ID_PORT->IDR & BOARD_ID_PIN_MASK))
@@ -162,8 +163,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLM = (HAL_GetHSECrystalFreqMHz() / 2);        //PLL input frequency = 2MHz
+  RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) while (1);

@@ -970,7 +970,8 @@ uint32_t HAL_RCC_GetSysClockFreq(void)
     }
     case RCC_CFGR_SWS_HSE:  /* HSE used as system clock  source */
     {
-      sysclockfreq = HSE_VALUE;
+      //sysclockfreq = HSE_VALUE;
+      sysclockfreq = (HAL_GetHSECrystalFreqMHz() * (uint32_t)1000000);
       break;
     }
     case RCC_CFGR_SWS_PLL:  /* PLL used as system clock  source */
