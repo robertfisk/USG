@@ -112,7 +112,7 @@ static void USBH_ParseInterfaceDesc (USBH_InterfaceDescTypeDef  *if_descriptor, 
   * @param  length: Length of the descriptor
   * @retval USBH Status
   */
-USBH_StatusTypeDef USBH_Get_DevDesc(USBH_HandleTypeDef *phost, uint8_t length)
+USBH_StatusTypeDef USBH_Get_DevDesc(USBH_HandleTypeDef *phost, uint16_t length)
 {
   USBH_StatusTypeDef status;
   
