@@ -44,15 +44,11 @@
 #include "interrupts.h"
 
 
-/* Private variables ---------------------------------------------------------*/
-
-
-
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-void GPIO_Init(void);
-void DisableFlashWrites(void);
-void CheckFirmwareMatchesHardware(void);
+static void SystemClock_Config(void);
+static void GPIO_Init(void);
+static void DisableFlashWrites(void);
+static void CheckFirmwareMatchesHardware(void);
 
 
 
@@ -92,10 +88,11 @@ void DisableFlashWrites(void)
     FLASH->KEYR = 999;
 
     //Confirm that flash cannot be unlocked
-    //This unlock attempt will also cause a bus fault.
-    EnableOneBusFault();
+    //This unlock attempt will also cause two bus faults.
     if ((FLASH->CR & FLASH_CR_LOCK) == 0) while(1);
+    EnableOneBusFault();
     FLASH->KEYR = FLASH_KEY1;
+    EnableOneBusFault();
     FLASH->KEYR = FLASH_KEY2;
     if ((FLASH->CR & FLASH_CR_LOCK) == 0) while(1);
 }
