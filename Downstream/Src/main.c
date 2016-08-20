@@ -44,16 +44,17 @@
 
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+static void SystemClock_Config(void);
 static void GPIO_Init(void);
-void DisableFlashWrites(void);
-void CheckFirmwareMatchesHardware(void);
+static void DisableFlashWrites(void);
+static void CheckFirmwareMatchesHardware(void);
+
+volatile uint8_t    UsbInterruptHasHappened = 0;
+uint8_t             IterationCount = 0;
 
 
 int main(void)
 {
-    uint32_t iterationCount = 0;
-
     //First things first!
     DisableFlashWrites();
     CheckFirmwareMatchesHardware();
@@ -77,12 +78,17 @@ int main(void)
         Downstream_SPIProcess();
         Downstream_PacketProcessor_CheckNotifyDisconnectReply();
 
+        //Count number of main loops since last USB interrupt
+        if (UsbInterruptHasHappened)
+        {
+            UsbInterruptHasHappened = 0;
+            IterationCount = 0;
+        }
+
         //Some USB host state transitions take 3 iterations to fully apply.
         //We'll be generous and give it 5 before sleeping.
-        iterationCount++;
-        if (iterationCount > 4)
+        if (IterationCount++ > 4)
         {
-            iterationCount = 0;
             __WFI();                //sleep time!
         }
     }
@@ -97,10 +103,11 @@ void DisableFlashWrites(void)
     FLASH->KEYR = 999;
 
     //Confirm that flash cannot be unlocked
-    //This unlock attempt will also cause a bus fault.
-    EnableOneBusFault();
+    //This unlock attempt will also cause two bus faults.
     if ((FLASH->CR & FLASH_CR_LOCK) == 0) while(1);
+    EnableOneBusFault();
     FLASH->KEYR = FLASH_KEY1;
+    EnableOneBusFault();
     FLASH->KEYR = FLASH_KEY2;
     if ((FLASH->CR & FLASH_CR_LOCK) == 0) while(1);
 }

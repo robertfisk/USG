@@ -46,6 +46,8 @@ extern HCD_HandleTypeDef hhcd_USB_OTG_FS;
 extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 
+extern volatile uint8_t UsbInterruptHasHappened;
+
 uint8_t BusFaultAllowed = 0;
 
 
@@ -83,9 +85,8 @@ void DMA2_Stream3_IRQHandler(void)
 
 void OTG_FS_IRQHandler(void)
 {
-    //INT_ACTIVE_ON;
     HAL_HCD_IRQHandler(&hhcd_USB_OTG_FS);
-    //INT_ACTIVE_OFF;
+    UsbInterruptHasHappened = 1;
 }
 
 
@@ -93,6 +94,11 @@ void OTG_FS_IRQHandler(void)
 //The deliberate flash lockout will cause a bus fault that we need to process.
 void EnableOneBusFault(void)
 {
+    //It should not be enabled already!
+    if (BusFaultAllowed)
+    {
+        while (1);
+    }
     SCB->SHCSR = SCB_SHCSR_BUSFAULTENA_Msk;
     BusFaultAllowed = 1;
 }
@@ -104,7 +110,7 @@ void BusFault_Handler(void)
         BusFaultAllowed = 0;
         return;
     }
-    while(1);
+    while (1);
 }
 
 
