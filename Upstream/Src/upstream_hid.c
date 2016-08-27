@@ -39,6 +39,7 @@ void Upstream_HID_DeInit(void)
         Upstream_ReleasePacket(UpstreamHidPacket);
         UpstreamHidPacket = NULL;
     }
+    ReportCallback = NULL;
 }
 
 
