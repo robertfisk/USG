@@ -477,14 +477,14 @@ void HAL_HCD_IRQHandler(HCD_HandleTypeDef *hhcd)
     /* Handle Host Disconnect Interrupts */
     if(__HAL_HCD_GET_FLAG(hhcd, USB_OTG_GINTSTS_DISCINT))
     {
-      
-      /* Cleanup HPRT */
-      USBx_HPRT0 &= ~(USB_OTG_HPRT_PENA | USB_OTG_HPRT_PCDET |\
-        USB_OTG_HPRT_PENCHNG | USB_OTG_HPRT_POCCHNG );
-      
       /* Handle Host Port Interrupts */
-      HAL_HCD_Disconnect_Callback(hhcd);
-      USB_InitFSLSPClkSel(hhcd->Instance ,HCFG_48_MHZ );
+      if (HAL_HCD_Disconnect_Callback(hhcd) == HAL_OK)
+      {
+          /* Cleanup HPRT */
+          USBx_HPRT0 &= ~(USB_OTG_HPRT_PENA | USB_OTG_HPRT_PCDET |\
+            USB_OTG_HPRT_PENCHNG | USB_OTG_HPRT_POCCHNG );
+          USB_InitFSLSPClkSel(hhcd->Instance ,HCFG_48_MHZ );
+      }
       __HAL_HCD_CLEAR_FLAG(hhcd, USB_OTG_GINTSTS_DISCINT);
     }
     
@@ -636,7 +636,7 @@ __weak void HAL_HCD_PortEnabled_Callback(HCD_HandleTypeDef *hhcd)
   * @param  hhcd: HCD handle
   * @retval None
   */
-__weak void HAL_HCD_Disconnect_Callback(HCD_HandleTypeDef *hhcd)
+__weak HAL_StatusTypeDef HAL_HCD_Disconnect_Callback(HCD_HandleTypeDef *hhcd)
 {
   /* NOTE : This function Should not be modified, when the callback is needed,
             the HAL_HCD_Disconnect_Callback could be implemented in the user file

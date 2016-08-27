@@ -871,6 +871,13 @@ USBH_StatusTypeDef  USBH_LL_PortEnabled (USBH_HandleTypeDef *phost)
   */
 USBH_StatusTypeDef  USBH_LL_Disconnect  (USBH_HandleTypeDef *phost)
 {
+  //Ignore false disconnect interrupt that sometimes intrudes
+  //while we are waiting for the port to enable :(
+  if (phost->gState == HOST_DEV_WAIT_FOR_ATTACHMENT)
+  {
+      return USBH_FAIL;
+  }
+
   /*Stop Host */ 
   USBH_LL_Stop(phost);  
   

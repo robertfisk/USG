@@ -124,9 +124,13 @@ void HAL_HCD_PortEnabled_Callback(HCD_HandleTypeDef *hhcd)
   * @param  hhcd: HCD handle
   * @retval None
   */
-void HAL_HCD_Disconnect_Callback(HCD_HandleTypeDef *hhcd)
+HAL_StatusTypeDef HAL_HCD_Disconnect_Callback(HCD_HandleTypeDef *hhcd)
 {
-  USBH_LL_Disconnect(hhcd->pData);
+  if (USBH_LL_Disconnect(hhcd->pData) == USBH_OK)
+  {
+      return HAL_OK;
+  }
+  return HAL_ERROR;
 } 
 
 /**
