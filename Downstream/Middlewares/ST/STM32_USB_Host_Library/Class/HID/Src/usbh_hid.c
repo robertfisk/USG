@@ -327,8 +327,10 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
     break; 
     
   case HID_REQ_SET_PROTOCOL:
-    /* set protocol */
-    if (USBH_HID_SetProtocol (phost, 1) == USBH_OK)
+    //Mouse in 'report' mode,
+    //Keyboard in 'boot' mode
+    if (USBH_HID_SetProtocol(phost,
+                             (HID_Handle->Protocol == HID_MOUSE_BOOT_CODE ? 1 : 0)) == USBH_OK)
     {
       HID_Handle->ctl_state = HID_REQ_IDLE;
       
@@ -372,12 +374,11 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
                                   HID_Handle->length,
                                   HID_Handle->InPipe);
 
-        HID_Handle->state = HID_POLL;
+        HID_Handle->state = HID_GET_POLL;
         HID_Handle->timer = phost->Timer;
       }
     break;
-    
-  case HID_POLL:
+  case HID_GET_POLL:
     urbStatus = USBH_LL_GetURBState(phost, HID_Handle->InPipe);
     
     if (urbStatus == USBH_URB_DONE)
@@ -403,6 +404,15 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
       }
     }
     break;
+
+  case HID_SET_DATA:
+
+      break;
+
+  case HID_SET_POLL:
+
+      break;
+
 
   case HID_IDLE:
       break;
