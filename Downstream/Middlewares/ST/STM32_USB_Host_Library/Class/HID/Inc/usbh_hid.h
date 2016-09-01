@@ -112,9 +112,10 @@ typedef enum
 {
   HID_INIT= 0,  
   HID_IDLE,
-  HID_GET_DATA,   
-  HID_SYNC,     
-  HID_POLL,
+  HID_GET_DATA,
+  HID_GET_POLL,
+  HID_SET_DATA,
+  HID_SET_POLL,
   HID_ERROR,
 }
 HID_StateTypeDef;

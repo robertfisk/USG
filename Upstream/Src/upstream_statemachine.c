@@ -180,6 +180,12 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
         USBD_HID_PreinitMouse();
         break;
 
+    case COMMAND_CLASS_HID_KEYBOARD:
+        newActiveClass = COMMAND_CLASS_HID_KEYBOARD;
+        newClassPointer = &USBD_HID;
+        USBD_HID_PreinitKeyboard();
+        break;
+
         //Add other supported classes here...
     }
 

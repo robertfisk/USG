@@ -14,18 +14,30 @@
 #define UPSTREAM_HID_H_
 
 
-
 #include "stm32f4xx_hal.h"
+#include "upstream_spi.h"
 
 
-typedef uint8_t (*UpstreamHidSendReportCallback)(uint8_t *report,
+//These defines are duplicated in downstream_hid.h. Keep them in sync!
+#define HID_MOUSE_INPUT_DATA_LEN        4
+#define HID_MOUSE_OUTPUT_DATA_LEN       0
+#define HID_MOUSE_MAX_BUTTONS           3
+
+#define HID_KEYBOARD_INPUT_DATA_LEN     8
+#define HID_KEYBOARD_OUTPUT_DATA_LEN    1
+#define HID_KEYBOARD_MAX_KEY            101
+#define HID_KEYBOARD_MAX_LED            3
+
+
+typedef uint8_t (*UpstreamHidGetReportCallback)(uint8_t *report,
                                                  uint16_t len);
 
 
 
 void Upstream_HID_DeInit(void);
-HAL_StatusTypeDef Upstream_HID_GetNextReport(UpstreamHidSendReportCallback callback);
-
+void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback);
+void Upstream_HID_SendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength);
+void Upstream_HID_ReallySendControlReport(void);
 
 
 

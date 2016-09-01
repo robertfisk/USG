@@ -18,11 +18,17 @@
 
 
 
-#define HID_MAX_REPORT_LEN      8
-#define HID_MOUSE_DATA_LEN      4
-#define HID_KEYBOARD_DATA_LEN   0
+#define HID_MAX_REPORT_LEN              8
 
-#define HID_MOUSE_MAX_BUTTONS   4
+//These defines are duplicated in downstream_hid.c. Keep them in sync!
+#define HID_MOUSE_INPUT_DATA_LEN        4
+#define HID_MOUSE_OUTPUT_DATA_LEN       0
+#define HID_MOUSE_MAX_BUTTONS           3
+
+#define HID_KEYBOARD_INPUT_DATA_LEN     8
+#define HID_KEYBOARD_OUTPUT_DATA_LEN    1
+#define HID_KEYBOARD_MAX_KEY            101             //Also set in Upstream's HID report descriptor
+#define HID_KEYBOARD_MAX_LED            3
 
 
 
@@ -59,17 +65,21 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
-    if (HID_Handle->Protocol != HID_MOUSE_BOOT_CODE)
+    if (HID_Handle->Protocol == HID_MOUSE_BOOT_CODE)
     {
-        return COMMAND_CLASS_INTERFACE;             //fail
+        if (Downstream_HID_Mouse_ParseReportDescriptor() == HAL_OK)
+        {
+            return COMMAND_CLASS_HID_MOUSE;             //success!
+        }
     }
 
-    if (Downstream_HID_Mouse_ParseReportDescriptor() != HAL_OK)
+    if (HID_Handle->Protocol == HID_KEYBRD_BOOT_CODE)
     {
-        return COMMAND_CLASS_INTERFACE;             //fail
+            return COMMAND_CLASS_HID_KEYBOARD;          //success!
     }
 
-    return COMMAND_CLASS_HID_MOUSE;                 //success!
+    //else:
+    return COMMAND_CLASS_INTERFACE;                     //fail
 }
 
 
@@ -266,19 +276,24 @@ HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void)
 
 void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 {
-    if (receivedPacket->Command != COMMAND_HID_REPORT)
+    if (receivedPacket->Command == COMMAND_HID_GET_REPORT)
     {
-        Downstream_PacketProcessor_FreakOut();
-        return;
+        Downstream_ReleasePacket(receivedPacket);
+        if (USBH_HID_GetInterruptReport(&hUsbHostFS,
+                                        Downstream_HID_InterruptReportCallback) != HAL_OK)
+        {
+            Downstream_PacketProcessor_FreakOut();
+        }
+        Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
     }
 
-    Downstream_ReleasePacket(receivedPacket);
-    if (USBH_HID_GetInterruptReport(&hUsbHostFS,
-                                    Downstream_HID_InterruptReportCallback) != HAL_OK)
+    if (receivedPacket->Command == COMMAND_HID_SET_REPORT)
     {
-        Downstream_PacketProcessor_FreakOut();
+
     }
-    Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
+
+    //else:
+    Downstream_PacketProcessor_FreakOut();
 }
 
 
@@ -287,9 +302,15 @@ void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSen
     if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
     {
         Downstream_HID_Mouse_ExtractDataFromReport(packetToSend);
-        packetToSend->Length16 = ((HID_MOUSE_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        packetToSend->Length16 = ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+    }
+    else if (ConfiguredDeviceClass == COMMAND_CLASS_HID_KEYBOARD)
+    {
+        Downstream_HID_Keyboard_ExtractDataFromReport(packetToSend);
+        packetToSend->Length16 = ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
     }
     //else if...
+
     else
     {
         Downstream_PacketProcessor_FreakOut();
@@ -297,7 +318,7 @@ void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSen
     }
 
     packetToSend->CommandClass = ConfiguredDeviceClass;
-    packetToSend->Command = COMMAND_HID_REPORT;
+    packetToSend->Command = COMMAND_HID_GET_REPORT;
     Downstream_PacketProcessor_ClassReply(packetToSend);
 }
 
@@ -347,4 +368,27 @@ uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
     if (readData > INT8_MAX) readData = INT8_MAX;
     return (int8_t)readData;
 }
+
+
+
+void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
+{
+    HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
+    uint32_t i;
+    uint8_t readData;
+
+    packetToSend->Data[0] = HID_Handle->Data[0];        //Modifier keys - pass straight through
+    packetToSend->Data[1] = 0;                          //Constant byte
+
+    for (i = 2; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)   //Key array
+    {
+        readData = HID_Handle->Data[i];
+        if (readData > HID_KEYBOARD_MAX_KEY)
+        {
+            readData = HID_KEYBOARD_MAX_KEY;
+        }
+        packetToSend->Data[i] = readData;
+    }
+}
+
 

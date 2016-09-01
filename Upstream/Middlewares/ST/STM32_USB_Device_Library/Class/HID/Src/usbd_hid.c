@@ -73,6 +73,8 @@ static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_HID_SendReport (uint8_t *report,
                                     uint16_t len);
 
+static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev);
+
 
 
 #define USBD_PID_HID       0x0002
@@ -84,7 +86,7 @@ USBD_ClassTypeDef  USBD_HID =
   USBD_HID_DeInit,
   USBD_HID_Setup,
   NULL, /*EP0_TxSent*/
-  NULL, /*EP0_RxReady*/
+  USBD_HID_EP0RxReady, /*EP0_RxReady*/
   USBD_HID_DataIn, /*DataIn*/
   NULL, /*DataOut*/
   NULL, /*SOF */
@@ -99,9 +101,11 @@ USBD_ClassTypeDef  USBD_HID =
 };
 
 
+#define USB_HID_CFGDESC__INTERFACE_PROTOCOL_OFFSET      16
+#define USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET    25
+#define USB_HID_CFGDESC__EPIN_SIZE_OFFSET               31
+#define USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET       7
 
-#define USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET     25
-#define USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET        7
 
 
 /* USB HID device Configuration Descriptor */
@@ -128,7 +132,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ]  __ALIGN_
   0x01,         /*bNumEndpoints*/
   0x03,         /*bInterfaceClass: HID*/
   0x01,         /*bInterfaceSubClass : 1=BOOT, 0=no boot*/
-  0x02,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
+  0x00,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
   0,            /*iInterface: Index of string descriptor*/
   /******************** Descriptor of Joystick Mouse HID ********************/
   /* 18 */
@@ -148,7 +152,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ]  __ALIGN_
   
   HID_EPIN_ADDR,     /*bEndpointAddress: Endpoint Address (IN)*/
   0x03,          /*bmAttributes: Interrupt endpoint*/
-  HID_EPIN_SIZE, /*wMaxPacketSize: 4 Byte max */
+  0x00,  //HID_EPIN_SIZE, /*wMaxPacketSize: 4 Byte max */
   0x00,
   HID_FS_BINTERVAL,          /*bInterval: Polling Interval (10 ms)*/
   /* 34 */
@@ -192,14 +196,14 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  _
   0xA1, 0x00,        //   Collection (Physical)
   0x05, 0x09,        //     Usage Page (Button)
   0x19, 0x01,        //     Usage Minimum (0x01)
-  0x29, 0x03,        //     Usage Maximum (0x03)
+  0x29, HID_MOUSE_MAX_BUTTONS,  //     Usage Maximum (0x03)
   0x15, 0x00,        //     Logical Minimum (0)
   0x25, 0x01,        //     Logical Maximum (1)
-  0x95, 0x03,        //     Report Count (3)
+  0x95, HID_MOUSE_MAX_BUTTONS, //     Report Count (3)
   0x75, 0x01,        //     Report Size (1)
   0x81, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
   0x95, 0x01,        //     Report Count (1)
-  0x75, 0x05,        //     Report Size (5)
+  0x75, (8 - HID_MOUSE_MAX_BUTTONS),    //     Report Size (5)
   0x81, 0x01,        //     Input (Const,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
   0x05, 0x01,        //     Usage Page (Generic Desktop Ctrls)
   0x09, 0x30,        //     Usage (X)
@@ -223,14 +227,54 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  _
   0x95, 0x01,        //   Report Count (1)
   0xB1, 0x01,        //   Feature (Const,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
   0xC0,              // End Collection
-  
   // 74 bytes
 }; 
 
 
-USBD_HandleTypeDef  *USBD_HID_pdev;
-uint8_t*            ActiveReportDescriptor = NULL;
-uint8_t             ActiveReportDescriptorLength;
+__ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SIZE] __ALIGN_END = {
+    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
+    0x09, 0x06,                    // USAGE (Keyboard)
+    0xa1, 0x01,                    // COLLECTION (Application)
+    0x05, 0x07,                    //   USAGE_PAGE (Keyboard)
+    0x19, 0xe0,                    //   USAGE_MINIMUM (Keyboard LeftControl)
+    0x29, 0xe7,                    //   USAGE_MAXIMUM (Keyboard Right GUI)
+    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
+    0x75, 0x01,                    //   REPORT_SIZE (1)
+    0x95, 0x08,                    //   REPORT_COUNT (8)
+    0x81, 0x02,                    //   INPUT (Data,Var,Abs)
+    0x95, 0x01,                    //   REPORT_COUNT (1)
+    0x75, 0x08,                    //   REPORT_SIZE (8)
+    0x81, 0x03,                    //   INPUT (Cnst,Var,Abs)
+    0x95, HID_KEYBOARD_MAX_LED,    //   REPORT_COUNT (5)
+    0x75, 0x01,                    //   REPORT_SIZE (1)
+    0x05, 0x08,                    //   USAGE_PAGE (LEDs)
+    0x19, 0x01,                    //   USAGE_MINIMUM (Num Lock)
+    0x29, 0x03,                    //   USAGE_MAXIMUM (Scroll Lock)
+    0x91, 0x02,                    //   OUTPUT (Data,Var,Abs)
+    0x95, 0x01,                    //   REPORT_COUNT (1)
+    0x75, (8 - HID_KEYBOARD_MAX_LED),   //   REPORT_SIZE (3)
+    0x91, 0x03,                    //   OUTPUT (Cnst,Var,Abs)
+    0x95, 0x06,                    //   REPORT_COUNT (6)
+    0x75, 0x08,                    //   REPORT_SIZE (8)
+    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+    0x25, HID_KEYBOARD_MAX_KEY,    //   LOGICAL_MAXIMUM (101)
+    0x05, 0x07,                    //   USAGE_PAGE (Keyboard)
+    0x19, 0x00,                    //   USAGE_MINIMUM (Reserved (no event indicated))
+    0x29, 0x65,                    //   USAGE_MAXIMUM (Keyboard Application)
+    0x81, 0x00,                    //   INPUT (Data,Ary,Abs)
+    0xc0                           // END_COLLECTION
+};
+
+
+
+
+USBD_HandleTypeDef      *USBD_HID_pdev;
+UpstreamPacketTypeDef*  OutReportPacket = NULL;
+uint8_t*                ActiveReportDescriptor = NULL;
+uint8_t                 ActiveReportDescriptorLength;
+uint8_t                 InReportSize;
+uint8_t                 OutReportSize;
 
 
 /**
@@ -252,11 +296,28 @@ void USBD_HID_PreinitMouse(void)
 {
   ActiveReportDescriptor = HID_MOUSE_ReportDesc;
   ActiveReportDescriptorLength = HID_MOUSE_REPORT_DESC_SIZE;
+  InReportSize = HID_MOUSE_INPUT_DATA_LEN;
+  OutReportSize = HID_MOUSE_OUTPUT_DATA_LEN;
 
+  USBD_HID_CfgDesc[USB_HID_CFGDESC__INTERFACE_PROTOCOL_OFFSET] = HID_MOUSE_BOOT_CODE;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
+  USBD_HID_CfgDesc[USB_HID_CFGDESC__EPIN_SIZE_OFFSET] = HID_MOUSE_INPUT_DATA_LEN;
   USBD_HID_Desc[USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
 }
 
+
+void USBD_HID_PreinitKeyboard(void)
+{
+  ActiveReportDescriptor = HID_KEYBOARD_ReportDesc;
+  ActiveReportDescriptorLength = HID_KEYBOARD_REPORT_DESC_SIZE;
+  InReportSize = HID_KEYBOARD_INPUT_DATA_LEN;
+  OutReportSize = HID_KEYBOARD_OUTPUT_DATA_LEN;
+
+  USBD_HID_CfgDesc[USB_HID_CFGDESC__INTERFACE_PROTOCOL_OFFSET] = HID_KEYBRD_BOOT_CODE;
+  USBD_HID_CfgDesc[USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_KEYBOARD_REPORT_DESC_SIZE;
+  USBD_HID_CfgDesc[USB_HID_CFGDESC__EPIN_SIZE_OFFSET] = HID_KEYBOARD_INPUT_DATA_LEN;
+  USBD_HID_Desc[USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_KEYBOARD_REPORT_DESC_SIZE;
+}
 
 
 
@@ -269,7 +330,7 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
   USBD_LL_OpenEP(pdev,
                  HID_EPIN_ADDR,
                  USBD_EP_TYPE_INTR,
-                 HID_EPIN_SIZE);  
+                 InReportSize);
   
   pdev->pClassData = USBD_malloc(sizeof (USBD_HID_HandleTypeDef));
   
@@ -282,7 +343,7 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
     ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
 
     USBD_HID_pdev = pdev;
-    Upstream_HID_GetNextReport(USBD_HID_SendReport);
+    Upstream_HID_GetNextInterruptReport(USBD_HID_SendReport);
   }
 
   return ret;
@@ -326,7 +387,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
 {
   uint16_t len = 0;
   uint8_t  *pbuf = NULL;
-  USBD_HID_HandleTypeDef     *hhid = (USBD_HID_HandleTypeDef*) pdev->pClassData;
+  USBD_HID_HandleTypeDef *hhid = (USBD_HID_HandleTypeDef*) pdev->pClassData;
   
   if (ActiveReportDescriptor == NULL)
   {
@@ -339,8 +400,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
   case USB_REQ_TYPE_CLASS :  
     switch (req->bRequest)
     {
-      
-      
+
     case HID_REQ_SET_PROTOCOL:
       hhid->Protocol = (uint8_t)(req->wValue);
       break;
@@ -358,7 +418,24 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
     case HID_REQ_GET_IDLE:
       USBD_CtlSendData (pdev, 
                         (uint8_t *)&hhid->IdleState,
-                        1);        
+                        1);
+      break;
+
+    case HID_REQ_SET_REPORT:
+      if ((OutReportSize > 0) &&
+          (req->wLength == OutReportSize))
+      {
+          if (OutReportPacket != NULL) while(1);
+          OutReportPacket = Upstream_GetFreePacketImmediately();
+          if (OutReportPacket == NULL) while(1);
+          USBD_CtlPrepareRx(pdev, OutReportPacket->Data, OutReportSize);
+      }
+      else
+      {
+        USBD_CtlError (pdev, req);
+        return USBD_FAIL;
+      }
+
       break;      
       
     default:
@@ -489,7 +566,7 @@ static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev,
   ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
 
   USBD_HID_pdev = pdev;
-  Upstream_HID_GetNextReport(USBD_HID_SendReport);
+  Upstream_HID_GetNextInterruptReport(USBD_HID_SendReport);
 
   return USBD_OK;
 }
@@ -505,6 +582,23 @@ static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length)
 {
   *length = sizeof (USBD_HID_DeviceQualifierDesc);
   return USBD_HID_DeviceQualifierDesc;
+}
+
+
+//Called when data is received from host on control endpoint.
+//Upstream_HID may send this immediately, but will probably have to save it and send after the next interrupt transfer
+static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev)
+{
+    if ((OutReportPacket == NULL) ||
+        (OutReportSize == 0))
+    {
+        while(1);
+    }
+
+    Upstream_HID_SendControlReport(OutReportPacket, OutReportSize);
+    Upstream_ReleasePacket(OutReportPacket);
+    OutReportPacket = NULL;
+    return USBD_OK;
 }
 
 /**

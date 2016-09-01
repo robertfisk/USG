@@ -59,7 +59,8 @@ InterfaceCommandMscTypeDef;
 
 typedef enum
 {
-    COMMAND_HID_REPORT,				//Returns HID report
+    COMMAND_HID_GET_REPORT,			//Returns HID report from device
+    COMMAND_HID_SET_REPORT          //Sends HID report to device. No reply or ack expected.
 }
 InterfaceCommandHidTypeDef;
 
