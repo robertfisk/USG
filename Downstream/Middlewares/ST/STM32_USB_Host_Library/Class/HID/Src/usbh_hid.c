@@ -373,17 +373,17 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
                                   HID_Handle->Data,
                                   HID_Handle->length,
                                   HID_Handle->InPipe);
-
         HID_Handle->state = HID_GET_POLL;
         HID_Handle->timer = phost->Timer;
       }
     break;
+
   case HID_GET_POLL:
     urbStatus = USBH_LL_GetURBState(phost, HID_Handle->InPipe);
     
     if (urbStatus == USBH_URB_DONE)
     {
-        Downstream_GetFreePacket(HID_Handle->ReportCallback);
+        HID_Handle->ReportCallback();
         HID_Handle->state = HID_IDLE;
         break;
     }
@@ -405,14 +405,13 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
     }
     break;
 
-  case HID_SET_DATA:
-
+  case HID_SET_DATA_POLL:
+      if (USBH_CtlReq(phost, HID_Handle->Data, phost->Control.setup.b.wLength.w) == USBH_OK)
+      {
+          HID_Handle->ReportCallback();
+          HID_Handle->state = HID_IDLE;
+      }
       break;
-
-  case HID_SET_POLL:
-
-      break;
-
 
   case HID_IDLE:
       break;
@@ -441,7 +440,7 @@ static USBH_StatusTypeDef USBH_HID_SOFProcess(USBH_HandleTypeDef *phost)
 //Downstream_HID calls into here at main() priority,
 //to request a new report for Upstream.
 HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
-                                              FreePacketCallbackTypeDef callback)
+                                              TransactionCompleteCallbackTypeDef callback)
 {
     HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
 
@@ -452,7 +451,8 @@ HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
         return HAL_OK;
     }
 
-    return HAL_ERROR;
+    //return HAL_ERROR;
+    while (1);
 }
 
 
@@ -533,16 +533,18 @@ USBH_StatusTypeDef USBH_HID_SetIdle (USBH_HandleTypeDef *phost,
                                          uint8_t duration,
                                          uint8_t reportId)
 {
-  
-  phost->Control.setup.b.bmRequestType = USB_H2D | USB_REQ_RECIPIENT_INTERFACE |\
-    USB_REQ_TYPE_CLASS;
-  
-  
-  phost->Control.setup.b.bRequest = USB_HID_SET_IDLE;
-  phost->Control.setup.b.wValue.w = (duration << 8 ) | reportId;
-  
-  phost->Control.setup.b.wIndex.w = 0;
-  phost->Control.setup.b.wLength.w = 0;
+    if (phost->RequestState == CMD_SEND)
+    {
+        phost->Control.setup.b.bmRequestType = USB_H2D |
+                                               USB_REQ_RECIPIENT_INTERFACE |
+                                               USB_REQ_TYPE_CLASS;
+
+        phost->Control.setup.b.bRequest = USB_HID_SET_IDLE;
+        phost->Control.setup.b.wValue.w = (duration << 8 ) | reportId;
+
+        phost->Control.setup.b.wIndex.w = 0;
+        phost->Control.setup.b.wLength.w = 0;
+    }
   
   return USBH_CtlReq(phost, 0 , 0 );
 }
@@ -562,20 +564,41 @@ USBH_StatusTypeDef USBH_HID_SetReport (USBH_HandleTypeDef *phost,
                                     uint8_t reportType,
                                     uint8_t reportId,
                                     uint8_t* reportBuff,
-                                    uint8_t reportLen)
+                                    uint8_t reportLen,
+                                    TransactionCompleteCallbackTypeDef callback)
 {
+    HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
+    uint32_t i;
+
+    if (phost->RequestState == CMD_SEND)
+    {
+        if ((HID_Handle->state != HID_IDLE) ||
+            (reportLen > HID_MAX_REPORT_SIZE))
+        {
+            while (1);
+        }
+
+        HID_Handle->ReportCallback = callback;
+        HID_Handle->state = HID_SET_DATA_POLL;
+        for (i = 0; i < reportLen; i++)
+        {
+            HID_Handle->Data[i] = *reportBuff;
+            reportBuff++;
+        }
+
+        phost->Control.setup.b.bmRequestType = USB_H2D |
+                                               USB_REQ_RECIPIENT_INTERFACE |
+                                               USB_REQ_TYPE_CLASS;
+
+        phost->Control.setup.b.bRequest = USB_HID_SET_REPORT;
+        phost->Control.setup.b.wValue.w = (reportType << 8 ) | reportId;
+
+        phost->Control.setup.b.wIndex.w = 0;
+        phost->Control.setup.b.wLength.w = reportLen;
+    }
   
-  phost->Control.setup.b.bmRequestType = USB_H2D | USB_REQ_RECIPIENT_INTERFACE |\
-    USB_REQ_TYPE_CLASS;
-  
-  
-  phost->Control.setup.b.bRequest = USB_HID_SET_REPORT;
-  phost->Control.setup.b.wValue.w = (reportType << 8 ) | reportId;
-  
-  phost->Control.setup.b.wIndex.w = 0;
-  phost->Control.setup.b.wLength.w = reportLen;
-  
-  return USBH_CtlReq(phost, reportBuff , reportLen );
+    //return USBH_CtlReq(phost, reportBuff, reportLen);
+    return USBH_OK;
 }
 
 
@@ -595,17 +618,19 @@ USBH_StatusTypeDef USBH_HID_GetReport (USBH_HandleTypeDef *phost,
                                     uint8_t* reportBuff,
                                     uint8_t reportLen)
 {
-  
-  phost->Control.setup.b.bmRequestType = USB_D2H | USB_REQ_RECIPIENT_INTERFACE |\
-    USB_REQ_TYPE_CLASS;
-  
-  
-  phost->Control.setup.b.bRequest = USB_HID_GET_REPORT;
-  phost->Control.setup.b.wValue.w = (reportType << 8 ) | reportId;
-  
-  phost->Control.setup.b.wIndex.w = 0;
-  phost->Control.setup.b.wLength.w = reportLen;
-  
+    if (phost->RequestState == CMD_SEND)
+    {
+        phost->Control.setup.b.bmRequestType = USB_D2H |
+                                               USB_REQ_RECIPIENT_INTERFACE |
+                                               USB_REQ_TYPE_CLASS;
+
+        phost->Control.setup.b.bRequest = USB_HID_GET_REPORT;
+        phost->Control.setup.b.wValue.w = (reportType << 8 ) | reportId;
+
+        phost->Control.setup.b.wIndex.w = 0;
+        phost->Control.setup.b.wLength.w = reportLen;
+    }
+
   return USBH_CtlReq(phost, reportBuff , reportLen );
 }
 
@@ -619,16 +644,17 @@ USBH_StatusTypeDef USBH_HID_GetReport (USBH_HandleTypeDef *phost,
 USBH_StatusTypeDef USBH_HID_SetProtocol(USBH_HandleTypeDef *phost,
                                             uint8_t protocol)
 {
-  
-  
-  phost->Control.setup.b.bmRequestType = USB_H2D | USB_REQ_RECIPIENT_INTERFACE |\
-    USB_REQ_TYPE_CLASS;
-  
-  
-  phost->Control.setup.b.bRequest = USB_HID_SET_PROTOCOL;
-  phost->Control.setup.b.wValue.w = protocol == 0 ? 0 : 1;
-  phost->Control.setup.b.wIndex.w = 0;
-  phost->Control.setup.b.wLength.w = 0;
+    if (phost->RequestState == CMD_SEND)
+    {
+        phost->Control.setup.b.bmRequestType = USB_H2D |
+                                               USB_REQ_RECIPIENT_INTERFACE |\
+                                               USB_REQ_TYPE_CLASS;
+
+        phost->Control.setup.b.bRequest = USB_HID_SET_PROTOCOL;
+        phost->Control.setup.b.wValue.w = protocol == 0 ? 0 : 1;
+        phost->Control.setup.b.wIndex.w = 0;
+        phost->Control.setup.b.wLength.w = 0;
+    }
   
   return USBH_CtlReq(phost, 0 , 0 );
   

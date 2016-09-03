@@ -10,7 +10,6 @@
  */
 
 
-#include <downstream_hid.h>
 #include "downstream_statemachine.h"
 #include "downstream_interface_def.h"
 #include "downstream_spi.h"

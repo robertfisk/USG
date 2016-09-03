@@ -23,6 +23,9 @@
   * limitations under the License.
   *
   ******************************************************************************
+  *
+  * Modifications by Robert Fisk
+  *
   */ 
 
 /* Define to prevent recursive  ----------------------------------------------*/
@@ -35,7 +38,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
-#include "downstream_spi.h"
+#include "downstream_hid.h"
 
  
 /** @addtogroup USBH_LIB
@@ -105,6 +108,10 @@
 #define  HID_LOCAL_ITEM_TAG_STRING_MIN              0x08
 #define  HID_LOCAL_ITEM_TAG_STRING_MAX              0x09
 #define  HID_LOCAL_ITEM_TAG_DELIMITER               0x0A
+
+
+#define HID_REPORT_DIRECTION_IN                     0x01
+#define HID_REPORT_DIRECTION_OUT                    0x02
     
 
 /* States for HID State Machine */
@@ -114,8 +121,7 @@ typedef enum
   HID_IDLE,
   HID_GET_DATA,
   HID_GET_POLL,
-  HID_SET_DATA,
-  HID_SET_POLL,
+  HID_SET_DATA_POLL,
   HID_ERROR,
 }
 HID_StateTypeDef;
@@ -227,7 +233,7 @@ typedef struct _HID_Process
   uint8_t              ep_addr;
   uint8_t              Protocol;
   HID_DescTypeDef      HID_Desc;
-  FreePacketCallbackTypeDef   ReportCallback;
+  TransactionCompleteCallbackTypeDef   ReportCallback;
   uint8_t              Data[HID_MAX_REPORT_SIZE];
 }
 HID_HandleTypeDef;
@@ -288,7 +294,8 @@ USBH_StatusTypeDef USBH_HID_SetReport (USBH_HandleTypeDef *phost,
                                   uint8_t reportType,
                                   uint8_t reportId,
                                   uint8_t* reportBuff,
-                                  uint8_t reportLen);
+                                  uint8_t reportLen,
+                                  TransactionCompleteCallbackTypeDef callback);
   
 USBH_StatusTypeDef USBH_HID_GetReport (USBH_HandleTypeDef *phost,
                                   uint8_t reportType,
@@ -322,7 +329,7 @@ uint16_t  fifo_read(FIFO_TypeDef * f, void * buf, uint16_t  nbytes);
 uint16_t  fifo_write(FIFO_TypeDef * f, const void * buf, uint16_t  nbytes);
 
 HAL_StatusTypeDef USBH_HID_GetInterruptReport(USBH_HandleTypeDef *phost,
-                                              FreePacketCallbackTypeDef callback);
+                                              TransactionCompleteCallbackTypeDef callback);
 
 
 /**

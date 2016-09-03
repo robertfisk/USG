@@ -56,6 +56,7 @@ uint8_t ItemData;
 static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void);
 static HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void);
 static void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend);
+static void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend);
 static uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
                                                      uint8_t valueBitOffset,
                                                      uint8_t valueBitLength);
@@ -84,7 +85,7 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
 
 
 
-HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
+static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
 {
     uint32_t currentReportBitIndex = 0;
     uint8_t currentUsagePage = 0;
@@ -242,7 +243,7 @@ HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
 
 //Retrieves the next item in the HID report, and at most one of its associated data bytes.
 //Then it updates ReportDataPointer based on the actual length of the retrieved item.
-HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void)
+static HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
     uint32_t itemLength;
@@ -287,9 +288,22 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
     }
 
-    if (receivedPacket->Command == COMMAND_HID_SET_REPORT)
+    else if (receivedPacket->Command == COMMAND_HID_SET_REPORT)
     {
-
+        if ((ConfiguredDeviceClass    != COMMAND_CLASS_HID_KEYBOARD) ||
+            (receivedPacket->Length16 != ((HID_KEYBOARD_OUTPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16) ||
+            ((receivedPacket->Data[0] & ~((1 << HID_KEYBOARD_MAX_LED) - 1)) != 0))
+        {
+            Downstream_PacketProcessor_FreakOut();
+        }
+        USBH_HID_SetReport(&hUsbHostFS,
+                           HID_REPORT_DIRECTION_OUT,
+                           0,
+                           receivedPacket->Data,
+                           HID_KEYBOARD_OUTPUT_DATA_LEN,
+                           Downstream_HID_SendReportCallback);
+        Downstream_ReleasePacket(receivedPacket);
+        Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
     }
 
     //else:
@@ -297,17 +311,20 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 }
 
 
-void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSend)
+void Downstream_HID_InterruptReportCallback(void)
 {
+    DownstreamPacketTypeDef* freePacket;
+
+    freePacket = Downstream_GetFreePacketImmediately();
     if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
     {
-        Downstream_HID_Mouse_ExtractDataFromReport(packetToSend);
-        packetToSend->Length16 = ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        Downstream_HID_Mouse_ExtractDataFromReport(freePacket);
+        freePacket->Length16 = ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
     }
     else if (ConfiguredDeviceClass == COMMAND_CLASS_HID_KEYBOARD)
     {
-        Downstream_HID_Keyboard_ExtractDataFromReport(packetToSend);
-        packetToSend->Length16 = ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        Downstream_HID_Keyboard_ExtractDataFromReport(freePacket);
+        freePacket->Length16 = ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
     }
     //else if...
 
@@ -317,13 +334,13 @@ void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSen
         return;
     }
 
-    packetToSend->CommandClass = ConfiguredDeviceClass;
-    packetToSend->Command = COMMAND_HID_GET_REPORT;
-    Downstream_PacketProcessor_ClassReply(packetToSend);
+    freePacket->CommandClass = ConfiguredDeviceClass;
+    freePacket->Command = COMMAND_HID_GET_REPORT;
+    Downstream_PacketProcessor_ClassReply(freePacket);
 }
 
 
-void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
+static void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
     uint32_t readData;
@@ -348,9 +365,9 @@ void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetT
 
 
 
-uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
-                                              uint8_t valueBitOffset,
-                                              uint8_t valueBitLength)
+static uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
+                                                     uint8_t valueBitOffset,
+                                                     uint8_t valueBitLength)
 {
     int32_t readData;
 
@@ -371,7 +388,7 @@ uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandle,
 
 
 
-void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
+static void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
     uint32_t i;
@@ -391,4 +408,15 @@ void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDef* pack
     }
 }
 
+
+
+void Downstream_HID_SendReportCallback(void)
+{
+    DownstreamPacketTypeDef* freePacket;
+
+    freePacket = Downstream_GetFreePacketImmediately();
+    freePacket->CommandClass = ConfiguredDeviceClass;
+    freePacket->Command = COMMAND_HID_SET_REPORT;
+    Downstream_PacketProcessor_ClassReply(freePacket);
+}
 

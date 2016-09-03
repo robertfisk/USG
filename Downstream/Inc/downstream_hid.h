@@ -42,10 +42,12 @@
 #define HID_ITEM_INPUT_REL          0x06
 
 
+typedef void (*TransactionCompleteCallbackTypeDef)(void);
 
 InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void);
 void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_HID_InterruptReportCallback(DownstreamPacketTypeDef* packetToSend);
+void Downstream_HID_InterruptReportCallback(void);
+void Downstream_HID_SendReportCallback(void);
 
 
 
