@@ -58,14 +58,17 @@ USBH_HandleTypeDef *Callback_MSC_phost;
   */
 USBH_StatusTypeDef USBH_MSC_BOT_REQ_Reset(USBH_HandleTypeDef *phost)
 {
-  
-  phost->Control.setup.b.bmRequestType = USB_H2D | USB_REQ_TYPE_CLASS | \
-                              USB_REQ_RECIPIENT_INTERFACE;
-  
-  phost->Control.setup.b.bRequest = USB_REQ_BOT_RESET;
-  phost->Control.setup.b.wValue.w = 0;
-  phost->Control.setup.b.wIndex.w = 0;
-  phost->Control.setup.b.wLength.w = 0;           
+    if (phost->RequestState == CMD_SEND)
+    {
+        phost->Control.setup.b.bmRequestType = USB_H2D |
+                                               USB_REQ_TYPE_CLASS |
+                                               USB_REQ_RECIPIENT_INTERFACE;
+
+        phost->Control.setup.b.bRequest = USB_REQ_BOT_RESET;
+        phost->Control.setup.b.wValue.w = 0;
+        phost->Control.setup.b.wIndex.w = 0;
+        phost->Control.setup.b.wLength.w = 0;
+    }
   
   return USBH_CtlReq(phost, 0 , 0 );  
 }
@@ -79,13 +82,17 @@ USBH_StatusTypeDef USBH_MSC_BOT_REQ_Reset(USBH_HandleTypeDef *phost)
   */
 USBH_StatusTypeDef USBH_MSC_BOT_REQ_GetMaxLUN(USBH_HandleTypeDef *phost, uint8_t *Maxlun)
 {
-  phost->Control.setup.b.bmRequestType = USB_D2H | USB_REQ_TYPE_CLASS | \
-                              USB_REQ_RECIPIENT_INTERFACE;
-  
-  phost->Control.setup.b.bRequest = USB_REQ_GET_MAX_LUN;
-  phost->Control.setup.b.wValue.w = 0;
-  phost->Control.setup.b.wIndex.w = 0;
-  phost->Control.setup.b.wLength.w = 1;           
+    if (phost->RequestState == CMD_SEND)
+    {
+        phost->Control.setup.b.bmRequestType = USB_D2H |
+                                               USB_REQ_TYPE_CLASS |
+                                               USB_REQ_RECIPIENT_INTERFACE;
+
+        phost->Control.setup.b.bRequest = USB_REQ_GET_MAX_LUN;
+        phost->Control.setup.b.wValue.w = 0;
+        phost->Control.setup.b.wIndex.w = 0;
+        phost->Control.setup.b.wLength.w = 1;
+    }
   
   return USBH_CtlReq(phost, Maxlun , 1 ); 
 }

@@ -92,6 +92,33 @@ HAL_StatusTypeDef Downstream_GetFreePacket(FreePacketCallbackTypeDef callback)
 }
 
 
+
+DownstreamPacketTypeDef* Downstream_GetFreePacketImmediately(void)
+{
+    if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
+    {
+        return NULL;
+    }
+
+    //We are expecting a free buffer now
+    if (DownstreamPacket0.Busy == NOT_BUSY)
+    {
+        DownstreamPacket0.Busy = BUSY;
+        return &DownstreamPacket0;
+    }
+    if (DownstreamPacket1.Busy == NOT_BUSY)
+    {
+        DownstreamPacket1.Busy = BUSY;
+        return &DownstreamPacket1;
+    }
+
+    //Should not happen:
+    DOWNSTREAM_SPI_FREAKOUT;
+    return NULL;
+}
+
+
+
 //Used by Downstream state machine and USB host classes.
 void Downstream_ReleasePacket(DownstreamPacketTypeDef* packetToRelease)
 {

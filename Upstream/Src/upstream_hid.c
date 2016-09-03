@@ -19,8 +19,8 @@
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 UpstreamHidGetReportCallback    GetReportCallback = NULL;
 
-uint8_t     KeyboardOutDataAvailable = 0;
-uint8_t     KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
+KeyboardOutStateTypeDef KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
+uint8_t                 KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
 
 
 
@@ -36,7 +36,7 @@ void Upstream_HID_DeInit(void)
         UpstreamHidPacket = NULL;
     }
     GetReportCallback = NULL;
-    KeyboardOutDataAvailable = 0;
+    KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
 }
 
 
@@ -54,11 +54,31 @@ void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback)
         return;
     }
 
-    //Just return if we already have an outstanding request
-    if (GetReportCallback != NULL)
+    if (callback != NULL)
     {
-        return;
+        //This means we were called by the host (normal operation)
+        if (KeyboardOutDataState == KEYBOARD_OUT_STATE_BUSY)
+        {
+            //Just save the callback, because we are still waiting for the OUT report to complete
+            GetReportCallback = callback;
+            return;
+        }
+        if (GetReportCallback != NULL)
+        {
+            //Just return if we already have an outstanding request
+            return;
+        }
     }
+    else
+    {
+        //This means were called on OUT report completion
+        if (GetReportCallback == NULL)
+        {
+            //The host has not given us the callback yet, so we give up
+            return;
+        }
+    }
+
     GetReportCallback = callback;
 
     //Release packet used for last transaction (if any)
@@ -175,7 +195,7 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
 
 
     //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
-    if (KeyboardOutDataAvailable)
+    if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
     {
         Upstream_HID_ReallySendControlReport();
     }
@@ -203,7 +223,7 @@ void Upstream_HID_SendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t
     }
 
     //Save data until after the next interrupt data is received from Downstream
-    KeyboardOutDataAvailable = 1;
+    KeyboardOutDataState = KEYBOARD_OUT_STATE_DATA_READY;
     for (i = 0; i < HID_KEYBOARD_OUTPUT_DATA_LEN; i++)
     {
         KeyboardOutData[i] = packetToSend->Data[i];
@@ -217,7 +237,7 @@ void Upstream_HID_ReallySendControlReport(void)
     UpstreamPacketTypeDef* freePacket;
     uint32_t i;
 
-    KeyboardOutDataAvailable = 0;
+    KeyboardOutDataState = KEYBOARD_OUT_STATE_BUSY;
 
     freePacket = Upstream_GetFreePacketImmediately();
     if (freePacket == NULL) return;
@@ -232,10 +252,39 @@ void Upstream_HID_ReallySendControlReport(void)
     }
     freePacket->Data[0] &= ((1 << HID_KEYBOARD_MAX_LED) - 1);
 
-    if (Upstream_TransmitPacket(freePacket) != HAL_OK)
+    if (Upstream_TransmitPacket(freePacket) == HAL_OK)
+    {
+        Upstream_ReceivePacket(Upstream_HID_GetNextInterruptReportReceiveCallback);
+    }
+    else
     {
         Upstream_ReleasePacket(freePacket);
     }
 }
 
+
+
+void Upstream_HID_ReallySendControlReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket)
+{
+    InterfaceCommandClassTypeDef activeClass;
+
+    activeClass = Upstream_StateMachine_CheckActiveClass();
+    if (activeClass != COMMAND_CLASS_HID_KEYBOARD)        //add classes here
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
+    if (receivedPacket == NULL)
+    {
+        return;             //Just give up...
+    }
+
+    Upstream_ReleasePacket(receivedPacket);
+    KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
+
+    //If upstream host has already requested the next IN report data,
+    //this will send the request downstream.
+    Upstream_HID_GetNextInterruptReport(NULL);
+}
 

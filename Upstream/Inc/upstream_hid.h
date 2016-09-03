@@ -29,10 +29,16 @@
 #define HID_KEYBOARD_MAX_LED            3
 
 
+typedef enum
+{
+    KEYBOARD_OUT_STATE_IDLE,
+    KEYBOARD_OUT_STATE_DATA_READY,
+    KEYBOARD_OUT_STATE_BUSY
+} KeyboardOutStateTypeDef;
+
+
 typedef uint8_t (*UpstreamHidGetReportCallback)(uint8_t *report,
-                                                 uint16_t len);
-
-
+                                                uint16_t len);
 
 void Upstream_HID_DeInit(void);
 void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback);
