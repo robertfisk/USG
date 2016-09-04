@@ -17,21 +17,6 @@
 #include "stm32f4xx_hal.h"
 
 
-
-#define HID_MAX_REPORT_LEN              8
-
-//These defines are duplicated in downstream_hid.c. Keep them in sync!
-#define HID_MOUSE_INPUT_DATA_LEN        4
-#define HID_MOUSE_OUTPUT_DATA_LEN       0
-#define HID_MOUSE_MAX_BUTTONS           3
-
-#define HID_KEYBOARD_INPUT_DATA_LEN     8
-#define HID_KEYBOARD_OUTPUT_DATA_LEN    1
-#define HID_KEYBOARD_MAX_KEY            101             //Also set in Upstream's HID report descriptor
-#define HID_KEYBOARD_MAX_LED            3
-
-
-
 extern USBH_HandleTypeDef hUsbHostFS;                       //Hard-link ourselves to usb_host.c
 extern InterfaceCommandClassTypeDef ConfiguredDeviceClass;  //Do a cheap hard-link to downstream_statemachine.c, rather than keep a duplicate here
 
@@ -286,9 +271,10 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
             Downstream_PacketProcessor_FreakOut();
         }
         Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
+        return;
     }
 
-    else if (receivedPacket->Command == COMMAND_HID_SET_REPORT)
+    if (receivedPacket->Command == COMMAND_HID_SET_REPORT)
     {
         if ((ConfiguredDeviceClass    != COMMAND_CLASS_HID_KEYBOARD) ||
             (receivedPacket->Length16 != ((HID_KEYBOARD_OUTPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16) ||
@@ -304,6 +290,7 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
                            Downstream_HID_SendReportCallback);
         Downstream_ReleasePacket(receivedPacket);
         Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
+        return;
     }
 
     //else:
@@ -311,27 +298,37 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 }
 
 
-void Downstream_HID_InterruptReportCallback(void)
+void Downstream_HID_InterruptReportCallback(USBH_StatusTypeDef result)
 {
     DownstreamPacketTypeDef* freePacket;
 
     freePacket = Downstream_GetFreePacketImmediately();
-    if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
-    {
-        Downstream_HID_Mouse_ExtractDataFromReport(freePacket);
-        freePacket->Length16 = ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
-    }
-    else if (ConfiguredDeviceClass == COMMAND_CLASS_HID_KEYBOARD)
-    {
-        Downstream_HID_Keyboard_ExtractDataFromReport(freePacket);
-        freePacket->Length16 = ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
-    }
-    //else if...
 
+    if (result == USBH_OK)
+    {
+        //Data received from device
+        if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
+        {
+            Downstream_HID_Mouse_ExtractDataFromReport(freePacket);
+            freePacket->Length16 = ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        }
+        else if (ConfiguredDeviceClass == COMMAND_CLASS_HID_KEYBOARD)
+        {
+            Downstream_HID_Keyboard_ExtractDataFromReport(freePacket);
+            freePacket->Length16 = ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
+        }
+        //else if...
+
+        else
+        {
+            Downstream_PacketProcessor_FreakOut();
+            return;
+        }
+    }
     else
     {
-        Downstream_PacketProcessor_FreakOut();
-        return;
+        //NAK received from device, return zero-length packet
+        freePacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
     }
 
     freePacket->CommandClass = ConfiguredDeviceClass;
@@ -410,11 +407,12 @@ static void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDe
 
 
 
-void Downstream_HID_SendReportCallback(void)
+void Downstream_HID_SendReportCallback(USBH_StatusTypeDef result)
 {
     DownstreamPacketTypeDef* freePacket;
 
     freePacket = Downstream_GetFreePacketImmediately();
+    freePacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
     freePacket->CommandClass = ConfiguredDeviceClass;
     freePacket->Command = COMMAND_HID_SET_REPORT;
     Downstream_PacketProcessor_ClassReply(freePacket);

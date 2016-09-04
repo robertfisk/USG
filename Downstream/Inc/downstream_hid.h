@@ -15,9 +15,23 @@
 
 #include "downstream_interface_def.h"
 #include "downstream_spi.h"
+#include "usbh_def.h"
 
 
+#define HID_MAX_REPORT_LEN              8
 
+//These defines are duplicated in upstream_hid.h. Keep them in sync!
+#define HID_MOUSE_INPUT_DATA_LEN        4
+#define HID_MOUSE_OUTPUT_DATA_LEN       0
+#define HID_MOUSE_MAX_BUTTONS           3
+
+#define HID_KEYBOARD_INPUT_DATA_LEN     8
+#define HID_KEYBOARD_OUTPUT_DATA_LEN    1
+#define HID_KEYBOARD_MAX_KEY            101             //Also set in Upstream's HID report descriptor
+#define HID_KEYBOARD_MAX_LED            3
+
+
+//Stuff for parsing HID descriptors:
 #define HID_ITEM_LONG               0xFE
 #define HID_ITEM_LENGTH_MASK        0x03
 
@@ -42,12 +56,12 @@
 #define HID_ITEM_INPUT_REL          0x06
 
 
-typedef void (*TransactionCompleteCallbackTypeDef)(void);
+typedef void (*TransactionCompleteCallbackTypeDef)(USBH_StatusTypeDef result);
 
 InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void);
 void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_HID_InterruptReportCallback(void);
-void Downstream_HID_SendReportCallback(void);
+void Downstream_HID_InterruptReportCallback(USBH_StatusTypeDef result);
+void Downstream_HID_SendReportCallback(USBH_StatusTypeDef result);
 
 
 
