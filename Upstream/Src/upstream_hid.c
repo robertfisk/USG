@@ -25,6 +25,7 @@ uint8_t                 KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
 
 
 void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket);
+void Upstream_HID_ReallySendControlReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket);
 
 
 
@@ -56,7 +57,14 @@ void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback)
 
     if (callback != NULL)
     {
-        //This means we were called by the host (normal operation)
+        //This means we were called by the host
+        //Release packet used for last transaction (if any)
+        if (UpstreamHidPacket != NULL)
+        {
+            Upstream_ReleasePacket(UpstreamHidPacket);
+            UpstreamHidPacket = NULL;
+        }
+
         if (KeyboardOutDataState == KEYBOARD_OUT_STATE_BUSY)
         {
             //Just save the callback, because we are still waiting for the OUT report to complete
@@ -68,24 +76,16 @@ void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback)
             //Just return if we already have an outstanding request
             return;
         }
+        GetReportCallback = callback;
     }
     else
     {
-        //This means were called on OUT report completion
+        //This means were called on OUT report completion, or retrying after a downstream NAK
         if (GetReportCallback == NULL)
         {
             //The host has not given us the callback yet, so we give up
             return;
         }
-    }
-
-    GetReportCallback = callback;
-
-    //Release packet used for last transaction (if any)
-    if (UpstreamHidPacket != NULL)
-    {
-        Upstream_ReleasePacket(UpstreamHidPacket);
-        UpstreamHidPacket = NULL;
     }
 
     freePacket = Upstream_GetFreePacketImmediately();
@@ -136,6 +136,24 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
     if (receivedPacket == NULL)
     {
         return;             //Just give up...
+    }
+
+    if (receivedPacket->Length16 == UPSTREAM_PACKET_HEADER_LEN_16)
+    {
+        //Zero-length reply indicates no data from downstream device
+        Upstream_ReleasePacket(receivedPacket);
+
+        //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
+        if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
+        {
+            Upstream_HID_ReallySendControlReport();
+        }
+        else
+        {
+            //Otherwise poll downstream again
+            Upstream_HID_GetNextInterruptReport(NULL);
+        }
+        return;
     }
 
 
@@ -192,7 +210,6 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
     tempReportCallback = GetReportCallback;
     GetReportCallback = NULL;
     tempReportCallback(receivedPacket->Data, dataLength);
-
 
     //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
     if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
@@ -254,7 +271,7 @@ void Upstream_HID_ReallySendControlReport(void)
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        Upstream_ReceivePacket(Upstream_HID_GetNextInterruptReportReceiveCallback);
+        Upstream_ReceivePacket(Upstream_HID_ReallySendControlReportReceiveCallback);
     }
     else
     {

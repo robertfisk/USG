@@ -365,6 +365,9 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
       HID_Handle->timer = phost->Timer;
       HID_Handle->state = HID_IDLE;
       break;
+
+  case HID_IDLE:
+      break;
     
   case HID_GET_DATA:
       if ((int32_t)(phost->Timer - HID_Handle->timer) >= HID_Handle->poll)
@@ -383,14 +386,15 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
     
     if (urbStatus == USBH_URB_DONE)
     {
-        HID_Handle->ReportCallback();
+        HID_Handle->ReportCallback(USBH_OK);
         HID_Handle->state = HID_IDLE;
         break;
     }
 
     if (urbStatus == USBH_URB_NOTREADY)
     {
-        HID_Handle->state = HID_GET_DATA;
+        HID_Handle->ReportCallback(USBH_BUSY);
+        HID_Handle->state = HID_IDLE;
         break;
     }
 
@@ -400,7 +404,8 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
       if(USBH_ClrFeature(phost,
                          HID_Handle->ep_addr) == USBH_OK)
       {
-        HID_Handle->state = HID_GET_DATA;
+          HID_Handle->ReportCallback(USBH_BUSY);
+          HID_Handle->state = HID_IDLE;
       }
     }
     break;
@@ -408,14 +413,10 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
   case HID_SET_DATA_POLL:
       if (USBH_CtlReq(phost, HID_Handle->Data, phost->Control.setup.b.wLength.w) == USBH_OK)
       {
-          HID_Handle->ReportCallback();
+          HID_Handle->ReportCallback(USBH_OK);
           HID_Handle->state = HID_IDLE;
       }
       break;
-
-  case HID_IDLE:
-      break;
-
     
   default:
     break;
