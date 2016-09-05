@@ -126,16 +126,20 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
         return;
     }
 
-    if ((UpstreamHidPacket != NULL) ||
-        (GetReportCallback == NULL))
+    if (UpstreamHidPacket != NULL)
     {
-        UPSTREAM_SPI_FREAKOUT;
-        return;
+        while(1);
     }
 
-    if (receivedPacket == NULL)
+    if (receivedPacket == NULL)         //Error receiving packet
     {
-        return;             //Just give up...
+        return;                         //Just give up...
+    }
+
+    if (GetReportCallback == NULL)      //HID class may have been DeInitted while we were waiting for our reply
+    {
+        Upstream_ReleasePacket(receivedPacket);
+        return;
     }
 
     if (receivedPacket->Length16 == UPSTREAM_PACKET_HEADER_LEN_16)
@@ -161,13 +165,13 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
     {
         if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2)))
         {
-            UPSTREAM_SPI_FREAKOUT;
+            UPSTREAM_STATEMACHINE_FREAKOUT;
             return;
         }
         dataLength = HID_MOUSE_INPUT_DATA_LEN;
         if ((receivedPacket->Data[0] & ~((1 << HID_MOUSE_MAX_BUTTONS) - 1)) != 0)      //Check number of buttons received
         {
-            UPSTREAM_SPI_FREAKOUT;
+            UPSTREAM_STATEMACHINE_FREAKOUT;
             return;
         }
         //Other mouse sanity checks & stuff go here...
@@ -177,21 +181,21 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
     {
         if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2)))
         {
-            UPSTREAM_SPI_FREAKOUT;
+            UPSTREAM_STATEMACHINE_FREAKOUT;
             return;
         }
         dataLength = HID_KEYBOARD_INPUT_DATA_LEN;
 
         if (receivedPacket->Data[1] != 0)
         {
-            UPSTREAM_SPI_FREAKOUT;
+            UPSTREAM_STATEMACHINE_FREAKOUT;
             return;
         }
         for (i = 2; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)
         {
             if (receivedPacket->Data[i] > HID_KEYBOARD_MAX_KEY)
             {
-                UPSTREAM_SPI_FREAKOUT;
+                UPSTREAM_STATEMACHINE_FREAKOUT;
                 return;
             }
         }
@@ -202,7 +206,7 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
 
     else
     {
-        UPSTREAM_SPI_FREAKOUT;
+        UPSTREAM_STATEMACHINE_FREAKOUT;
         return;
     }
 
@@ -230,13 +234,8 @@ void Upstream_HID_SendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t
         (activeClass  != COMMAND_CLASS_HID_KEYBOARD) ||
         (dataLength   != HID_KEYBOARD_OUTPUT_DATA_LEN))
     {
-        UPSTREAM_SPI_FREAKOUT;
+        UPSTREAM_STATEMACHINE_FREAKOUT;
         return;
-    }
-
-    if (GetReportCallback == NULL)
-    {
-        while(1);           //checkme!
     }
 
     //Save data until after the next interrupt data is received from Downstream
