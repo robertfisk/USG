@@ -577,19 +577,11 @@ USBH_StatusTypeDef USBH_CtlReq     (USBH_HandleTypeDef *phost,
     
   case CMD_WAIT:
     status = USBH_HandleControl(phost);
-     if (status == USBH_OK) 
+    if (status != USBH_BUSY)
     {
-      /* Commands successfully sent and Response Received  */       
       phost->RequestState = CMD_SEND;
-      phost->Control.state =CTRL_IDLE;  
-      status = USBH_OK;      
+      phost->Control.state = CTRL_IDLE;
     }
-    else if  (status == USBH_FAIL)
-    {
-      /* Failure Mode */
-      phost->RequestState = CMD_SEND;
-      status = USBH_FAIL;
-    }   
     break;
     
   default:
@@ -701,8 +693,8 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
     /* manage error cases*/
     if  (URB_Status == USBH_URB_STALL) 
     { 
-        //Retry transaction
-        phost->Control.state = CTRL_ERROR;
+        //Command not supported, report to callee
+        status = USBH_NOT_SUPPORTED;
     }   
     else if (URB_Status == USBH_URB_ERROR)
     {
@@ -737,8 +729,8 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
     /* handle error cases */
     else if  (URB_Status == USBH_URB_STALL) 
     { 
-        //Retry transaction
-        phost->Control.state = CTRL_ERROR;
+        //Command not supported, report to callee
+        status = USBH_NOT_SUPPORTED;
     } 
     else if  (URB_Status == USBH_URB_NOTREADY)
     { 
@@ -784,8 +776,8 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
     }
      else if(URB_Status == USBH_URB_STALL)
     {
-         //Retry transaction
-         phost->Control.state = CTRL_ERROR;
+         //Command not supported, report to callee
+         status = USBH_NOT_SUPPORTED;
     }
 
     if ((int32_t)(phost->Timer - phost->Control.timer) >= USBH_CTRL_TRANSACTION_TIMEOUT_MS)
