@@ -99,6 +99,7 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum);
 static void HCD_HC_OUT_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t chnum); 
 static void HCD_RXQLVL_IRQHandler(HCD_HandleTypeDef *hhcd);
 static void HCD_Port_IRQHandler(HCD_HandleTypeDef *hhcd);
+static void HAL_HCD_OUT_RewindUnsentPackets(HCD_HandleTypeDef *hhcd, uint8_t chnum);
 /**
   * @}
   */
@@ -1019,6 +1020,7 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
   
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NYET)
   {
+      HAL_HCD_OUT_RewindUnsentPackets(hhcd, chnum);
     hhcd->hc[chnum].state = HC_NYET;
     hhcd->hc[chnum].ErrCnt= 0;
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
@@ -1053,6 +1055,7 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
 
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_NAK)
   {
+      HAL_HCD_OUT_RewindUnsentPackets(hhcd, chnum);
     hhcd->hc[chnum].ErrCnt = 0;
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
     USB_HC_Halt(hhcd->Instance, chnum);
@@ -1062,6 +1065,7 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
 
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_TXERR)
   {
+      HAL_HCD_OUT_RewindUnsentPackets(hhcd, chnum);
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
     USB_HC_Halt(hhcd->Instance, chnum);
     hhcd->hc[chnum].state = HC_XACTERR;
@@ -1070,6 +1074,7 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
 
   else if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_DTERR)
   {
+      HAL_HCD_OUT_RewindUnsentPackets(hhcd, chnum);
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum);
     USB_HC_Halt(hhcd->Instance, chnum);
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_NAK);
@@ -1132,6 +1137,31 @@ static void HCD_HC_OUT_IRQHandler  (HCD_HandleTypeDef *hhcd, uint8_t chnum)
     HAL_HCD_HC_NotifyURBChange_Callback(hhcd, chnum, hhcd->hc[chnum].urb_state);  
   }
 } 
+
+
+static void HAL_HCD_OUT_RewindUnsentPackets(HCD_HandleTypeDef *hhcd, uint8_t chnum)
+{
+    USB_OTG_GlobalTypeDef *USBx = hhcd->Instance;
+    uint32_t unsentByteCount;
+
+    if (hhcd->hc[chnum].xfer_len == 0)
+    {
+        return;
+    }
+
+    //Calculate bytes actually transferred by URB from channel's remaining packet count.
+    //Most flash drives do not need this!
+    //Sent packet count must be rounded DOWN to the nearest 2 packets. Wanna know why? Ask Transcend!!!
+    unsentByteCount = ((((USBx_HC(chnum)->HCTSIZ & USB_OTG_HCTSIZ_PKTCNT) >> 19) + 1) & ~1) * hhcd->hc[chnum].max_packet;
+    if (unsentByteCount > hhcd->hc[chnum].xfer_len)
+    {
+        unsentByteCount = hhcd->hc[chnum].xfer_len;
+    }
+    hhcd->hc[chnum].xfer_count = hhcd->hc[chnum].xfer_len - unsentByteCount;
+}
+
+
+
 
 /**
   * @brief  Handle Rx Queue Level interrupt requests.
