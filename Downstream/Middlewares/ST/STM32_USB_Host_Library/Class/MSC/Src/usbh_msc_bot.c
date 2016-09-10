@@ -134,6 +134,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
   BOT_CSWStatusTypeDef CSW_Status = BOT_CSW_CMD_FAILED;
   USBH_URBStateTypeDef URB_Status = USBH_URB_IDLE;
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
+  uint32_t partialTransferLength;
   uint8_t toggle = 0;
   
   switch (MSC_Handle->hbot.state)
@@ -367,6 +368,12 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
         }
         else
         {
+            //Increment counters by the amount of data actually transferred during the NAK'd URB
+            partialTransferLength = USBH_LL_GetLastXferSize(phost, MSC_Handle->OutPipe);
+            MSC_Handle->hbot.cbw.field.DataTransferLength -= partialTransferLength;
+            MSC_Handle->hbot.bot_packet_bytes_remaining -= partialTransferLength;
+            MSC_Handle->hbot.bot_packet_pbuf += partialTransferLength;
+
             USBH_MSC_BOT_Write_Multipacket_PrepareURB(phost);
         }
     }
