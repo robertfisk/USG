@@ -28,6 +28,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_core.h"
 #include "usbd_descriptors.h"
+#include "upstream_statemachine.h"
 
 
 /** @addtogroup STM32_USBD_DEVICE_LIBRARY
@@ -129,7 +130,7 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev, USBD_DescriptorsTypeDef *
 * @param  pdev: device instance
 * @retval status: status
 */
-USBD_StatusTypeDef USBD_DeInit(USBD_HandleTypeDef *pdev)
+USBD_ClassTypeDef* USBD_DeInit(USBD_HandleTypeDef *pdev)
 {
   /* Set Default State */
   pdev->dev_state  = USBD_STATE_DEFAULT;
@@ -143,7 +144,8 @@ USBD_StatusTypeDef USBD_DeInit(USBD_HandleTypeDef *pdev)
   /* Initialize low level driver */
   USBD_LL_DeInit(pdev);
   
-  return USBD_OK;
+  return pdev->pClass;
+//  return USBD_OK;
 }
 
 
@@ -456,6 +458,11 @@ USBD_StatusTypeDef USBD_Suspend(USBD_HandleTypeDef  *pdev)
 {
   pdev->dev_old_state =  pdev->dev_state;
   pdev->dev_state  = USBD_STATE_SUSPENDED;
+
+  if (pdev->dev_old_state > USBD_STATE_DEFAULT)
+  {
+      Upstream_StateMachine_Suspend();
+  }
   return USBD_OK;
 }
 
@@ -468,7 +475,12 @@ USBD_StatusTypeDef USBD_Suspend(USBD_HandleTypeDef  *pdev)
 
 USBD_StatusTypeDef USBD_Resume(USBD_HandleTypeDef  *pdev)
 {
-  pdev->dev_state = pdev->dev_old_state;  
+  pdev->dev_state = pdev->dev_old_state;
+
+  if (pdev->dev_old_state > USBD_STATE_DEFAULT)
+  {
+      Upstream_StateMachine_CheckResume();
+  }
   return USBD_OK;
 }
 

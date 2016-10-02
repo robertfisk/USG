@@ -501,4 +501,17 @@ void  USBD_LL_Delay (uint32_t Delay)
 {
   HAL_Delay(Delay);  
 }
+
+
+void USBD_LL_WakeupHost(USBD_HandleTypeDef *pdev)
+{
+    if (pdev->dev_remote_wakeup == 1)
+    {
+        HAL_PCD_ActivateRemoteWakeup(pdev->pData);
+        HAL_Delay(10);
+        HAL_PCD_DeActivateRemoteWakeup(pdev->pData);
+    }
+}
+
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

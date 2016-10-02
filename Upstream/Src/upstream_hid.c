@@ -19,13 +19,16 @@
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 UpstreamHidGetReportCallback    GetReportCallback = NULL;
 
-KeyboardOutStateTypeDef KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
-uint8_t                 KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
+KeyboardOutStateTypeDef         KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
+uint8_t                         KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
+
+uint8_t                         GetReportLoopIsRunning = 0;
 
 
-
-void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket);
-void Upstream_HID_ReallySendControlReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket);
+static void Upstream_HID_ReceiveInterruptReport(void);
+static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* receivedPacket);
+static void Upstream_HID_SendControlReport(void);
+static void Upstream_HID_SendControlReportCallback(UpstreamPacketTypeDef* receivedPacket);
 
 
 
@@ -42,50 +45,42 @@ void Upstream_HID_DeInit(void)
 
 
 
-void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback)
+//Called by usbd_hid to request our next interrupt report
+void Upstream_HID_GetInterruptReport(UpstreamHidGetReportCallback callback)
 {
-	UpstreamPacketTypeDef* freePacket;
-	InterfaceCommandClassTypeDef activeClass;
+    GetReportCallback = callback;
 
-	activeClass = Upstream_StateMachine_CheckActiveClass();
+    if (UpstreamHidPacket != NULL)
+    {
+        Upstream_ReleasePacket(UpstreamHidPacket);
+        UpstreamHidPacket = NULL;
+    }
+
+    //Wakeup interrupts are apparently broken.
+    //So we check for resume when the host sends us something here.
+    Upstream_StateMachine_CheckResume();
+
+    //Start our internal loop?
+    if (!GetReportLoopIsRunning)
+    {
+        GetReportLoopIsRunning = 1;
+        Upstream_HID_ReceiveInterruptReport();
+    }
+}
+
+
+//Our internal report request loop
+static void Upstream_HID_ReceiveInterruptReport(void)
+{
+    UpstreamPacketTypeDef* freePacket;
+    InterfaceCommandClassTypeDef activeClass;
+
+    activeClass = Upstream_StateMachine_CheckActiveClass();
     if ((activeClass != COMMAND_CLASS_HID_MOUSE) &&
         (activeClass != COMMAND_CLASS_HID_KEYBOARD))      //add classes here
     {
         UPSTREAM_STATEMACHINE_FREAKOUT;
         return;
-    }
-
-    if (callback != NULL)
-    {
-        //This means we were called by the host
-        //Release packet used for last transaction (if any)
-        if (UpstreamHidPacket != NULL)
-        {
-            Upstream_ReleasePacket(UpstreamHidPacket);
-            UpstreamHidPacket = NULL;
-        }
-
-        if (KeyboardOutDataState == KEYBOARD_OUT_STATE_BUSY)
-        {
-            //Just save the callback, because we are still waiting for the OUT report to complete
-            GetReportCallback = callback;
-            return;
-        }
-        if (GetReportCallback != NULL)
-        {
-            //Just return if we already have an outstanding request
-            return;
-        }
-        GetReportCallback = callback;
-    }
-    else
-    {
-        //This means were called on OUT report completion, or retrying after a downstream NAK
-        if (GetReportCallback == NULL)
-        {
-            //The host has not given us the callback yet, so we give up
-            return;
-        }
     }
 
     freePacket = Upstream_GetFreePacketImmediately();
@@ -94,23 +89,24 @@ void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback)
         return;
     }
 
-	freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
-	freePacket->CommandClass = activeClass;
-	freePacket->Command = COMMAND_HID_GET_REPORT;
+    freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
+    freePacket->CommandClass = activeClass;
+    freePacket->Command = COMMAND_HID_GET_REPORT;
 
-	if (Upstream_TransmitPacket(freePacket) == HAL_OK)
-	{
-		Upstream_ReceivePacket(Upstream_HID_GetNextInterruptReportReceiveCallback);
-	}
-	else
-	{
-	    Upstream_ReleasePacket(freePacket);
-	}
+    if (Upstream_TransmitPacket(freePacket) == HAL_OK)
+    {
+        Upstream_ReceivePacket(Upstream_HID_ReceiveInterruptReportCallback);
+    }
+    else
+    {
+        Upstream_ReleasePacket(freePacket);
+    }
+
 }
 
 
 
-void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket)
+static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* receivedPacket)
 {
     UpstreamHidGetReportCallback tempReportCallback;
 	InterfaceCommandClassTypeDef activeClass;
@@ -126,105 +122,115 @@ void Upstream_HID_GetNextInterruptReportReceiveCallback(UpstreamPacketTypeDef* r
         return;
     }
 
-    if (UpstreamHidPacket != NULL)
-    {
-        while(1);
-    }
-
     if (receivedPacket == NULL)         //Error receiving packet
     {
         return;                         //Just give up...
-    }
-
-    if (GetReportCallback == NULL)      //HID class may have been DeInitted while we were waiting for our reply
-    {
-        Upstream_ReleasePacket(receivedPacket);
-        return;
     }
 
     if (receivedPacket->Length16 == UPSTREAM_PACKET_HEADER_LEN_16)
     {
         //Zero-length reply indicates no data from downstream device
         Upstream_ReleasePacket(receivedPacket);
-
-        //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
-        if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
-        {
-            Upstream_HID_ReallySendControlReport();
-        }
-        else
-        {
-            //Otherwise poll downstream again
-            Upstream_HID_GetNextInterruptReport(NULL);
-        }
-        return;
     }
-
-
-    if (activeClass == COMMAND_CLASS_HID_MOUSE)
+    else
     {
-        if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2)))
+        if (activeClass == COMMAND_CLASS_HID_MOUSE)
         {
-            UPSTREAM_STATEMACHINE_FREAKOUT;
-            return;
-        }
-        dataLength = HID_MOUSE_INPUT_DATA_LEN;
-        if ((receivedPacket->Data[0] & ~((1 << HID_MOUSE_MAX_BUTTONS) - 1)) != 0)      //Check number of buttons received
-        {
-            UPSTREAM_STATEMACHINE_FREAKOUT;
-            return;
-        }
-        //Other mouse sanity checks & stuff go here...
-    }
-
-    else if (activeClass == COMMAND_CLASS_HID_KEYBOARD)
-    {
-        if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2)))
-        {
-            UPSTREAM_STATEMACHINE_FREAKOUT;
-            return;
-        }
-        dataLength = HID_KEYBOARD_INPUT_DATA_LEN;
-
-        if (receivedPacket->Data[1] != 0)
-        {
-            UPSTREAM_STATEMACHINE_FREAKOUT;
-            return;
-        }
-        for (i = 2; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)
-        {
-            if (receivedPacket->Data[i] > HID_KEYBOARD_MAX_KEY)
+            if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2)))
             {
                 UPSTREAM_STATEMACHINE_FREAKOUT;
                 return;
             }
+            dataLength = HID_MOUSE_INPUT_DATA_LEN;
+            if ((receivedPacket->Data[0] & ~((1 << HID_MOUSE_MAX_BUTTONS) - 1)) != 0)      //Check number of buttons received
+            {
+                UPSTREAM_STATEMACHINE_FREAKOUT;
+                return;
+            }
+
+            //Mouse wakeup is triggered by button clicks only
+            if (receivedPacket->Data[0] != 0)
+            {
+                if (Upstream_StateMachine_GetSuspendState())
+                {
+                    //Send wakeup signal to host instead of returning data packet
+                    GetReportCallback = NULL;
+                    Upstream_StateMachine_Wakeup();
+                }
+            }
+
+            //Other mouse sanity checks & stuff go here...
         }
-        //Other keyboard sanity checks here...
+
+        else if (activeClass == COMMAND_CLASS_HID_KEYBOARD)
+        {
+            if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2)))
+            {
+                UPSTREAM_STATEMACHINE_FREAKOUT;
+                return;
+            }
+            dataLength = HID_KEYBOARD_INPUT_DATA_LEN;
+
+            if (receivedPacket->Data[1] != 0)
+            {
+                UPSTREAM_STATEMACHINE_FREAKOUT;
+                return;
+            }
+            for (i = 2; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)
+            {
+                if (receivedPacket->Data[i] > HID_KEYBOARD_MAX_KEY)
+                {
+                    UPSTREAM_STATEMACHINE_FREAKOUT;
+                    return;
+                }
+            }
+
+            if (Upstream_StateMachine_GetSuspendState())
+            {
+                //Send wakeup signal to host instead of returning data packet
+                GetReportCallback = NULL;
+                Upstream_StateMachine_Wakeup();
+            }
+
+            //Other keyboard sanity checks here...
+        }
+
+        //Other HID classes go here...
+        else
+        {
+            UPSTREAM_STATEMACHINE_FREAKOUT;
+            return;
+        }
+
+        if ((GetReportCallback == NULL) ||
+            (UpstreamHidPacket != NULL))
+        {
+            Upstream_ReleasePacket(receivedPacket);
+        }
+        else
+        {
+            //Send resulting data to host
+            UpstreamHidPacket = receivedPacket;         //Save packet so we can free it when upstream USB transaction is done
+            tempReportCallback = GetReportCallback;
+            GetReportCallback = NULL;
+            tempReportCallback(receivedPacket->Data, dataLength);
+        }
     }
-
-    //Other HID classes go here...
-
-    else
-    {
-        UPSTREAM_STATEMACHINE_FREAKOUT;
-        return;
-    }
-
-    UpstreamHidPacket = receivedPacket;         //Save packet so we can free it when upstream USB transaction is done
-    tempReportCallback = GetReportCallback;
-    GetReportCallback = NULL;
-    tempReportCallback(receivedPacket->Data, dataLength);
 
     //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
     if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
     {
-        Upstream_HID_ReallySendControlReport();
+        Upstream_HID_SendControlReport();
+    }
+    else
+    {
+        Upstream_HID_ReceiveInterruptReport();      //Otherwise poll downstream again
     }
 }
 
 
 
-void Upstream_HID_SendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength)
+void Upstream_HID_RequestSendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength)
 {
     InterfaceCommandClassTypeDef activeClass;
     uint32_t i;
@@ -248,7 +254,7 @@ void Upstream_HID_SendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t
 
 
 
-void Upstream_HID_ReallySendControlReport(void)
+static void Upstream_HID_SendControlReport(void)
 {
     UpstreamPacketTypeDef* freePacket;
     uint32_t i;
@@ -270,7 +276,7 @@ void Upstream_HID_ReallySendControlReport(void)
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        Upstream_ReceivePacket(Upstream_HID_ReallySendControlReportReceiveCallback);
+        Upstream_ReceivePacket(Upstream_HID_SendControlReportCallback);
     }
     else
     {
@@ -280,12 +286,18 @@ void Upstream_HID_ReallySendControlReport(void)
 
 
 
-void Upstream_HID_ReallySendControlReportReceiveCallback(UpstreamPacketTypeDef* receivedPacket)
+static void Upstream_HID_SendControlReportCallback(UpstreamPacketTypeDef* receivedPacket)
 {
     InterfaceCommandClassTypeDef activeClass;
 
     activeClass = Upstream_StateMachine_CheckActiveClass();
     if (activeClass != COMMAND_CLASS_HID_KEYBOARD)        //add classes here
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
+    if (KeyboardOutDataState != KEYBOARD_OUT_STATE_BUSY)
     {
         UPSTREAM_STATEMACHINE_FREAKOUT;
         return;
@@ -298,9 +310,8 @@ void Upstream_HID_ReallySendControlReportReceiveCallback(UpstreamPacketTypeDef* 
 
     Upstream_ReleasePacket(receivedPacket);
     KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
-
-    //If upstream host has already requested the next IN report data,
-    //this will send the request downstream.
-    Upstream_HID_GetNextInterruptReport(NULL);
+    Upstream_HID_ReceiveInterruptReport();
 }
+
+
 

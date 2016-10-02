@@ -12,6 +12,7 @@
 
 #include "upstream_statemachine.h"
 #include "upstream_spi.h"
+#include "upstream_hid.h"
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_msc.h"
@@ -82,13 +83,24 @@ InterfaceCommandClassTypeDef Upstream_StateMachine_CheckActiveClass(void)
         return COMMAND_CLASS_ERROR;
     }
 
-    if (UpstreamState != STATE_DEVICE_ACTIVE)
+    if ((UpstreamState != STATE_DEVICE_ACTIVE) &&
+        (UpstreamState != STATE_SUSPENDED))
     {
         UPSTREAM_STATEMACHINE_FREAKOUT;
         return COMMAND_CLASS_INTERFACE;
     }
 
     return ConfiguredDeviceClass;
+}
+
+
+uint32_t Upstream_StateMachine_GetSuspendState(void)
+{
+    if (UpstreamState == STATE_SUSPENDED)
+    {
+        return 1;
+    }
+    return 0;
 }
 
 
@@ -226,5 +238,54 @@ void Upstream_StateMachine_DeviceDisconnected(void)
 
     USBD_Stop(&hUsbDeviceFS);
     Upstream_GetFreePacket(Upstream_StateMachine_NotifyDevice);
+}
+
+
+//Suspend event activated by our host
+void Upstream_StateMachine_Suspend(void)
+{
+    if (UpstreamState >= STATE_ERROR)
+    {
+        return;
+    }
+    if (UpstreamState != STATE_DEVICE_ACTIVE)
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
+    UpstreamState = STATE_SUSPENDED;
+}
+
+
+//Resume event activated by our host
+void Upstream_StateMachine_CheckResume(void)
+{
+    if (UpstreamState == STATE_SUSPENDED)
+    {
+        UpstreamState = STATE_DEVICE_ACTIVE;
+    }
+}
+
+
+//Activated by downstream report, causing us to wake up the host
+void Upstream_StateMachine_Wakeup(void)
+{
+    USBD_ClassTypeDef* activeClass;
+
+    if (UpstreamState != STATE_SUSPENDED)
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
+    //This is really ugly! But wakeup seems to be broken on the STM32, so we do it the hard way.
+    activeClass = USBD_DeInit(&hUsbDeviceFS);
+    USB_Device_Init();
+    USBD_RegisterClass(&hUsbDeviceFS, activeClass);
+    USBD_Start(&hUsbDeviceFS);
+
+//    This is how I'd wakeup the host, IF IT ACTUALLY WORKED!
+//    USBD_LL_WakeupHost(&hUsbDeviceFS);
 }
 

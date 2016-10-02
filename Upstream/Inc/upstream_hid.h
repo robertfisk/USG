@@ -41,10 +41,8 @@ typedef uint8_t (*UpstreamHidGetReportCallback)(uint8_t *report,
                                                 uint16_t len);
 
 void Upstream_HID_DeInit(void);
-void Upstream_HID_GetNextInterruptReport(UpstreamHidGetReportCallback callback);
-void Upstream_HID_SendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength);
-void Upstream_HID_ReallySendControlReport(void);
-
+void Upstream_HID_GetInterruptReport(UpstreamHidGetReportCallback callback);
+void Upstream_HID_RequestSendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength);
 
 
 
