@@ -89,7 +89,7 @@
   * @{
   */ 
 USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev, USBD_DescriptorsTypeDef *pdesc, uint8_t id);
-USBD_StatusTypeDef USBD_DeInit(USBD_HandleTypeDef *pdev);
+USBD_ClassTypeDef* USBD_DeInit(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_Start  (USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_Stop   (USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeDef *pclass);
@@ -145,6 +145,8 @@ USBD_StatusTypeDef  USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev,
 
 uint32_t USBD_LL_GetRxDataSize  (USBD_HandleTypeDef *pdev, uint8_t  ep_addr);  
 void  USBD_LL_Delay (uint32_t Delay);
+
+void USBD_LL_WakeupHost(USBD_HandleTypeDef *pdev);
 
 /**
   * @}

@@ -15,6 +15,7 @@
 
 #include "led.h"
 #include "upstream_interface_def.h"
+#include "usbd_def.h"
 
 
 typedef enum
@@ -22,6 +23,7 @@ typedef enum
     STATE_TEST_INTERFACE,
     STATE_WAIT_DEVICE,
     STATE_DEVICE_ACTIVE,
+    STATE_SUSPENDED,
     STATE_ERROR
 } UpstreamStateTypeDef;
 
@@ -39,7 +41,11 @@ typedef enum
 void Upstream_InitStateMachine(void);
 void Upstream_StateMachine_SetErrorState(void);
 InterfaceCommandClassTypeDef Upstream_StateMachine_CheckActiveClass(void);
+uint32_t Upstream_StateMachine_GetSuspendState(void);
 void Upstream_StateMachine_DeviceDisconnected(void);
+void Upstream_StateMachine_Suspend(void);
+void Upstream_StateMachine_CheckResume(void);
+void Upstream_StateMachine_Wakeup(void);
 
 
 

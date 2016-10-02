@@ -77,7 +77,8 @@ static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev);
 
 
 
-#define USBD_PID_HID       0x0002
+#define USBD_PID_MOUSE      0x0002
+#define USBD_PID_KEYBOARD   0x0003
 
 
 USBD_ClassTypeDef  USBD_HID =
@@ -97,7 +98,7 @@ USBD_ClassTypeDef  USBD_HID =
   USBD_HID_GetCfgDesc,
   USBD_HID_GetCfgDesc,
   USBD_HID_GetDeviceQualifierDesc,
-  USBD_PID_HID
+  0         //USBD_PID_HID
 };
 
 
@@ -299,6 +300,7 @@ void USBD_HID_PreinitMouse(void)
   InReportSize = HID_MOUSE_INPUT_DATA_LEN;
   OutReportSize = HID_MOUSE_OUTPUT_DATA_LEN;
 
+  USBD_HID.USBDevPid = USBD_PID_MOUSE;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__INTERFACE_PROTOCOL_OFFSET] = HID_MOUSE_BOOT_CODE;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__EPIN_SIZE_OFFSET] = HID_MOUSE_INPUT_DATA_LEN;
@@ -313,6 +315,7 @@ void USBD_HID_PreinitKeyboard(void)
   InReportSize = HID_KEYBOARD_INPUT_DATA_LEN;
   OutReportSize = HID_KEYBOARD_OUTPUT_DATA_LEN;
 
+  USBD_HID.USBDevPid = USBD_PID_KEYBOARD;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__INTERFACE_PROTOCOL_OFFSET] = HID_KEYBRD_BOOT_CODE;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_KEYBOARD_REPORT_DESC_SIZE;
   USBD_HID_CfgDesc[USB_HID_CFGDESC__EPIN_SIZE_OFFSET] = HID_KEYBOARD_INPUT_DATA_LEN;
@@ -343,7 +346,7 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
     ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
 
     USBD_HID_pdev = pdev;
-    Upstream_HID_GetNextInterruptReport(USBD_HID_SendReport);
+    Upstream_HID_GetInterruptReport(USBD_HID_SendReport);
   }
 
   return ret;
@@ -360,6 +363,11 @@ static uint8_t  USBD_HID_DeInit (USBD_HandleTypeDef *pdev,
                                  uint8_t cfgidx)
 {
   Upstream_HID_DeInit();
+  if (OutReportPacket != NULL)
+  {
+      Upstream_ReleasePacket(OutReportPacket);
+      OutReportPacket = NULL;
+  }
 
   /* Close HID EPs */
   USBD_LL_CloseEP(pdev,
@@ -566,7 +574,7 @@ static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev,
   ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
 
   USBD_HID_pdev = pdev;
-  Upstream_HID_GetNextInterruptReport(USBD_HID_SendReport);
+  Upstream_HID_GetInterruptReport(USBD_HID_SendReport);
 
   return USBD_OK;
 }
@@ -586,7 +594,7 @@ static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length)
 
 
 //Called when data is received from host on control endpoint.
-//Upstream_HID may send this immediately, but will probably have to save it and send after the next interrupt transfer
+//Upstream_HID will send it after the next IN interrupt transfer
 static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev)
 {
     if ((OutReportPacket == NULL) ||
@@ -595,7 +603,7 @@ static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev)
         while(1);
     }
 
-    Upstream_HID_SendControlReport(OutReportPacket, OutReportSize);
+    Upstream_HID_RequestSendControlReport(OutReportPacket, OutReportSize);
     Upstream_ReleasePacket(OutReportPacket);
     OutReportPacket = NULL;
     return USBD_OK;
