@@ -153,9 +153,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
             {
                 if (Upstream_StateMachine_GetSuspendState())
                 {
-                    //Send wakeup signal to host instead of returning data packet
-                    GetReportCallback = NULL;
-                    Upstream_StateMachine_Wakeup();
+                    Upstream_StateMachine_Wakeup();         //Send wakeup signal to host
                 }
             }
 
@@ -187,9 +185,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
             if (Upstream_StateMachine_GetSuspendState())
             {
-                //Send wakeup signal to host instead of returning data packet
-                GetReportCallback = NULL;
-                Upstream_StateMachine_Wakeup();
+                Upstream_StateMachine_Wakeup();         //Send wakeup signal to host
             }
 
             //Other keyboard sanity checks here...
@@ -203,7 +199,8 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
         }
 
         if ((GetReportCallback == NULL) ||
-            (UpstreamHidPacket != NULL))
+            (UpstreamHidPacket != NULL) ||
+            (Upstream_StateMachine_GetSuspendState()))
         {
             Upstream_ReleasePacket(receivedPacket);
         }
