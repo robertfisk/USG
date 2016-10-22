@@ -279,13 +279,13 @@ void Upstream_StateMachine_Wakeup(void)
         return;
     }
 
+    //This is how I'd wakeup the host, IF IT ACTUALLY WORKED!
+    //USBD_LL_WakeupHost(&hUsbDeviceFS);
+
     //This is really ugly! But wakeup seems to be broken on the STM32, so we do it the hard way.
     activeClass = USBD_DeInit(&hUsbDeviceFS);
     USB_Device_Init();
     USBD_RegisterClass(&hUsbDeviceFS, activeClass);
     USBD_Start(&hUsbDeviceFS);
-
-//    This is how I'd wakeup the host, IF IT ACTUALLY WORKED!
-//    USBD_LL_WakeupHost(&hUsbDeviceFS);
 }
 
