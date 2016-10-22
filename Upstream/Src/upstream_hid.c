@@ -294,12 +294,6 @@ static void Upstream_HID_SendControlReportCallback(UpstreamPacketTypeDef* receiv
         return;
     }
 
-    if (KeyboardOutDataState != KEYBOARD_OUT_STATE_BUSY)
-    {
-        UPSTREAM_STATEMACHINE_FREAKOUT;
-        return;
-    }
-
     if (receivedPacket == NULL)
     {
         return;             //Just give up...

@@ -139,9 +139,9 @@ USBD_ClassTypeDef* USBD_DeInit(USBD_HandleTypeDef *pdev)
   pdev->pClass->DeInit(pdev, pdev->dev_config);  
   
     /* Stop the low level driver  */
-  USBD_LL_Stop(pdev); 
+//  USBD_LL_Stop(pdev);
   
-  /* Initialize low level driver */
+  /* Deinitialize low level driver */
   USBD_LL_DeInit(pdev);
   
   return pdev->pClass;
