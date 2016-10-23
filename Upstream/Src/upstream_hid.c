@@ -40,6 +40,7 @@ void Upstream_HID_DeInit(void)
         UpstreamHidPacket = NULL;
     }
     GetReportCallback = NULL;
+    GetReportLoopIsRunning = 0;
     KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
 }
 
