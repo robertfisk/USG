@@ -32,7 +32,7 @@
 
 
 //Stuff for parsing HID descriptors:
-#define HID_ITEM_LONG               0xFE
+#define HID_ITEM_LONG               0xFC
 #define HID_ITEM_MASK               0xFC
 #define HID_ITEM_LENGTH_MASK        0x03
 

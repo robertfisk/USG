@@ -93,7 +93,7 @@ static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
                                                               (ReportYBitLength == 0)      ||
                                                               (ReportWheelBitLength == 0)))
     {
-        switch (ItemHeader & HID_ITEM_MASK)
+        switch (ItemHeader)
         {
         case HID_ITEM_USAGE_PAGE:
             currentUsagePage = ItemData;
@@ -239,8 +239,14 @@ static HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void)
         return HAL_ERROR;
     }
 
-    ItemHeader = *ReportDataPointer++;
-    itemLength = ItemHeader & HID_ITEM_LENGTH_MASK;
+    ItemHeader = *ReportDataPointer & HID_ITEM_MASK;
+    itemLength = *ReportDataPointer & HID_ITEM_LENGTH_MASK;
+    ReportDataPointer++;
+
+    if (itemLength == 3)
+    {
+        itemLength = 4;                         //Length = 3 actually means 4 bytes
+    }
 
     if (ItemHeader == HID_ITEM_LONG)
     {
