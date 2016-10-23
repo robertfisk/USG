@@ -18,15 +18,13 @@
 uint16_t    FaultLedBlinkRate       = 0;
 uint16_t    FaultLedBlinkCounter    = 0;
 uint8_t     FaultLedState           = 0;
+uint8_t     StartupBlinkActive;
 
 
 void LED_Init(void)
 {
-    //RUN_LED_ON;
     FAULT_LED_ON;
-    HAL_Delay(STARTUP_FLASH_DELAY);
-    //RUN_LED_OFF;
-    FAULT_LED_OFF;
+    StartupBlinkActive = 1;
 }
 
 
@@ -43,6 +41,15 @@ void LED_Fault_SetBlinkRate(uint16_t newBlinkRate)
 
 void LED_DoBlinks(void)
 {
+    if (StartupBlinkActive)
+    {
+        if (HAL_GetTick() >= STARTUP_FLASH_DELAY)
+        {
+            FAULT_LED_OFF;
+            StartupBlinkActive = 0;
+        }
+    }
+
     if (FaultLedBlinkRate > 0)
     {
         FaultLedBlinkCounter++;
