@@ -93,7 +93,7 @@ static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
                                                               (ReportYBitLength == 0)      ||
                                                               (ReportWheelBitLength == 0)))
     {
-        switch (ItemHeader)
+        switch (ItemHeader & HID_ITEM_MASK)
         {
         case HID_ITEM_USAGE_PAGE:
             currentUsagePage = ItemData;
