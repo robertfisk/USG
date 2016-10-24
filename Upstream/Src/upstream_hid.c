@@ -215,14 +215,17 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
         }
     }
 
-    //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
-    if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
+    if (GetReportLoopIsRunning)
     {
-        Upstream_HID_SendControlReport();
-    }
-    else
-    {
-        Upstream_HID_ReceiveInterruptReport();      //Otherwise poll downstream again
+        //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
+        if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
+        {
+            Upstream_HID_SendControlReport();
+        }
+        else
+        {
+            Upstream_HID_ReceiveInterruptReport();      //Otherwise poll downstream again
+        }
     }
 }
 
