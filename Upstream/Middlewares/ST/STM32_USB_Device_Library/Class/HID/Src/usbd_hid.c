@@ -334,6 +334,7 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev,
                  HID_EPIN_ADDR,
                  USBD_EP_TYPE_INTR,
                  InReportSize);
+  USBD_LL_FlushEP(pdev, HID_EPIN_ADDR);
   
   pdev->pClassData = USBD_malloc(sizeof (USBD_HID_HandleTypeDef));
   
