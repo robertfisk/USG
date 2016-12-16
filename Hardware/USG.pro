@@ -1,4 +1,4 @@
-update=Thu 22 Oct 2015 21:50:56 NZDT
+update=Fri 16 Dec 2016 01:20:05 PM NZDT
 last_client=kicad
 [general]
 version=1
@@ -84,4 +84,3 @@ LibName75=Xicor
 LibName76=xilinx
 LibName77=Zilog
 LibName78=USG_parts
-LibName79=/home/me/Backup backups/Personal/Kicad/Library/RoboParts
