@@ -1566,16 +1566,16 @@ HAL_StatusTypeDef USB_HC_WriteEmptyTxFifo(USB_OTG_GlobalTypeDef *USBx, USB_OTG_H
         len32b = (len + 3) / 4;
         if (periodic == 0)
         {
-            if ((len32b > (USBx->HNPTXSTS & 0xFFFF)) ||
-                (((USBx->HNPTXSTS >> HxTXSTS_xTXQSAV_SHIFT) & HxTXSTS_xTXQSAV_MASK) == 0))
+            if (len32b > (USBx->HNPTXSTS & 0xFFFF)) //||
+                //(((USBx->HNPTXSTS >> HxTXSTS_xTXQSAV_SHIFT) & HxTXSTS_xTXQSAV_MASK) == 0))    //This register is buggy on some silicon, some of the time :(
             {
                 return HAL_BUSY;        //fifo is full
             }
         }
         else
         {
-            if ((len32b > (USBx_HOST->HPTXSTS & 0xFFFF)) ||
-                (((USBx_HOST->HPTXSTS >> HxTXSTS_xTXQSAV_SHIFT) & HxTXSTS_xTXQSAV_MASK) == 0))
+            if (len32b > (USBx_HOST->HPTXSTS & 0xFFFF)) //||
+                //(((USBx_HOST->HPTXSTS >> HxTXSTS_xTXQSAV_SHIFT) & HxTXSTS_xTXQSAV_MASK) == 0))    //This register is buggy on some silicon, some of the time :(
             {
                 return HAL_BUSY;        //fifo is full
             }
