@@ -289,9 +289,7 @@ void Downstream_SPIProcess(void)
     {
         return;
     }
-
     SpiInterruptCompleted = 0;
-    UPSTREAM_TX_REQUEST_DEASSERT;
 
     if (DownstreamInterfaceState >= DOWNSTREAM_INTERFACE_ERROR)
     {
@@ -407,6 +405,7 @@ void Downstream_SPIProcess(void)
 //a transmit-only DMA transfer with CRC! (it does not clear RXNE flag on request)
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
+    UPSTREAM_TX_REQUEST_DEASSERT;
     SpiInterruptCompleted = 1;
 }
 

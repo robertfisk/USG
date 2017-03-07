@@ -234,6 +234,7 @@ HAL_StatusTypeDef Upstream_TransmitPacket(UpstreamPacketTypeDef* packetToWrite)
 //We TxRx our outgoing packet because the SPI hardware freaks out if we only Tx it :-/
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
+    UNUSED(hspi);
     SpiPacketReceivedCallbackTypeDef tempPacketCallback;
     UpstreamPacketTypeDef* tempPacketToFree;
 
@@ -522,6 +523,7 @@ void Upstream_BeginReceivePacketBody(void)
 //Something bad happened! Possibly CRC error...
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
+    UNUSED(hspi);
     SpiPacketReceivedCallbackTypeDef tempPacketCallback;
 
     if (UpstreamInterfaceState >= UPSTREAM_INTERFACE_ERROR)
