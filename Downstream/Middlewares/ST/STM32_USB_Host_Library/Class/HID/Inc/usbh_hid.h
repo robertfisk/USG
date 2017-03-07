@@ -66,48 +66,48 @@
 #define HID_MIN_POLL                                10
 #define HID_MAX_REPORT_SIZE                         8
 #define HID_MAX_USAGE                               10
-#define HID_MAX_NBR_REPORT_FMT                      10 
-#define HID_QUEUE_SIZE                              10    
-    
-#define  HID_ITEM_LONG                              0xFE
-                                                                       
-#define  HID_ITEM_TYPE_MAIN                         0x00
-#define  HID_ITEM_TYPE_GLOBAL                       0x01
-#define  HID_ITEM_TYPE_LOCAL                        0x02
-#define  HID_ITEM_TYPE_RESERVED                     0x03
-
-                                                                         
-#define  HID_MAIN_ITEM_TAG_INPUT                    0x08
-#define  HID_MAIN_ITEM_TAG_OUTPUT                   0x09
-#define  HID_MAIN_ITEM_TAG_COLLECTION               0x0A
-#define  HID_MAIN_ITEM_TAG_FEATURE                  0x0B
-#define  HID_MAIN_ITEM_TAG_ENDCOLLECTION            0x0C
-
-                                                                         
-#define  HID_GLOBAL_ITEM_TAG_USAGE_PAGE             0x00
-#define  HID_GLOBAL_ITEM_TAG_LOG_MIN                0x01
-#define  HID_GLOBAL_ITEM_TAG_LOG_MAX                0x02
-#define  HID_GLOBAL_ITEM_TAG_PHY_MIN                0x03
-#define  HID_GLOBAL_ITEM_TAG_PHY_MAX                0x04
-#define  HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT          0x05
-#define  HID_GLOBAL_ITEM_TAG_UNIT                   0x06
-#define  HID_GLOBAL_ITEM_TAG_REPORT_SIZE            0x07
-#define  HID_GLOBAL_ITEM_TAG_REPORT_ID              0x08
-#define  HID_GLOBAL_ITEM_TAG_REPORT_COUNT           0x09
-#define  HID_GLOBAL_ITEM_TAG_PUSH                   0x0A
-#define  HID_GLOBAL_ITEM_TAG_POP                    0x0B
-
-                                                                         
-#define  HID_LOCAL_ITEM_TAG_USAGE                   0x00
-#define  HID_LOCAL_ITEM_TAG_USAGE_MIN               0x01
-#define  HID_LOCAL_ITEM_TAG_USAGE_MAX               0x02
-#define  HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX        0x03
-#define  HID_LOCAL_ITEM_TAG_DESIGNATOR_MIN          0x04
-#define  HID_LOCAL_ITEM_TAG_DESIGNATOR_MAX          0x05
-#define  HID_LOCAL_ITEM_TAG_STRING_INDEX            0x07
-#define  HID_LOCAL_ITEM_TAG_STRING_MIN              0x08
-#define  HID_LOCAL_ITEM_TAG_STRING_MAX              0x09
-#define  HID_LOCAL_ITEM_TAG_DELIMITER               0x0A
+#define HID_MAX_NBR_REPORT_FMT                      10
+//#define HID_QUEUE_SIZE                              10
+//
+//#define  HID_ITEM_LONG                              0xFE
+//
+//#define  HID_ITEM_TYPE_MAIN                         0x00
+//#define  HID_ITEM_TYPE_GLOBAL                       0x01
+//#define  HID_ITEM_TYPE_LOCAL                        0x02
+//#define  HID_ITEM_TYPE_RESERVED                     0x03
+//
+//
+//#define  HID_MAIN_ITEM_TAG_INPUT                    0x08
+//#define  HID_MAIN_ITEM_TAG_OUTPUT                   0x09
+//#define  HID_MAIN_ITEM_TAG_COLLECTION               0x0A
+//#define  HID_MAIN_ITEM_TAG_FEATURE                  0x0B
+//#define  HID_MAIN_ITEM_TAG_ENDCOLLECTION            0x0C
+//
+//
+//#define  HID_GLOBAL_ITEM_TAG_USAGE_PAGE             0x00
+//#define  HID_GLOBAL_ITEM_TAG_LOG_MIN                0x01
+//#define  HID_GLOBAL_ITEM_TAG_LOG_MAX                0x02
+//#define  HID_GLOBAL_ITEM_TAG_PHY_MIN                0x03
+//#define  HID_GLOBAL_ITEM_TAG_PHY_MAX                0x04
+//#define  HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT          0x05
+//#define  HID_GLOBAL_ITEM_TAG_UNIT                   0x06
+//#define  HID_GLOBAL_ITEM_TAG_REPORT_SIZE            0x07
+//#define  HID_GLOBAL_ITEM_TAG_REPORT_ID              0x08
+//#define  HID_GLOBAL_ITEM_TAG_REPORT_COUNT           0x09
+//#define  HID_GLOBAL_ITEM_TAG_PUSH                   0x0A
+//#define  HID_GLOBAL_ITEM_TAG_POP                    0x0B
+//
+//
+//#define  HID_LOCAL_ITEM_TAG_USAGE                   0x00
+//#define  HID_LOCAL_ITEM_TAG_USAGE_MIN               0x01
+//#define  HID_LOCAL_ITEM_TAG_USAGE_MAX               0x02
+//#define  HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX        0x03
+//#define  HID_LOCAL_ITEM_TAG_DESIGNATOR_MIN          0x04
+//#define  HID_LOCAL_ITEM_TAG_DESIGNATOR_MAX          0x05
+//#define  HID_LOCAL_ITEM_TAG_STRING_INDEX            0x07
+//#define  HID_LOCAL_ITEM_TAG_STRING_MIN              0x08
+//#define  HID_LOCAL_ITEM_TAG_STRING_MAX              0x09
+//#define  HID_LOCAL_ITEM_TAG_DELIMITER               0x0A
 
 
 #define HID_REPORT_DIRECTION_IN                     0x01
