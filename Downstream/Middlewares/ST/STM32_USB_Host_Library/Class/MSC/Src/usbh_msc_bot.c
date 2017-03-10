@@ -544,9 +544,9 @@ void USBH_MSC_BOT_Write_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
     {
         temp_URB_size = MSC_Handle->hbot.bot_packet_bytes_remaining;
     }
-    if (temp_URB_size > MSC_Handle->OutEpSize * 4)          //4 x 64-byte packets is the magic number. Anything more than this will fail.
+    if (temp_URB_size > MSC_Handle->OutEpSize)// * 4)          //Some silicon has a buggy host fifo, so we write single packets only :(
     {
-        temp_URB_size = MSC_Handle->OutEpSize * 4;
+        temp_URB_size = MSC_Handle->OutEpSize;// * 4;
     }
     MSC_Handle->hbot.this_URB_size = (uint16_t)temp_URB_size;
 
