@@ -7,6 +7,6 @@ The USG is a firewall for your USB ports, protecting your computer from [BadUSB]
 This is the firmware branch for the USG v0.9, which is the DIY hardware assembled out of development boards. Learn how to [build your own USG here.](https://github.com/robertfisk/USG/wiki/Hardware-%28DIY-v0.9%29)
 
 ## USG v1.0 hardware
-The USG v1.0 is currently **sold out.** Check back later for details on how to order. You can direct any inquiries to [**the developer.**](mailto:globotron@fastmail.com?subject=USG%20v1.0%20query)
+The USG v1.0 is available now from the [**online store.**](https://globotron.nz/)
 
 ![](https://github.com/robertfisk/USG/raw/USG_0.9/Doc_images/USG.jpg)
