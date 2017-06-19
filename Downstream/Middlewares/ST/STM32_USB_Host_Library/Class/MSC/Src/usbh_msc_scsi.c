@@ -325,6 +325,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_RequestSense (USBH_HandleTypeDef *phost,
   * @param  length: number of sector to write
   * @retval USBH Status
   */
+#ifdef MASS_STORAGE_WRITES_PERMITTED
 USBH_StatusTypeDef USBH_MSC_SCSI_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
@@ -372,6 +373,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Write(USBH_HandleTypeDef *phost,
   
   return error;
 }
+#endif
 
 /**
   * @brief  USBH_MSC_SCSI_Read 

@@ -301,6 +301,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
                            MSC_Handle->OutPipe,
                            1);
     }
+#ifdef MASS_STORAGE_WRITES_PERMITTED
     else
     {
         //Asynchronous multi-packet operation: get first packet
@@ -311,6 +312,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
             MSC_Handle->hbot.state  = BOT_ERROR_OUT;
         }
     }
+#endif
     break;
 
   case BOT_DATA_OUT_WAIT_RECEIVE_PACKET:
@@ -328,6 +330,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
             //Simple single-buffer operation: everything must fit in one URB
             MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
         }
+#ifdef MASS_STORAGE_WRITES_PERMITTED
         else
         {
             //Asynchronous multi-packet operation
@@ -359,6 +362,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
                 }
             }
         }
+#endif
     }
     
     else if(URB_Status == USBH_URB_NOTREADY)
@@ -368,6 +372,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
         {
             MSC_Handle->hbot.state = BOT_DATA_OUT;
         }
+#ifdef MASS_STORAGE_WRITES_PERMITTED
         else
         {
             //Increment counters by the amount of data actually transferred during the NAK'd URB
@@ -378,6 +383,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
 
             USBH_MSC_BOT_Write_Multipacket_PrepareURB(phost);
         }
+#endif
     }
     
     else if(URB_Status == USBH_URB_STALL)
@@ -516,7 +522,7 @@ void USBH_MSC_BOT_Read_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
                          MSC_Handle->InPipe);
 }
 
-
+#ifdef MASS_STORAGE_WRITES_PERMITTED
 void USBH_MSC_BOT_Write_Multipacket_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
                                                           uint16_t dataLength)
 {
@@ -558,7 +564,7 @@ void USBH_MSC_BOT_Write_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
                        MSC_Handle->OutPipe,
                        1);
 }
-
+#endif
 
 /**
   * @brief  USBH_MSC_BOT_Abort 
@@ -570,6 +576,7 @@ void USBH_MSC_BOT_Write_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
   */
 static USBH_StatusTypeDef USBH_MSC_BOT_Abort(USBH_HandleTypeDef *phost, uint8_t lun, uint8_t dir)
 {
+  UNUSED(lun);
   USBH_StatusTypeDef status = USBH_FAIL;
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
   
