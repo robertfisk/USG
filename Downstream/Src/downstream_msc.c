@@ -80,9 +80,11 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         Downstream_MSC_PacketProcessor_BeginRead(receivedPacket);
         break;
 
+#ifdef MASS_STORAGE_WRITES_PERMITTED
     case COMMAND_MSC_WRITE:
         Downstream_MSC_PacketProcessor_BeginWrite(receivedPacket);
         break;
+#endif
 
     default:
         Downstream_PacketProcessor_FreakOut();
@@ -170,7 +172,7 @@ void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef resu
 }
 
 
-
+#ifdef MASS_STORAGE_WRITES_PERMITTED
 void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket)
 {
     uint64_t writeBlockAddress;
@@ -217,6 +219,7 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
     }
     Downstream_TransmitPacket(receivedPacket);
 }
+#endif
 
 
 //Used by USB MSC host driver
@@ -235,6 +238,7 @@ HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* pa
 }
 
 
+#ifdef MASS_STORAGE_WRITES_PERMITTED
 //Used by USB MSC host driver
 HAL_StatusTypeDef Downstream_MSC_GetStreamDataPacket(DownstreamMSCCallbackPacketTypeDef callback)
 {
@@ -286,6 +290,7 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receive
     }
 
 }
+#endif  //#ifdef MASS_STORAGE_WRITES_PERMITTED
 
 #endif  //#ifdef ENABLE_MASS_STORAGE
 

@@ -496,8 +496,10 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
       error = USBH_OK;
       break;
 
-  case MSC_READ:
+#ifdef MASS_STORAGE_WRITES_PERMITTED
   case MSC_WRITE:
+#endif
+  case MSC_READ:
     error = USBH_MSC_RdWrProcess(phost, MSC_Handle->rw_lun);
     if(((int32_t)(phost->Timer - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
     {
@@ -572,6 +574,7 @@ static USBH_StatusTypeDef USBH_MSC_RdWrProcess(USBH_HandleTypeDef *phost, uint8_
 #endif   
     break;     
     
+#ifdef MASS_STORAGE_WRITES_PERMITTED
   case MSC_WRITE: 
     scsi_status = USBH_MSC_SCSI_Write(phost,lun, 0, 0) ;
     
@@ -592,7 +595,8 @@ static USBH_StatusTypeDef USBH_MSC_RdWrProcess(USBH_HandleTypeDef *phost, uint8_
 #if (USBH_USE_OS == 1)
     osMessagePut ( phost->os_event, USBH_CLASS_EVENT, 0);
 #endif       
-    break; 
+    break;
+#endif  //#ifdef MASS_STORAGE_WRITES_PERMITTED
   
   case MSC_REQUEST_SENSE:
     scsi_status = USBH_MSC_SCSI_RequestSense(phost, lun, &MSC_Handle->unit[lun].sense);
@@ -758,6 +762,7 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
   * @param  length: number of sector to write
   * @retval USBH Status
   */
+#ifdef MASS_STORAGE_WRITES_PERMITTED
 USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
@@ -786,6 +791,7 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                      length);
   return USBH_OK;
 }
+#endif  //#ifdef MASS_STORAGE_WRITES_PERMITTED
 
 #endif  //#ifdef ENABLE_MASS_STORAGE
 
