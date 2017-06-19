@@ -43,13 +43,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"
-
-typedef enum {
-  APPLICATION_IDLE = 0,  
-  APPLICATION_START,   
-  APPLICATION_READY,
-  APPLICATION_DISCONNECT,
-}ApplicationTypeDef;
 		
 
 void USB_Host_Init(void);

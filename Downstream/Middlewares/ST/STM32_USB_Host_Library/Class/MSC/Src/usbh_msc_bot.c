@@ -34,8 +34,10 @@
 #include "downstream_spi.h"
 #include "downstream_msc.h"
 #include "downstream_statemachine.h"
+#include "options.h"
 
 
+#ifdef ENABLE_MASS_STORAGE
 
 static USBH_StatusTypeDef USBH_MSC_BOT_Abort(USBH_HandleTypeDef *phost, uint8_t lun, uint8_t dir);
 static BOT_CSWStatusTypeDef USBH_MSC_DecodeCSW(USBH_HandleTypeDef *phost);
@@ -700,6 +702,7 @@ static BOT_CSWStatusTypeDef USBH_MSC_DecodeCSW(USBH_HandleTypeDef *phost)
   return status;
 }
 
+#endif  //#ifdef ENABLE_MASS_STORAGE
 
 /**
 * @}

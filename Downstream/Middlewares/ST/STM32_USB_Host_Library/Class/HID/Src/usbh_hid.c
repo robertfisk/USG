@@ -43,7 +43,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_hid.h"
+#include "options.h"
 
+
+#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 
 /** @addtogroup USBH_LIB
 * @{
@@ -158,15 +161,20 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
     HID_Handle->state = HID_ERROR;
     
     /*Decode Bootclass Protocol: Mouse or Keyboard*/
+#ifdef ENABLE_KEYBOARD
     if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol == HID_KEYBRD_BOOT_CODE)
     {
       USBH_UsrLog ("KeyBoard device found!"); 
     }
-    else if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol  == HID_MOUSE_BOOT_CODE)		  
+    else
+#endif
+#ifdef ENABLE_MOUSE
+    if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol == HID_MOUSE_BOOT_CODE)
     {
       USBH_UsrLog ("Mouse device found!");         
     }
     else
+#endif
     {
       USBH_UsrLog ("Protocol not supported.");  
       return USBH_FAIL;
@@ -835,6 +843,9 @@ __weak void USBH_HID_EventCallback(USBH_HandleTypeDef *phost)
 {
   
 }
+
+#endif  //#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
+
 /**
 * @}
 */ 

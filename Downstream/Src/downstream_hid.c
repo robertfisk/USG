@@ -15,7 +15,10 @@
 #include "downstream_statemachine.h"
 #include "usbh_hid.h"
 #include "stm32f4xx_hal.h"
+#include "options.h"
 
+
+#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 
 extern USBH_HandleTypeDef hUsbHostFS;                       //Hard-link ourselves to usb_host.c
 extern InterfaceCommandClassTypeDef ConfiguredDeviceClass;  //Do a cheap hard-link to downstream_statemachine.c, rather than keep a duplicate here
@@ -51,6 +54,7 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
+#ifdef ENABLE_MOUSE
     if (HID_Handle->Protocol == HID_MOUSE_BOOT_CODE)
     {
         if (Downstream_HID_Mouse_ParseReportDescriptor() == HAL_OK)
@@ -58,18 +62,20 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
             return COMMAND_CLASS_HID_MOUSE;             //success!
         }
     }
-
+#endif
+#ifdef ENABLE_KEYBOARD
     if (HID_Handle->Protocol == HID_KEYBRD_BOOT_CODE)
     {
             return COMMAND_CLASS_HID_KEYBOARD;          //success!
     }
+#endif
 
     //else:
     return COMMAND_CLASS_INTERFACE;                     //fail
 }
 
 
-
+#ifdef ENABLE_MOUSE
 static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
 {
     uint32_t currentReportBitIndex = 0;
@@ -223,7 +229,7 @@ static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
 
     return HAL_OK;
 }
-
+#endif
 
 
 //Retrieves the next item in the HID report, and at most one of its associated data bytes.
@@ -313,19 +319,24 @@ void Downstream_HID_InterruptReportCallback(USBH_StatusTypeDef result)
     if (result == USBH_OK)
     {
         //Data received from device
+#ifdef ENABLE_MOUSE
         if (ConfiguredDeviceClass == COMMAND_CLASS_HID_MOUSE)
         {
             Downstream_HID_Mouse_ExtractDataFromReport(freePacket);
             freePacket->Length16 = ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
         }
-        else if (ConfiguredDeviceClass == COMMAND_CLASS_HID_KEYBOARD)
+        else
+#endif
+#ifdef ENABLE_KEYBOARD
+        if (ConfiguredDeviceClass == COMMAND_CLASS_HID_KEYBOARD)
         {
             Downstream_HID_Keyboard_ExtractDataFromReport(freePacket);
             freePacket->Length16 = ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2) + DOWNSTREAM_PACKET_HEADER_LEN_16;
         }
-        //else if...
-
         else
+#endif
+
+        //else if...
         {
             Downstream_PacketProcessor_FreakOut();
             return;
@@ -343,6 +354,7 @@ void Downstream_HID_InterruptReportCallback(USBH_StatusTypeDef result)
 }
 
 
+#ifdef ENABLE_MOUSE
 static void Downstream_HID_Mouse_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
@@ -388,9 +400,10 @@ static uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandl
     if (readData > INT8_MAX) readData = INT8_MAX;
     return (int8_t)readData;
 }
+#endif
 
 
-
+#ifdef ENABLE_KEYBOARD
 static void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDef* packetToSend)
 {
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
@@ -410,11 +423,14 @@ static void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDe
         packetToSend->Data[i] = readData;
     }
 }
+#endif
 
 
 
 void Downstream_HID_SendReportCallback(USBH_StatusTypeDef result)
 {
+    UNUSED(result);
+
     DownstreamPacketTypeDef* freePacket;
 
     freePacket = Downstream_GetFreePacketImmediately();
@@ -423,4 +439,7 @@ void Downstream_HID_SendReportCallback(USBH_StatusTypeDef result)
     freePacket->Command = COMMAND_HID_SET_REPORT;
     Downstream_PacketProcessor_ClassReply(freePacket);
 }
+
+
+#endif  //#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 

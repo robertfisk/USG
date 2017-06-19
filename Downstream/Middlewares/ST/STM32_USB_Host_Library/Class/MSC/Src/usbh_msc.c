@@ -46,8 +46,10 @@
 #include "usbh_msc_bot.h"    
 #include "usbh_msc_scsi.h"
 #include "interrupts.h"
+#include "options.h"
 
 
+#ifdef ENABLE_MASS_STORAGE
 /** @addtogroup USBH_LIB
   * @{
   */
@@ -784,6 +786,8 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                      length);
   return USBH_OK;
 }
+
+#endif  //#ifdef ENABLE_MASS_STORAGE
 
 /**
   * @}

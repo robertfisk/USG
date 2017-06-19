@@ -19,7 +19,7 @@
 #include "usbh_msc.h"
 #include "usbh_hid.h"
 #include "led.h"
-
+#include "options.h"
 
 
 DownstreamStateTypeDef          DownstreamState         = STATE_DEVICE_NOT_READY;
@@ -88,15 +88,22 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 
     switch (ConfiguredDeviceClass)
     {
+
+#ifdef ENABLE_MASS_STORAGE
     case COMMAND_CLASS_MASS_STORAGE:
         Downstream_MSC_PacketProcessor(receivedPacket);
         break;
-
+#endif
+#ifdef ENABLE_MOUSE
     case COMMAND_CLASS_HID_MOUSE:
+        Downstream_HID_PacketProcessor(receivedPacket);
+        break;
+#endif
+#ifdef ENABLE_KEYBOARD
     case COMMAND_CLASS_HID_KEYBOARD:
         Downstream_HID_PacketProcessor(receivedPacket);
         break;
-
+#endif
 
     //Add other classes here...
 
@@ -235,13 +242,16 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
     {
         switch (phost->pActiveClass->ClassCode)
         {
+#ifdef ENABLE_MASS_STORAGE
         case USB_MSC_CLASS:
             newActiveClass = Downstream_MSC_ApproveConnectedDevice();
             break;
-
+#endif
+#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
         case USB_HID_CLASS:
             newActiveClass = Downstream_HID_ApproveConnectedDevice();
             break;
+#endif
 
         //Add other classes here...
 
