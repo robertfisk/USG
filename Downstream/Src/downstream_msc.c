@@ -15,7 +15,10 @@
 #include "downstream_statemachine.h"
 #include "downstream_spi.h"
 #include "usbh_msc.h"
+#include "options.h"
 
+
+#ifdef ENABLE_MASS_STORAGE
 
 extern USBH_HandleTypeDef hUsbHostFS;       //Hard-link ourselves to usb_host.c
 
@@ -284,4 +287,5 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receive
 
 }
 
+#endif  //#ifdef ENABLE_MASS_STORAGE
 

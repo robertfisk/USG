@@ -32,7 +32,10 @@
 #include "usbh_msc.h"
 #include "usbh_msc_scsi.h"
 #include "usbh_msc_bot.h"
+#include "options.h"
 
+
+#ifdef ENABLE_MASS_STORAGE
 
 /** @addtogroup USBH_LIB
   * @{
@@ -426,6 +429,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
   return error;
 }
 
+#endif  //#ifdef ENABLE_MASS_STORAGE
 
 /**
   * @}
