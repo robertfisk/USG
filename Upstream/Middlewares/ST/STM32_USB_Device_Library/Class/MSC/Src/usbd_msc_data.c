@@ -27,7 +27,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_msc_data.h"
+#include "options.h"
 
+
+#ifdef ENABLE_MASS_STORAGE
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -100,6 +103,9 @@ const uint8_t  MSC_Mode_Sense10_data[] = {
     0x00, 
     0x00
 };
+
+#endif  //ifdef ENABLE_MASS_STORAGE
+
 /**
   * @}
   */ 

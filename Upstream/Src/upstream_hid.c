@@ -13,14 +13,19 @@
 
 #include "upstream_hid.h"
 #include "upstream_interface_def.h"
+#include "options.h"
 
+
+#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 
 
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 UpstreamHidGetReportCallback    GetReportCallback = NULL;
 
+#ifdef ENABLE_KEYBOARD
 KeyboardOutStateTypeDef         KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
 uint8_t                         KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
+#endif
 
 uint8_t                         GetReportLoopIsRunning = 0;
 
@@ -41,7 +46,10 @@ void Upstream_HID_DeInit(void)
     }
     GetReportCallback = NULL;
     GetReportLoopIsRunning = 0;
+
+#ifdef ENABLE_KEYBOARD
     KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
+#endif
 }
 
 
@@ -102,7 +110,6 @@ static void Upstream_HID_ReceiveInterruptReport(void)
     {
         Upstream_ReleasePacket(freePacket);
     }
-
 }
 
 
@@ -135,6 +142,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
     }
     else
     {
+#ifdef ENABLE_MOUSE
         if (activeClass == COMMAND_CLASS_HID_MOUSE)
         {
             if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2)))
@@ -160,8 +168,10 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
             //Other mouse sanity checks & stuff go here...
         }
-
-        else if (activeClass == COMMAND_CLASS_HID_KEYBOARD)
+        else
+#endif
+#ifdef ENABLE_KEYBOARD
+        if (activeClass == COMMAND_CLASS_HID_KEYBOARD)
         {
             if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2)))
             {
@@ -194,6 +204,8 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
         //Other HID classes go here...
         else
+#endif
+
         {
             UPSTREAM_STATEMACHINE_FREAKOUT;
             return;
@@ -217,12 +229,14 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
     if (GetReportLoopIsRunning)
     {
+#ifdef ENABLE_KEYBOARD
         //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
         if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
         {
             Upstream_HID_SendControlReport();
         }
         else
+#endif
         {
             Upstream_HID_ReceiveInterruptReport();      //Otherwise poll downstream again
         }
@@ -231,6 +245,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
 
 
+#ifdef ENABLE_KEYBOARD
 void Upstream_HID_RequestSendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength)
 {
     InterfaceCommandClassTypeDef activeClass;
@@ -307,6 +322,7 @@ static void Upstream_HID_SendControlReportCallback(UpstreamPacketTypeDef* receiv
     KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
     Upstream_HID_ReceiveInterruptReport();
 }
+#endif
 
-
+#endif  //#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 
