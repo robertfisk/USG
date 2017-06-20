@@ -52,7 +52,10 @@
 #include "usbd_hid.h"
 #include "usbd_ctlreq.h"
 #include "upstream_hid.h"
+#include "options.h"
 
+
+#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 
 
 static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, 
@@ -76,9 +79,12 @@ static uint8_t USBD_HID_SendReport (uint8_t *report,
 static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev);
 
 
-
-#define USBD_PID_MOUSE      0x0002
-#define USBD_PID_KEYBOARD   0x0003
+#ifdef ENABLE_MOUSE
+    #define USBD_PID_MOUSE      0x0002
+#endif
+#ifdef ENABLE_KEYBOARD
+    #define USBD_PID_KEYBOARD   0x0003
+#endif
 
 
 USBD_ClassTypeDef  USBD_HID =
@@ -188,6 +194,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
   0x00,
 };
 
+#ifdef ENABLE_MOUSE
 __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  __ALIGN_END =
 {
   0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
@@ -230,8 +237,9 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  _
   0xC0,              // End Collection
   // 74 bytes
 }; 
+#endif
 
-
+#ifdef ENABLE_KEYBOARD
 __ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SIZE] __ALIGN_END = {
     0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
     0x09, 0x06,                    // USAGE (Keyboard)
@@ -266,7 +274,7 @@ __ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SI
     0x81, 0x00,                    //   INPUT (Data,Ary,Abs)
     0xc0                           // END_COLLECTION
 };
-
+#endif
 
 
 
@@ -293,6 +301,7 @@ uint8_t                 OutReportSize;
   * @param  cfgidx: Configuration index
   * @retval status
   */
+#ifdef ENABLE_MOUSE
 void USBD_HID_PreinitMouse(void)
 {
   ActiveReportDescriptor = HID_MOUSE_ReportDesc;
@@ -306,8 +315,10 @@ void USBD_HID_PreinitMouse(void)
   USBD_HID_CfgDesc[USB_HID_CFGDESC__EPIN_SIZE_OFFSET] = HID_MOUSE_INPUT_DATA_LEN;
   USBD_HID_Desc[USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_MOUSE_REPORT_DESC_SIZE;
 }
+#endif
 
 
+#ifdef ENABLE_KEYBOARD
 void USBD_HID_PreinitKeyboard(void)
 {
   ActiveReportDescriptor = HID_KEYBOARD_ReportDesc;
@@ -321,7 +332,7 @@ void USBD_HID_PreinitKeyboard(void)
   USBD_HID_CfgDesc[USB_HID_CFGDESC__EPIN_SIZE_OFFSET] = HID_KEYBOARD_INPUT_DATA_LEN;
   USBD_HID_Desc[USB_HID_DESC__HID_REPORT_DESC_SIZE_OFFSET] = HID_KEYBOARD_REPORT_DESC_SIZE;
 }
-
+#endif
 
 
 static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, 
@@ -598,17 +609,23 @@ static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length)
 //Upstream_HID will send it after the next IN interrupt transfer
 static uint8_t USBD_HID_EP0RxReady(USBD_HandleTypeDef *pdev)
 {
+    UNUSED(pdev);
+
     if ((OutReportPacket == NULL) ||
         (OutReportSize == 0))
     {
         while(1);
     }
 
+#ifdef ENABLE_KEYBOARD
     Upstream_HID_RequestSendControlReport(OutReportPacket, OutReportSize);
     Upstream_ReleasePacket(OutReportPacket);
     OutReportPacket = NULL;
+#endif
     return USBD_OK;
 }
+
+#endif  //#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
 
 /**
   * @}

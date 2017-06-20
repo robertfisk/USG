@@ -36,7 +36,10 @@
 #include "usbd_msc.h"
 #include "usbd_msc_data.h"
 #include "usbd_descriptors.h"
+#include "options.h"
 
+
+#ifdef ENABLE_MASS_STORAGE
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -192,7 +195,15 @@ void SCSI_ProcessCmd(USBD_HandleTypeDef  *pdev,
     return;
     
   case SCSI_WRITE10:
-    SCSI_Write10();
+#ifdef MASS_STORAGE_WRITES_PERMITTED
+      SCSI_Write10();
+#else
+      SCSI_SenseCode(pdev,
+                     lun,
+                     DATA_PROTECT,
+                     WRITE_PROTECTED);
+      SCSI_ProcessCmd_callback(-1);
+#endif
     return;
     
   case SCSI_VERIFY10:
@@ -670,6 +681,7 @@ void SCSI_Read10ReplyCallback(UpstreamPacketTypeDef* upstreamPacket,
 * @param  params: Command parameters
 * @retval status
 */
+#ifdef MASS_STORAGE_WRITES_PERMITTED
 static void SCSI_Write10(void)
 {
     uint32_t dataLength;
@@ -804,7 +816,7 @@ void SCSI_Write10FreePacketCallback(UpstreamPacketTypeDef* freePacket)
                             MIN(SCSI_ProcessCmd_hmsc->csw.dDataResidue, MSC_MEDIA_PACKET));
     SCSI_ProcessCmd_callback(0);        //Report eventual success!
 }
-
+#endif
 
 /**
 * @brief  SCSI_Verify10
@@ -858,6 +870,7 @@ static int8_t SCSI_CheckAddressRange (uint32_t blk_offset , uint16_t blk_nbr)
   return 0;
 }
 
+#endif  //#ifdef ENABLE_MASS_STORAGE
 /**
   * @}
   */ 

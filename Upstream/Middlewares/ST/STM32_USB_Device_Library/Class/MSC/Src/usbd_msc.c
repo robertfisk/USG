@@ -46,6 +46,10 @@
 #include <upstream_interface_def.h>
 #include <upstream_spi.h>
 #include "usbd_msc.h"
+#include "options.h"
+
+
+#ifdef ENABLE_MASS_STORAGE
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -604,6 +608,8 @@ uint8_t  *USBD_MSC_GetDeviceQualifierDescriptor (uint16_t *length)
   *length = sizeof (USBD_MSC_DeviceQualifierDesc);
   return USBD_MSC_DeviceQualifierDesc;
 }
+
+#endif  //#ifdef ENABLE_MASS_STORAGE
 
 
 /**
