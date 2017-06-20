@@ -777,7 +777,7 @@ void SCSI_Write10BeginCallback(HAL_StatusTypeDef result)
     {
         SCSI_SenseCode(SCSI_ProcessCmd_pdev,
                        SCSI_ProcessCmd_lun,
-                       NOT_READY,
+                       DATA_PROTECT,
                        WRITE_PROTECTED);
         SCSI_ProcessCmd_callback(-1);
         return;
