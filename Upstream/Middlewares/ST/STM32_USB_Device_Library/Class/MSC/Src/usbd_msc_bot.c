@@ -32,10 +32,10 @@
 #include "usbd_msc.h"
 #include "usbd_msc_scsi.h"
 #include "usbd_ioreq.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -428,7 +428,7 @@ void  MSC_BOT_CplClrFeature (USBD_HandleTypeDef  *pdev, uint8_t epnum)
   
 }
 
-#endif  //#ifdef ENABLE_MASS_STORAGE
+#endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 /**
   * @}
   */ 

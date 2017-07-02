@@ -27,10 +27,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_msc_data.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -81,30 +81,36 @@ const uint8_t  MSC_Page00_Inquiry_Data[] = {//7
     0x80, 
     0x83 
 };  
+
 /* USB Mass storage sense 6  Data */
 const uint8_t  MSC_Mode_Sense6_data[] = {
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x00, 
-    0x00,
-    0x00
+    0x03,       //Mode data length
+    0x00,       //Medium type, direct-access block devices = 0
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
+    0x00,       //Device-specific parameter, WP is bit 7
+#else
+    0x80,       //Device-specific parameter, WP is bit 7
+#endif
+    0x00        //Block descriptor length
 };  
+
 /* USB Mass storage sense 10  Data */
 const uint8_t  MSC_Mode_Sense10_data[] = {
-    0x00,
-    0x06, 
-    0x00, 
-    0x00, 
-    0x00, 
-    0x00, 
-    0x00, 
-    0x00
+    0x00,       //Mode data length, big endian
+    0x06,       //Mode data length, big endian
+    0x00,       //Medium type, direct-access block devices = 0
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
+    0x00,       //Device-specific parameter, WP is bit 7
+#else
+    0x80,       //Device-specific parameter, WP is bit 7
+#endif
+    0x00,       //Reserved
+    0x00,       //Reserved
+    0x00,       //Block descriptor length, big endian
+    0x00        //Block descriptor length, big endian
 };
 
-#endif  //ifdef ENABLE_MASS_STORAGE
+#endif  //ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /**
   * @}

@@ -1,5 +1,5 @@
 /*
- * options.h
+ * build_config.h
  *
  *  Created on: Jun 20, 2017
  *      Author: Robert Fisk
@@ -9,16 +9,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#ifndef INC_OPTIONS_H_
-#define INC_OPTIONS_H_
+#ifndef INC_BUILD_CONFIG_H_
+#define INC_BUILD_CONFIG_H_
 
 
-#define ENABLE_MASS_STORAGE
-#define ENABLE_KEYBOARD
-#define ENABLE_MOUSE
+#define CONFIG_MASS_STORAGE_ENABLED
+#define CONFIG_MASS_STORAGE_WRITES_PERMITTED
 
-#define MASS_STORAGE_WRITES_PERMITTED
+#define CONFIG_KEYBOARD_ENABLED
+#define CONFIG_MOUSE_ENABLED
 
 
-
-#endif /* INC_OPTIONS_H_ */
+#endif /* INC_BUILD_CONFIG_H_ */

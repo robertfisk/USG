@@ -15,10 +15,10 @@
 #include "upstream_spi.h"
 #include "upstream_statemachine.h"
 #include "stm32f4xx_hal.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 
 //Stuff we need to save for our callbacks to use:
@@ -279,7 +279,7 @@ void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket
 }
 
 
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
                                           uint64_t writeBlockStart,
                                           uint32_t writeBlockCount)
@@ -371,5 +371,5 @@ HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packet
 }
 #endif
 
-#endif  //#ifdef ENABLE_MASS_STORAGE
+#endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 

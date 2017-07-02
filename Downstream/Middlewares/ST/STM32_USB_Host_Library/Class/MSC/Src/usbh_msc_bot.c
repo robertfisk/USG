@@ -34,10 +34,10 @@
 #include "downstream_spi.h"
 #include "downstream_msc.h"
 #include "downstream_statemachine.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 static USBH_StatusTypeDef USBH_MSC_BOT_Abort(USBH_HandleTypeDef *phost, uint8_t lun, uint8_t dir);
 static BOT_CSWStatusTypeDef USBH_MSC_DecodeCSW(USBH_HandleTypeDef *phost);
@@ -301,7 +301,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
                            MSC_Handle->OutPipe,
                            1);
     }
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
     else
     {
         //Asynchronous multi-packet operation: get first packet
@@ -330,7 +330,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
             //Simple single-buffer operation: everything must fit in one URB
             MSC_Handle->hbot.state = BOT_RECEIVE_CSW;
         }
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
         else
         {
             //Asynchronous multi-packet operation
@@ -372,7 +372,7 @@ USBH_StatusTypeDef USBH_MSC_BOT_Process (USBH_HandleTypeDef *phost, uint8_t lun)
         {
             MSC_Handle->hbot.state = BOT_DATA_OUT;
         }
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
         else
         {
             //Increment counters by the amount of data actually transferred during the NAK'd URB
@@ -522,7 +522,7 @@ void USBH_MSC_BOT_Read_Multipacket_PrepareURB(USBH_HandleTypeDef *phost)
                          MSC_Handle->InPipe);
 }
 
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 void USBH_MSC_BOT_Write_Multipacket_ReceivePacketCallback(DownstreamPacketTypeDef* receivedPacket,
                                                           uint16_t dataLength)
 {
@@ -709,7 +709,7 @@ static BOT_CSWStatusTypeDef USBH_MSC_DecodeCSW(USBH_HandleTypeDef *phost)
   return status;
 }
 
-#endif  //#ifdef ENABLE_MASS_STORAGE
+#endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /**
 * @}

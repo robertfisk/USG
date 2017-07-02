@@ -40,7 +40,8 @@
 #include "usbh_msc.h"
 #include "usbh_hid.h"
 #include "downstream_statemachine.h"
-#include "options.h"
+#include "build_config.h"
+
 
 /* USB Host Core handle declaration */
 USBH_HandleTypeDef hUsbHostFS;
@@ -52,10 +53,10 @@ void USB_Host_Init(void)
   /* Init Host Library,Add Supported Class and Start the library*/
   USBH_Init(&hUsbHostFS, Downstream_HostUserCallback, HOST_FS);
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
   USBH_RegisterClass(&hUsbHostFS, USBH_MSC_CLASS);
 #endif
-#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
+#if defined (CONFIG_KEYBOARD_ENABLED) || defined (CONFIG_MOUSE_ENABLED)
   USBH_RegisterClass(&hUsbHostFS, USBH_HID_CLASS);
 #endif
 
