@@ -17,7 +17,7 @@
 #include "usbd_core.h"
 #include "usbd_msc.h"
 #include "usbd_hid.h"
-#include "options.h"
+#include "build_config.h"
 
 
 UpstreamStateTypeDef            UpstreamState           = STATE_TEST_INTERFACE;
@@ -182,20 +182,20 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
 
     switch (replyPacket->Data[0])
     {
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
     case COMMAND_CLASS_MASS_STORAGE:
         newActiveClass = COMMAND_CLASS_MASS_STORAGE;
         newClassPointer = &USBD_MSC;
         break;
 #endif
-#ifdef ENABLE_MOUSE
+#ifdef CONFIG_MOUSE_ENABLED
     case COMMAND_CLASS_HID_MOUSE:
         newActiveClass = COMMAND_CLASS_HID_MOUSE;
         newClassPointer = &USBD_HID;
         USBD_HID_PreinitMouse();
         break;
 #endif
-#ifdef ENABLE_KEYBOARD
+#ifdef CONFIG_KEYBOARD_ENABLED
     case COMMAND_CLASS_HID_KEYBOARD:
         newActiveClass = COMMAND_CLASS_HID_KEYBOARD;
         newClassPointer = &USBD_HID;

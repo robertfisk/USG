@@ -13,16 +13,16 @@
 
 #include "upstream_hid.h"
 #include "upstream_interface_def.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
+#if defined (CONFIG_KEYBOARD_ENABLED) || defined (CONFIG_MOUSE_ENABLED)
 
 
 UpstreamPacketTypeDef*          UpstreamHidPacket = NULL;
 UpstreamHidGetReportCallback    GetReportCallback = NULL;
 
-#ifdef ENABLE_KEYBOARD
+#ifdef CONFIG_KEYBOARD_ENABLED
 KeyboardOutStateTypeDef         KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
 uint8_t                         KeyboardOutData[HID_KEYBOARD_OUTPUT_DATA_LEN];
 #endif
@@ -47,7 +47,7 @@ void Upstream_HID_DeInit(void)
     GetReportCallback = NULL;
     GetReportLoopIsRunning = 0;
 
-#ifdef ENABLE_KEYBOARD
+#ifdef CONFIG_KEYBOARD_ENABLED
     KeyboardOutDataState = KEYBOARD_OUT_STATE_IDLE;
 #endif
 }
@@ -142,7 +142,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
     }
     else
     {
-#ifdef ENABLE_MOUSE
+#ifdef CONFIG_MOUSE_ENABLED
         if (activeClass == COMMAND_CLASS_HID_MOUSE)
         {
             if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_MOUSE_INPUT_DATA_LEN + 1) / 2)))
@@ -170,7 +170,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
         }
         else
 #endif
-#ifdef ENABLE_KEYBOARD
+#ifdef CONFIG_KEYBOARD_ENABLED
         if (activeClass == COMMAND_CLASS_HID_KEYBOARD)
         {
             if (receivedPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + ((HID_KEYBOARD_INPUT_DATA_LEN + 1) / 2)))
@@ -229,7 +229,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
     if (GetReportLoopIsRunning)
     {
-#ifdef ENABLE_KEYBOARD
+#ifdef CONFIG_KEYBOARD_ENABLED
         //Check if we need to send OUT data to the keyboard before requesting next Interrupt IN data
         if (KeyboardOutDataState == KEYBOARD_OUT_STATE_DATA_READY)
         {
@@ -245,7 +245,7 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
 
 
 
-#ifdef ENABLE_KEYBOARD
+#ifdef CONFIG_KEYBOARD_ENABLED
 void Upstream_HID_RequestSendControlReport(UpstreamPacketTypeDef* packetToSend, uint8_t dataLength)
 {
     InterfaceCommandClassTypeDef activeClass;
@@ -324,5 +324,5 @@ static void Upstream_HID_SendControlReportCallback(UpstreamPacketTypeDef* receiv
 }
 #endif
 
-#endif  //#if defined (ENABLE_KEYBOARD) || defined (ENABLE_MOUSE)
+#endif  //#if defined (CONFIG_KEYBOARD_ENABLED) || defined (CONFIG_MOUSE_ENABLED)
 

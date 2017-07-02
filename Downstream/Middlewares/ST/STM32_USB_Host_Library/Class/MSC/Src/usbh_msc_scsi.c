@@ -32,10 +32,10 @@
 #include "usbh_msc.h"
 #include "usbh_msc_scsi.h"
 #include "usbh_msc_bot.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /** @addtogroup USBH_LIB
   * @{
@@ -325,7 +325,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_RequestSense (USBH_HandleTypeDef *phost,
   * @param  length: number of sector to write
   * @retval USBH Status
   */
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 USBH_StatusTypeDef USBH_MSC_SCSI_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
@@ -431,7 +431,7 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
   return error;
 }
 
-#endif  //#ifdef ENABLE_MASS_STORAGE
+#endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /**
   * @}

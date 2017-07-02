@@ -15,10 +15,10 @@
 #include "downstream_statemachine.h"
 #include "downstream_spi.h"
 #include "usbh_msc.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 extern USBH_HandleTypeDef hUsbHostFS;       //Hard-link ourselves to usb_host.c
 
@@ -80,7 +80,7 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         Downstream_MSC_PacketProcessor_BeginRead(receivedPacket);
         break;
 
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
     case COMMAND_MSC_WRITE:
         Downstream_MSC_PacketProcessor_BeginWrite(receivedPacket);
         break;
@@ -172,7 +172,7 @@ void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef resu
 }
 
 
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket)
 {
     uint64_t writeBlockAddress;
@@ -238,7 +238,7 @@ HAL_StatusTypeDef Downstream_MSC_PutStreamDataPacket(DownstreamPacketTypeDef* pa
 }
 
 
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 //Used by USB MSC host driver
 HAL_StatusTypeDef Downstream_MSC_GetStreamDataPacket(DownstreamMSCCallbackPacketTypeDef callback)
 {
@@ -290,7 +290,7 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receive
     }
 
 }
-#endif  //#ifdef MASS_STORAGE_WRITES_PERMITTED
+#endif  //#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 
-#endif  //#ifdef ENABLE_MASS_STORAGE
+#endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 

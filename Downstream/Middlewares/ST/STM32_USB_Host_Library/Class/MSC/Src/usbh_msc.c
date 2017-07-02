@@ -46,10 +46,10 @@
 #include "usbh_msc_bot.h"    
 #include "usbh_msc_scsi.h"
 #include "interrupts.h"
-#include "options.h"
+#include "build_config.h"
 
 
-#ifdef ENABLE_MASS_STORAGE
+#ifdef CONFIG_MASS_STORAGE_ENABLED
 /** @addtogroup USBH_LIB
   * @{
   */
@@ -496,7 +496,7 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
       error = USBH_OK;
       break;
 
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
   case MSC_WRITE:
 #endif
   case MSC_READ:
@@ -574,7 +574,7 @@ static USBH_StatusTypeDef USBH_MSC_RdWrProcess(USBH_HandleTypeDef *phost, uint8_
 #endif   
     break;     
     
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
   case MSC_WRITE: 
     scsi_status = USBH_MSC_SCSI_Write(phost,lun, 0, 0) ;
     
@@ -596,7 +596,7 @@ static USBH_StatusTypeDef USBH_MSC_RdWrProcess(USBH_HandleTypeDef *phost, uint8_
     osMessagePut ( phost->os_event, USBH_CLASS_EVENT, 0);
 #endif       
     break;
-#endif  //#ifdef MASS_STORAGE_WRITES_PERMITTED
+#endif  //#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
   
   case MSC_REQUEST_SENSE:
     scsi_status = USBH_MSC_SCSI_RequestSense(phost, lun, &MSC_Handle->unit[lun].sense);
@@ -762,7 +762,7 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
   * @param  length: number of sector to write
   * @retval USBH Status
   */
-#ifdef MASS_STORAGE_WRITES_PERMITTED
+#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
@@ -791,9 +791,9 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                      length);
   return USBH_OK;
 }
-#endif  //#ifdef MASS_STORAGE_WRITES_PERMITTED
+#endif  //#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
 
-#endif  //#ifdef ENABLE_MASS_STORAGE
+#endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 
 /**
   * @}
