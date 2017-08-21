@@ -35,12 +35,13 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include <interrupts.h>
-#include <upstream_spi.h>
+#include "interrupts.h"
+#include "upstream_spi.h"
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx.h"
 #include "board_config.h"
+#include "build_config.h"
 #include "led.h"
+#include "upstream_hid_botdetect.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -62,6 +63,11 @@ void SysTick_Handler(void)
 {
   HAL_IncTick();
   LED_DoBlinks();
+
+#if (defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)) || \
+    (defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED))
+  Upstream_HID_BotDetect_Systick();
+#endif
 }
 
 /////////////////////////

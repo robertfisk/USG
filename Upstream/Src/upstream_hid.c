@@ -12,6 +12,7 @@
 
 
 #include "upstream_hid.h"
+#include "upstream_hid_botdetect.h"
 #include "upstream_interface_def.h"
 #include "build_config.h"
 
@@ -199,7 +200,9 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
                 Upstream_StateMachine_Wakeup();         //Send wakeup signal to host
             }
 
-            //Other keyboard sanity checks here...
+#ifdef CONFIG_KEYBOARD_BOT_DETECT_ENABLED
+            Upstream_HID_BotDetectKeyboard(receivedPacket->Data);
+#endif
         }
 
         //Other HID classes go here...
