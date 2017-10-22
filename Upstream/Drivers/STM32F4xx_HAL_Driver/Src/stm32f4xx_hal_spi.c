@@ -738,6 +738,7 @@ HAL_StatusTypeDef HAL_SPI_TransmitReceive(SPI_HandleTypeDef *hspi, uint8_t *pTxD
             return HAL_TIMEOUT;
           }
 
+          __disable_irq();                  //Don't let systick interrupt delay our CRCNEXT flag
           hspi->Instance->DR = *((uint16_t*)hspi->pTxBuffPtr);
           hspi->pTxBuffPtr+=2;
           hspi->TxXferCount--;
@@ -757,6 +758,8 @@ HAL_StatusTypeDef HAL_SPI_TransmitReceive(SPI_HandleTypeDef *hspi, uint8_t *pTxD
           *((uint16_t*)hspi->pRxBuffPtr) = hspi->Instance->DR;
           hspi->pRxBuffPtr+=2;
           hspi->RxXferCount--;
+
+          __enable_irq();
         }
         /* Receive the last byte */
         if(hspi->Init.Mode == SPI_MODE_SLAVE)

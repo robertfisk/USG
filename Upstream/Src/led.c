@@ -13,57 +13,98 @@
 #include "led.h"
 #include "board_config.h"
 
+uint32_t            FaultLedCounter;
 
+LedStatusTypeDef    FaultLedState;
+uint16_t            FaultLedOnMs;
+uint16_t            FaultLedOffMs;
+uint8_t             FaultLedBlinkCount;
 
-uint16_t    FaultLedBlinkRate       = 0;
-uint16_t    FaultLedBlinkCounter    = 0;
-uint8_t     FaultLedState           = 0;
-uint8_t     StartupBlinkActive;
+uint8_t             FaultLedBlinkCountState;
+uint8_t             FaultLedOutputState;
 
 
 void LED_Init(void)
 {
     FAULT_LED_ON;
-    StartupBlinkActive = 1;
+    FaultLedState = LED_STATUS_STARTUP;
 }
 
 
-void LED_Fault_SetBlinkRate(uint16_t newBlinkRate)
+void LED_SetState(LedStatusTypeDef newState)
 {
-    FaultLedBlinkRate = newBlinkRate;
-    if (newBlinkRate == 0)
+    FaultLedState = newState;
+
+    switch (FaultLedState)
     {
-        FaultLedState = 0;
+    case LED_STATUS_OFF:
+        FaultLedCounter = UINT32_MAX;
+        FaultLedBlinkCountState = 0;
+        FaultLedOutputState = 0;
         FAULT_LED_OFF;
+        break;
+
+    case LED_STATUS_FLASH_UNSUPPORTED:
+        FaultLedOnMs = LED_UNSUPPORTED_BLINK_MS;
+        FaultLedOffMs = LED_UNSUPPORTED_BLINK_MS;
+        FaultLedBlinkCount = 1;
+        break;
+
+    case LED_STATUS_FLASH_BOTDETECT:
+        FaultLedOnMs = LED_BOTDETECT_BLINK_MS;
+        FaultLedOffMs = LED_BOTDETECT_OFF_MS;
+        FaultLedBlinkCount = 2;
+        break;
+
+    default:
+        FaultLedOnMs = LED_ERROR_BLINK_MS;           //Everything else is LED_STATUS_ERROR
+        FaultLedOffMs = LED_ERROR_BLINK_MS;
+        FaultLedBlinkCount = 1;
     }
 }
 
 
-void LED_DoBlinks(void)
+void LED_Tick(void)
 {
-    if (StartupBlinkActive)
+    if (FaultLedState == LED_STATUS_OFF) return;
+
+    if (FaultLedState == LED_STATUS_STARTUP)
     {
-        if (HAL_GetTick() >= STARTUP_FLASH_DELAY)
+        if (HAL_GetTick() >= STARTUP_FLASH_DELAY_MS)
         {
+            LED_SetState(LED_STATUS_OFF);
+        }
+        return;
+    }
+
+    if (FaultLedOutputState)
+    {
+        if (FaultLedCounter++ >= FaultLedOnMs)                  //Check to turn LED off
+        {
+            FaultLedBlinkCountState++;
+            FaultLedCounter = 0;
+            FaultLedOutputState = 0;
             FAULT_LED_OFF;
-            StartupBlinkActive = 0;
         }
     }
-
-    if (FaultLedBlinkRate > 0)
+    else
     {
-        FaultLedBlinkCounter++;
-        if (FaultLedBlinkCounter >= FaultLedBlinkRate)
+        if (FaultLedBlinkCountState >= FaultLedBlinkCount)      //Checks to turn LED on...
         {
-            FaultLedBlinkCounter = 0;
-            if (FaultLedState)
+            if (FaultLedCounter++ >= FaultLedOffMs)             //Last flash may have longer off-time
             {
-                FaultLedState = 0;
-                FAULT_LED_OFF;
+                FaultLedBlinkCountState = 0;
+                FaultLedCounter = 0;
+                FaultLedOutputState = 1;
+                FAULT_LED_ON;
             }
-            else
+        }
+        else
+        {
+            if (FaultLedCounter++ >= FaultLedOnMs)              //Flash sequence uses on-time as intermediate off-time
             {
-                FaultLedState = 1;
+                FaultLedCounter = 0;
+                FaultLedOutputState = 1;
                 FAULT_LED_ON;
             }
         }

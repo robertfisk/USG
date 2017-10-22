@@ -61,7 +61,7 @@ uint8_t BusFaultAllowed = 0;
 void SysTick_Handler(void)
 {
   HAL_IncTick();
-  LED_DoBlinks();
+  LED_Tick();
 }
 
 /******************************************************************************/

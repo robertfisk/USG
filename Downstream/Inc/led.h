@@ -16,17 +16,28 @@
 #include "stm32f4xx_hal.h"
 
 
+typedef enum
+{
+    LED_STATUS_STARTUP,
+    LED_STATUS_OFF,
+    LED_STATUS_FLASH_ERROR,
+    LED_STATUS_FLASH_UNSUPPORTED,
+    LED_STATUS_FLASH_BOTDETECT
+}
+LedStatusTypeDef;
+
+
 void LED_Init(void);
-void LED_Fault_SetBlinkRate(uint16_t newBlinkRate);
-void LED_DoBlinks(void);
+void LED_SetState(LedStatusTypeDef newState);
+void LED_Tick(void);
 
 
+#define STARTUP_FLASH_DELAY_MS      500
 
-#define STARTUP_FLASH_DELAY		500		//units = ticks = ms
-
-//LEDs are on for BLINK_RATE ticks, then off for BLINK_RATE ticks
-#define LED_FAST_BLINK_RATE		100
-#define LED_SLOW_BLINK_RATE		500
+#define LED_ERROR_BLINK_MS          100
+#define LED_UNSUPPORTED_BLINK_MS    500
+#define LED_BOTDETECT_BLINK_MS      100
+#define LED_BOTDETECT_OFF_MS        (1000 - (LED_BOTDETECT_BLINK_MS * 3))       //Two flashes, total period = 1 sec
 
 
 

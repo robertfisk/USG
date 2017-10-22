@@ -31,7 +31,7 @@ typedef enum
 
 #define UPSTREAM_STATEMACHINE_FREAKOUT                  \
     do {                                                \
-        LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);    \
+        LED_SetState(LED_STATUS_FLASH_ERROR);           \
         Upstream_StateMachine_SetErrorState();          \
         while (1);                                      \
 } while (0);

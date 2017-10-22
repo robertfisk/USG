@@ -62,11 +62,11 @@ uint8_t BusFaultAllowed = 0;
 void SysTick_Handler(void)
 {
   HAL_IncTick();
-  LED_DoBlinks();
+  LED_Tick();
 
 #if (defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)) || \
     (defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED))
-  Upstream_HID_BotDetect_Systick();
+    Upstream_HID_BotDetect_Systick();
 #endif
 }
 

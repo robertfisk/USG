@@ -32,8 +32,8 @@ typedef enum
 #define DOWNSTREAM_STATEMACHINE_FREAKOUT                \
     do {                                                \
         USB_Host_Disconnect();                          \
-        LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);    \
-        /*DownstreamState = STATE_ERROR;   */               \
+        LED_SetState(LED_STATUS_FLASH_ERROR);           \
+        /*DownstreamState = STATE_ERROR;   */           \
         while (1);                                      \
 } while (0);
 

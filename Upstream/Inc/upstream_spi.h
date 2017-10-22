@@ -30,7 +30,7 @@
 
 #define UPSTREAM_SPI_FREAKOUT                               \
     do {                                                    \
-        LED_Fault_SetBlinkRate(LED_FAST_BLINK_RATE);        \
+        LED_SetState(LED_STATUS_FLASH_ERROR);               \
         /*UpstreamInterfaceState = UPSTREAM_INTERFACE_ERROR; */ \
         Upstream_StateMachine_SetErrorState();              \
         while (1);                                          \
