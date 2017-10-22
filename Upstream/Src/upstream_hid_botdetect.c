@@ -18,8 +18,7 @@
 
 //Variables common between keyboard and mouse bot detection:
 uint32_t                        TemporaryLockoutStartTime;
-LockoutStateTypeDef             PermanentLockoutState   = LOCKOUT_STATE_INACTIVE;
-volatile LockoutStateTypeDef    TemporaryLockoutState   = LOCKOUT_STATE_INACTIVE;
+volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 
 
 
@@ -56,25 +55,23 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
 {
     uint32_t i;
     uint32_t j;
-    uint8_t  tempByte;
+    uint8_t  tempModifier;
 
     if (Upstream_HID_BotDetectKeyboard_RolloverCheck(keyboardInData)) return;
 
     //Process modifier keys in first byte
-    tempByte = keyboardInData[0];
+    tempModifier = keyboardInData[0];
     for (i = 0; i < 8; i++)
     {
-        if ((tempByte & 1) && !(OldKeyboardInData[0] & 1))
+        if ((tempModifier & 1) && !(OldKeyboardInData[0] & 1))
         {
             Upstream_HID_BotDetectKeyboard_KeyDown(KEY_MODIFIER_BASE + i);
         }
-
-        if (!(tempByte & 1) && (OldKeyboardInData[0] & 1))
+        if (!(tempModifier & 1) && (OldKeyboardInData[0] & 1))
         {
-            Upstream_HID_BotDetectKeyboard_KeyDown(KEY_MODIFIER_BASE + i);
+            Upstream_HID_BotDetectKeyboard_KeyUp(KEY_MODIFIER_BASE + i);
         }
-
-        tempByte >>= 1;
+        tempModifier >>= 1;
         OldKeyboardInData[0] >>= 1;
     }
 
@@ -102,7 +99,7 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
          {
              for (j = 2; j < HID_KEYBOARD_INPUT_DATA_LEN; j++)
              {
-                 if (keyboardInData[i] == OldKeyboardInData[j]) break;
+                 if (OldKeyboardInData[i] == keyboardInData[j]) break;
              }
              if (j >= HID_KEYBOARD_INPUT_DATA_LEN)
              {
@@ -118,15 +115,17 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
     }
 
     //Final checks
-    if (KeyTimerCount >= KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_KEY_COUNT)
+    if ((KeyTimerCount > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_KEY_COUNT) &&
+        (LockoutState != LOCKOUT_STATE_PERMANENT_ACTIVE))
     {
         TemporaryLockoutStartTime = HAL_GetTick();
-        TemporaryLockoutState = LOCKOUT_STATE_ACTIVE;
-        ////////////Set LED state
+        LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
+        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
     }
 
     //Host receives no data if we are locked
-    if ((TemporaryLockoutState == LOCKOUT_STATE_ACTIVE) || (PermanentLockoutState == LOCKOUT_STATE_ACTIVE))
+    if ((LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE) ||
+        (LockoutState == LOCKOUT_STATE_PERMANENT_ACTIVE))
     {
         for (i = 0; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)
         {
@@ -153,7 +152,8 @@ static uint32_t Upstream_HID_BotDetectKeyboard_RolloverCheck(uint8_t* keyboardIn
     //This ensures the host interprets a rollover event exactly the way we do!
 
     //Host receives no data if we are locked
-    if ((TemporaryLockoutState == LOCKOUT_STATE_ACTIVE) || (PermanentLockoutState == LOCKOUT_STATE_ACTIVE))
+    if ((LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE) ||
+        (LockoutState == LOCKOUT_STATE_PERMANENT_ACTIVE))
     {
         for (i = 0; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)
         {
@@ -178,8 +178,8 @@ static void Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode)
 
     if (KeyTimerCount >= KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_KEY_COUNT)
     {
-        PermanentLockoutState = LOCKOUT_STATE_ACTIVE;
-        ////////////Set LED state
+        LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
         return;
     }
 
@@ -204,7 +204,8 @@ static void Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode)
     __disable_irq();
     KeyTimerLog[KeyTimerCount].KeyCode = keyCode;
     KeyTimerLog[KeyTimerCount].KeyDownTime = HAL_GetTick();
-    KeyTimerLog[KeyTimerCount++].KeyActiveTimer = tempKeyActiveTime;
+    KeyTimerLog[KeyTimerCount].KeyActiveTimer = tempKeyActiveTime;
+    KeyTimerCount++;
     __enable_irq();
 }
 
@@ -215,6 +216,7 @@ static uint32_t Upstream_HID_BotDetectKeyboard_KeyIsAlphanum(uint8_t keyCode)
     if ((keyCode >= KEY_A) && (keyCode <= KEY_Z)) return 1;
     if ((keyCode >= KEY_1) && (keyCode <= KEY_0)) return 1;
     if ((keyCode >= KEY_PAD_1) && (keyCode <= KEY_PAD_0)) return 1;
+    if ((keyCode == KEY_MODIFIER_SHIFT_L) || (keyCode == KEY_MODIFIER_SHIFT_R)) return 1;
     if (keyCode == KEY_SPACE) return 1;
 
     //else:
@@ -242,16 +244,20 @@ static void Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode)
     //Was this is a short keypress?
     if ((int32_t)(HAL_GetTick() - KeyTimerLog[i].KeyDownTime) < KEYBOARD_BOTDETECT_MINIMUM_KEYDOWN_TIME_MS)
     {
+        __enable_irq();
         ShortKeypressCount++;
-        ////////////Set LED state
+        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
         if (ShortKeypressCount >= KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_SHORT_COUNT)
         {
-            PermanentLockoutState = LOCKOUT_STATE_ACTIVE;
+            LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
         }
         else
         {
-            TemporaryLockoutStartTime = HAL_GetTick();
-            TemporaryLockoutState = LOCKOUT_STATE_ACTIVE;
+            if (LockoutState != LOCKOUT_STATE_PERMANENT_ACTIVE)
+            {
+                TemporaryLockoutStartTime = HAL_GetTick();
+                LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
+            }
         }
     }
     __enable_irq();
@@ -272,8 +278,7 @@ void Upstream_HID_BotDetect_Systick(void)
 #if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
     if (KeyTimerCount > 0)                              //Check if current active key has timed out
     {
-        KeyTimerLog[0].KeyActiveTimer--;
-        if (KeyTimerLog[0].KeyActiveTimer <= 0)
+        if (KeyTimerLog[0].KeyActiveTimer-- == 0)
         {
             KeyTimerCount--;
             for (i = 0; i < KeyTimerCount; i++)         //Shuffle other keys down
@@ -286,19 +291,19 @@ void Upstream_HID_BotDetect_Systick(void)
     }
 
     //Check if temporary lockout has expired
-    if (TemporaryLockoutState == LOCKOUT_STATE_ACTIVE)
+    if (LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE)
     {
         if ((int32_t)(HAL_GetTick() - TemporaryLockoutStartTime) > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS)
         {
-            TemporaryLockoutState = LOCKOUT_STATE_FLASHING;
+            LockoutState = LOCKOUT_STATE_TEMPORARY_FLASHING;
         }
     }
-    else if (TemporaryLockoutState == LOCKOUT_STATE_FLASHING)
+    else if (LockoutState == LOCKOUT_STATE_TEMPORARY_FLASHING)
     {
-        if ((int32_t)(HAL_GetTick() - TemporaryLockoutStartTime) > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_LED_TIME_MS)
+        if ((int32_t)(HAL_GetTick() - TemporaryLockoutStartTime) > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_FLASH_TIME_MS)
         {
-            ////////////Set LEDs off
-            TemporaryLockoutState = LOCKOUT_STATE_INACTIVE;
+            LED_SetState(LED_STATUS_OFF);
+            LockoutState = LOCKOUT_STATE_INACTIVE;
         }
     }
 #endif

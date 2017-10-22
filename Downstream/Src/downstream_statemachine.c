@@ -264,7 +264,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
         if (newActiveClass == COMMAND_CLASS_INTERFACE)
         {
             USB_Host_Disconnect();
-            LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
+            LED_SetState(LED_STATUS_FLASH_UNSUPPORTED);
             DownstreamState = STATE_ERROR;
             return;
         }
@@ -303,7 +303,7 @@ void Downstream_HostUserCallback(USBH_HandleTypeDef *phost, uint8_t id)
         //Unsupported device classes will cause a slow fault flash.
         //This is distinct from the fast freakout flash caused by internal errors or attacks.
         USB_Host_Disconnect();
-        LED_Fault_SetBlinkRate(LED_SLOW_BLINK_RATE);
+        LED_SetState(LED_STATUS_FLASH_UNSUPPORTED);
         DownstreamState = STATE_ERROR;
         return;
     }

@@ -21,13 +21,16 @@
 #define KEY_PAD_1               0x59
 #define KEY_PAD_0               0x62
 #define KEY_MODIFIER_BASE       0xE0        //First modifier key is L-Ctl
+#define KEY_MODIFIER_SHIFT_L    0xE1
+#define KEY_MODIFIER_SHIFT_R    0xE5
 
 
 typedef enum
 {
     LOCKOUT_STATE_INACTIVE = 0,
-    LOCKOUT_STATE_ACTIVE,
-    LOCKOUT_STATE_FLASHING
+    LOCKOUT_STATE_TEMPORARY_ACTIVE,
+    LOCKOUT_STATE_TEMPORARY_FLASHING,
+    LOCKOUT_STATE_PERMANENT_ACTIVE
 }
 LockoutStateTypeDef;
 
@@ -36,7 +39,7 @@ typedef struct
 {
     uint8_t  KeyCode;
     uint32_t KeyDownTime;
-    int32_t  KeyActiveTimer;
+    uint32_t KeyActiveTimer;
 }
 KeyTimerLogTypeDef;
 
