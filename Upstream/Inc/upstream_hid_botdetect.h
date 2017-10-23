@@ -18,6 +18,8 @@
 #define KEY_1                   0x1E
 #define KEY_0                   0x27
 #define KEY_SPACE               0x2C
+#define KEY_COMMA               0x36
+#define KEY_FULLSTOP            0x37
 #define KEY_PAD_1               0x59
 #define KEY_PAD_0               0x62
 #define KEY_MODIFIER_BASE       0xE0        //First modifier key is L-Ctl
