@@ -25,9 +25,10 @@
 
 //Configure keyboard rate-limiting (bot detection) here:
 #ifdef CONFIG_KEYBOARD_BOT_DETECT_ENABLED
-    #define KEYBOARD_BOTDETECT_ALPHANUM_TIME_MS                 125     //Alphanumeric keys (& space & shift), used for high-speed typing. Limit 8 per second
-    #define KEYBOARD_BOTDETECT_NON_ALPHANUM_DIFFERENT_TIME_MS   200     //Non-alphanumeric keys. Limit 5 per second.
-    #define KEYBOARD_BOTDETECT_NON_ALPHANUM_REPEATED_TIME_MS    170     //Non-alphanumeric key, pressed repeatedly. Limit 6 keys per second.
+    #define KEYBOARD_BOTDETECT_FASTKEY_TIME_MS                  125     //Alphanumeric keys (& space & shift & comma & fullstop), used for high-speed typing. Limit 8 per second
+    #define KEYBOARD_BOTDETECT_FASTKEY_TIME_REPEATED_MS         170     //Alphanumeric keys pressed repeatedly. Limit 6 keys per second.
+    #define KEYBOARD_BOTDETECT_SLOWKEY_TIME_MS                  200     //Non-alphanumeric keys. Limit 5 per second.
+    #define KEYBOARD_BOTDETECT_SLOWKEY_TIME_REPEATED_MS         170     //Non-alphanumeric key, pressed repeatedly. Limit 6 keys per second.
     #define KEYBOARD_BOTDETECT_MINIMUM_KEYDOWN_TIME_MS          30      //Key pressed less than this indicates bot. This value must be less than the smallest of the above ratelimit key times for the code to work correctly!
 
     #define KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_KEY_COUNT      3       //'Burst' = maximum number of keys with active timer before triggering temporary lockout
