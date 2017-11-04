@@ -24,11 +24,24 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 
 //Variables specific to keyboard bot detection:
 #if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
-    KeyTimerLogTypeDef  KeyTimerLog[KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_KEY_COUNT];
-    volatile uint8_t    KeyTimerCount           = 0;
-    uint8_t             LastKeyCode             = 0;
-    uint8_t             ShortKeypressCount      = 0;
-    uint8_t             OldKeyboardInData[HID_KEYBOARD_INPUT_DATA_LEN] = {0};
+    uint32_t            LastKeyDownTime = 0;
+    KeyTimerLogTypeDef  KeyTimerLog[KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS] = {0};
+
+    uint8_t             KeyDelayFastBinDrainDivideCount     = 0;
+    uint8_t             KeyDelaySlowBinDrainDivideCount     = 0;
+    uint8_t             KeyDowntimeFastBinDrainDivideCount  = 0;
+    uint8_t             KeyDowntimeSlowBinDrainDivideCount  = 0;
+    uint8_t             KeyDelayFastBinArray[KEYBOARD_BOTDETECT_FAST_BIN_COUNT]     = {0};
+    uint8_t             KeyDelaySlowBinArray[KEYBOARD_BOTDETECT_SLOW_BIN_COUNT]     = {0};
+    uint8_t             KeyDowntimeFastBinArray[KEYBOARD_BOTDETECT_FAST_BIN_COUNT]  = {0};
+    uint8_t             KeyDowntimeSlowBinArray[KEYBOARD_BOTDETECT_SLOW_BIN_COUNT]  = {0};
+    uint8_t             OldKeyboardInData[HID_KEYBOARD_INPUT_DATA_LEN]              = {0};
+
+    //Debug:
+//    uint8_t             KeyDelayFastBinArrayPeak;
+//    uint8_t             KeyDelaySlowBinArrayPeak;
+//    uint8_t             KeyDowntimeFastBinArrayPeak;
+//    uint8_t             KeyDowntimeSlowBinArrayPeak;
 #endif
 
 
@@ -43,14 +56,15 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 //Code specific to keyboard bot detection:
 #if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
 
-static uint32_t    Upstream_HID_BotDetectKeyboard_RolloverCheck(uint8_t* keyboardInData);
-static uint32_t    Upstream_HID_BotDetectKeyboard_KeyIsFast(uint8_t keyCode);
-static void        Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode);
-static void        Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode);
+static uint32_t Upstream_HID_BotDetectKeyboard_RolloverCheck(uint8_t* keyboardInData);
+static void     Upstream_HID_BotDetectKeyboard_DoLockout(void);
+static void     Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode);
+static void     Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode);
+
 
 
 //Checks if received keyboard data is from a real human.
-//This is not entirely bulletproof as an attacking device may slow its keypresses below the threshold.
+//This is not entirely bulletproof as an attacking device may randomize its keypresses.
 void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
 {
     uint32_t i;
@@ -108,19 +122,38 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
          }
      }
 
+    //Check for evidence of bot typing
+    for (i = 0; i < KEYBOARD_BOTDETECT_FAST_BIN_COUNT; i++)
+    {
+        if ((KeyDelayFastBinArray[i]    > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD) ||
+            (KeyDowntimeFastBinArray[i] > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD))
+        {
+            Upstream_HID_BotDetectKeyboard_DoLockout();
+            break;
+        }
+
+        //Debug:
+//        if (KeyDelayFastBinArray[i]    > KeyDelayFastBinArrayPeak)    KeyDelayFastBinArrayPeak = KeyDelayFastBinArray[i];
+//        if (KeyDowntimeFastBinArray[i] > KeyDowntimeFastBinArrayPeak) KeyDowntimeFastBinArrayPeak = KeyDowntimeFastBinArray[i];
+    }
+    for (i = 0; i < KEYBOARD_BOTDETECT_SLOW_BIN_COUNT; i++)
+    {
+        if ((KeyDelaySlowBinArray[i]    > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD) ||
+            (KeyDowntimeSlowBinArray[i] > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD))
+        {
+            Upstream_HID_BotDetectKeyboard_DoLockout();
+            break;
+        }
+
+        //Debug:
+//        if (KeyDelaySlowBinArray[i]    > KeyDelaySlowBinArrayPeak)    KeyDelaySlowBinArrayPeak = KeyDelaySlowBinArray[i];
+//        if (KeyDowntimeSlowBinArray[i] > KeyDowntimeSlowBinArrayPeak) KeyDowntimeSlowBinArrayPeak = KeyDowntimeSlowBinArray[i];
+    }
+
     //Copy new data to old array
     for (i = 0; i < HID_KEYBOARD_INPUT_DATA_LEN; i++)
     {
         OldKeyboardInData[i] = keyboardInData[i];
-    }
-
-    //Final checks
-    if ((KeyTimerCount > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_KEY_COUNT) &&
-        (LockoutState != LOCKOUT_STATE_PERMANENT_ACTIVE))
-    {
-        TemporaryLockoutTimeMs = 0;
-        LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
-        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
     }
 
     //Host receives no data if we are locked
@@ -132,6 +165,39 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
             keyboardInData[i] = 0;
         }
     }
+}
+
+
+
+static void Upstream_HID_BotDetectKeyboard_DoLockout(void)
+{
+    uint32_t i;
+
+    if (LockoutState == LOCKOUT_STATE_PERMANENT_ACTIVE) return;
+
+    //Are we already in warning state? -> activate permanent lockout
+    if ((LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE) ||
+        (LockoutState == LOCKOUT_STATE_TEMPORARY_FLASHING))
+    {
+        LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        return;
+    }
+
+    //Otherwise, reset counters and give warning
+    for (i = 0; i < KEYBOARD_BOTDETECT_FAST_BIN_COUNT; i++)
+    {
+        KeyDelayFastBinArray[i] = 0;
+        KeyDowntimeFastBinArray[i] = 0;
+    }
+    for (i = 0; i < KEYBOARD_BOTDETECT_SLOW_BIN_COUNT; i++)
+    {
+        KeyDelaySlowBinArray[i] = 0;
+        KeyDowntimeSlowBinArray[i] = 0;
+    }
+
+    TemporaryLockoutTimeMs = 0;
+    LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
+    LED_SetState(LED_STATUS_FLASH_BOTDETECT);
 }
 
 
@@ -174,104 +240,100 @@ static uint32_t Upstream_HID_BotDetectKeyboard_RolloverCheck(uint8_t* keyboardIn
 
 static void Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode)
 {
-    uint32_t tempKeyActiveTime;
+    uint32_t i;
+    uint32_t keyDelay;
+    uint32_t now = HAL_GetTick();
 
-    if (KeyTimerCount >= KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_KEY_COUNT)
+    keyDelay = now - LastKeyDownTime;
+    if (keyDelay < (KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS * KEYBOARD_BOTDETECT_FAST_BIN_COUNT))
     {
-        LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
-        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
-        return;
-    }
+        KeyDelayFastBinArray[(keyDelay / KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS)]++;                          //Add key to fast bin
 
-    if (Upstream_HID_BotDetectKeyboard_KeyIsFast(keyCode))
-    {
-        if (keyCode == LastKeyCode)
+        //Drain fast bins at specified rate
+        KeyDelayFastBinDrainDivideCount++;
+        if (KeyDelayFastBinDrainDivideCount >= KEYBOARD_BOTDETECT_FAST_BIN_DRAIN_DIVIDER)
         {
-            tempKeyActiveTime = KEYBOARD_BOTDETECT_FASTKEY_TIME_REPEATED_MS;
-        }
-        else
-        {
-            tempKeyActiveTime = KEYBOARD_BOTDETECT_FASTKEY_TIME_MS;
+            KeyDelayFastBinDrainDivideCount = 0;
+            for (i = 0; i < KEYBOARD_BOTDETECT_FAST_BIN_COUNT; i++)
+            {
+                if (KeyDelayFastBinArray[i] > 0) KeyDelayFastBinArray[i]--;
+            }
         }
     }
     else
     {
-        if (keyCode == LastKeyCode)
+        keyDelay = keyDelay % (KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS * KEYBOARD_BOTDETECT_SLOW_BIN_COUNT);   //Wrap slow key time into the slow array
+        KeyDelaySlowBinArray[(keyDelay / KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS)]++;                          //Add key to slow bin
+
+        //Drain slow bins at specified rate
+        KeyDelaySlowBinDrainDivideCount++;
+        if (KeyDelaySlowBinDrainDivideCount >= KEYBOARD_BOTDETECT_SLOW_BIN_DRAIN_DIVIDER)
         {
-            tempKeyActiveTime = KEYBOARD_BOTDETECT_SLOWKEY_TIME_REPEATED_MS;
-        }
-        else
-        {
-            tempKeyActiveTime = KEYBOARD_BOTDETECT_SLOWKEY_TIME_MS;
+            KeyDelaySlowBinDrainDivideCount = 0;
+            for (i = 0; i < KEYBOARD_BOTDETECT_SLOW_BIN_COUNT; i++)
+            {
+                if (KeyDelaySlowBinArray[i] > 0) KeyDelaySlowBinArray[i]--;
+            }
         }
     }
-    LastKeyCode = keyCode;
+    LastKeyDownTime = now;
 
-    //Disable systick interrupt while adding key to array
-    __disable_irq();
-    KeyTimerLog[KeyTimerCount].KeyCode = keyCode;
-    KeyTimerLog[KeyTimerCount].KeyDownTime = HAL_GetTick();
-    KeyTimerLog[KeyTimerCount].KeyActiveTimer = tempKeyActiveTime;
-    KeyTimerCount++;
-    __enable_irq();
+    for (i = 0; i < KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS; i++)
+    {
+        if (KeyTimerLog[i].KeyCode == 0) break;
+    }
+    if (i >= KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS) while (1);         //Totally should not happen
+    KeyTimerLog[i].KeyCode = keyCode;
+    KeyTimerLog[i].KeyDownStart = now;
 }
 
-
-
-static uint32_t Upstream_HID_BotDetectKeyboard_KeyIsFast(uint8_t keyCode)
-{
-    if ((keyCode >= KEY_A) && (keyCode <= KEY_Z)) return 1;
-//    if ((keyCode >= KEY_1) && (keyCode <= KEY_0)) return 1;
-    if ((keyCode >= KEY_PAD_1) && (keyCode <= KEY_PAD_0)) return 1;
-
-    if (keyCode == KEY_SPACE) return 1;
-    if (keyCode == KEY_COMMA) return 1;
-    if (keyCode == KEY_FULLSTOP) return 1;
-    if (keyCode == KEY_MODIFIER_SHIFT_L) return 1;
-    if (keyCode == KEY_MODIFIER_SHIFT_R) return 1;
-
-    //else:
-    return 0;
-}
 
 
 
 static void Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode)
 {
     uint32_t i;
+    uint32_t keyDowntime;
 
-    //Search through active key array to see if this key was pressed recently
-    __disable_irq();
-    for (i = 0; i < KeyTimerCount; i++)
+    for (i = 0; i < KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS; i++)
     {
         if (KeyTimerLog[i].KeyCode == keyCode) break;
     }
-    if (i >= KeyTimerCount)
-    {
-        __enable_irq();
-        return;
-    }
+    if (i >= KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS) while (1);         //Totally should not happen
 
-    //Was this is a short keypress?
-    if ((int32_t)(HAL_GetTick() - KeyTimerLog[i].KeyDownTime) < KEYBOARD_BOTDETECT_MINIMUM_KEYDOWN_TIME_MS)
+    KeyTimerLog[i].KeyCode = 0;                                     //Clear out the key entry
+    keyDowntime = HAL_GetTick() - KeyTimerLog[i].KeyDownStart;
+    if (keyDowntime < (KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS * KEYBOARD_BOTDETECT_FAST_BIN_COUNT))
     {
-        __enable_irq();
-        ShortKeypressCount++;
-        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
-        if (ShortKeypressCount >= KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_SHORT_COUNT)
+        KeyDowntimeFastBinArray[(keyDowntime / KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS)]++;                          //Add key to fast bin
+
+        //Drain fast bins at specified rate
+        KeyDowntimeFastBinDrainDivideCount++;
+        if (KeyDowntimeFastBinDrainDivideCount >= KEYBOARD_BOTDETECT_FAST_BIN_DRAIN_DIVIDER)
         {
-            LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
-        }
-        else
-        {
-            if (LockoutState != LOCKOUT_STATE_PERMANENT_ACTIVE)
+            KeyDowntimeFastBinDrainDivideCount = 0;
+            for (i = 0; i < KEYBOARD_BOTDETECT_FAST_BIN_COUNT; i++)
             {
-                TemporaryLockoutTimeMs = 0;
-                LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
+                if (KeyDowntimeFastBinArray[i] > 0) KeyDowntimeFastBinArray[i]--;
             }
         }
     }
-    __enable_irq();
+    else
+    {
+        keyDowntime = keyDowntime % (KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS * KEYBOARD_BOTDETECT_SLOW_BIN_COUNT);   //Wrap slow key time into the slow array
+        KeyDowntimeSlowBinArray[(keyDowntime / KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS)]++;                          //Add key to slow bin
+
+        //Drain slow bins at specified rate
+        KeyDowntimeSlowBinDrainDivideCount++;
+        if (KeyDowntimeSlowBinDrainDivideCount >= KEYBOARD_BOTDETECT_SLOW_BIN_DRAIN_DIVIDER)
+        {
+            KeyDowntimeSlowBinDrainDivideCount = 0;
+            for (i = 0; i < KEYBOARD_BOTDETECT_SLOW_BIN_COUNT; i++)
+            {
+                if (KeyDowntimeSlowBinArray[i] > 0) KeyDowntimeSlowBinArray[i]--;
+            }
+        }
+    }
 }
 
 #endif  //if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
@@ -283,24 +345,8 @@ static void Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode)
 //Called by Systick_Handler every 1ms, at high interrupt priority.
 void Upstream_HID_BotDetect_Systick(void)
 {
-    uint32_t i;
-
 //Keyboard-specific stuff:
 #if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
-    if (KeyTimerCount > 0)                              //Check if current active key has timed out
-    {
-        if (KeyTimerLog[0].KeyActiveTimer-- == 0)
-        {
-            KeyTimerCount--;
-            for (i = 0; i < KeyTimerCount; i++)         //Shuffle other keys down
-            {
-                KeyTimerLog[i].KeyCode = KeyTimerLog[i + 1].KeyCode;
-                KeyTimerLog[i].KeyDownTime = KeyTimerLog[i + 1].KeyDownTime;
-                KeyTimerLog[i].KeyActiveTimer = KeyTimerLog[i + 1].KeyActiveTimer;
-            }
-        }
-    }
-
     //Check if temporary lockout has expired
     if (LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE)
     {

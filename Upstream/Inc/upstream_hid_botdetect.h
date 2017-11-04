@@ -12,19 +12,13 @@
 #include "stm32f4xx_hal.h"
 
 
-#define KEY_ROLLOVER            0x01        //Rollover means we hold the last reported key status
+#define KEY_ROLLOVER            0x01                //Rollover means we hold the last reported key status
 #define KEY_A                   0x04
-#define KEY_Z                   0x1D
-#define KEY_1                   0x1E
-#define KEY_0                   0x27
-#define KEY_SPACE               0x2C
-#define KEY_COMMA               0x36
-#define KEY_FULLSTOP            0x37
-#define KEY_PAD_1               0x59
-#define KEY_PAD_0               0x62
-#define KEY_MODIFIER_BASE       0xE0        //First modifier key is L-Ctl
-#define KEY_MODIFIER_SHIFT_L    0xE1
-#define KEY_MODIFIER_SHIFT_R    0xE5
+#define KEY_MODIFIER_BASE       0xE0                //First modifier key is L-Ctl
+
+
+#define KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS  14      //This is here because it is not a tuneable parameter
+
 
 
 typedef enum
@@ -40,8 +34,7 @@ LockoutStateTypeDef;
 typedef struct
 {
     uint8_t  KeyCode;
-    uint32_t KeyDownTime;
-    uint32_t KeyActiveTimer;
+    uint32_t KeyDownStart;
 }
 KeyTimerLogTypeDef;
 

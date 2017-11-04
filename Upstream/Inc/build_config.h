@@ -25,17 +25,16 @@
 
 //Configure keyboard rate-limiting (bot detection) here:
 #ifdef CONFIG_KEYBOARD_BOT_DETECT_ENABLED
-    #define KEYBOARD_BOTDETECT_FASTKEY_TIME_MS                  125     //Alphanumeric keys (& space & shift & comma & fullstop), used for high-speed typing. Limit 8 per second
-    #define KEYBOARD_BOTDETECT_FASTKEY_TIME_REPEATED_MS         170     //Alphanumeric keys pressed repeatedly. Limit 6 keys per second.
-    #define KEYBOARD_BOTDETECT_SLOWKEY_TIME_MS                  200     //Non-alphanumeric keys. Limit 5 per second.
-    #define KEYBOARD_BOTDETECT_SLOWKEY_TIME_REPEATED_MS         170     //Non-alphanumeric key, pressed repeatedly. Limit 6 keys per second.
-    #define KEYBOARD_BOTDETECT_MINIMUM_KEYDOWN_TIME_MS          30      //Key pressed less than this indicates bot. This value must be less than the smallest of the above ratelimit key times for the code to work correctly!
+    #define KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS                10      //10ms per bin
+    #define KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS                20      //20ms per bin
+    #define KEYBOARD_BOTDETECT_FAST_BIN_COUNT                   25      //25 bins at 10ms = 250ms fast coverage
+    #define KEYBOARD_BOTDETECT_SLOW_BIN_COUNT                   50      //50 bins at 20ms = 1 sec slow coverage, wrapped
 
-    #define KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_KEY_COUNT      3       //'Burst' = maximum number of keys with active timer before triggering temporary lockout
-    #define KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_KEY_COUNT      5       //'Burst' = maximum number of keys with active timer before triggering permanent lockout
-    #define KEYBOARD_BOTDETECT_PERMANENT_LOCKOUT_SHORT_COUNT    3       //One short keypress causes temporary lockout. 3 short keypresses within the temporary lockout time triggers permanent lockout
+    #define KEYBOARD_BOTDETECT_FAST_BIN_DRAIN_DIVIDER           2
+    #define KEYBOARD_BOTDETECT_SLOW_BIN_DRAIN_DIVIDER           4
+    #define KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD  4
 
-    #define KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS        5000    //Lockout for 5 seconds when temporary lockout threshold reached
+    #define KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS        4000
     #define KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_FLASH_TIME_MS  60000   //Flash fault LED for 60 seconds after temporary lockout
 #endif
 
