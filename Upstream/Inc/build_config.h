@@ -47,6 +47,8 @@
     //-----------------------------------------------------------
 
     #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE               12
+    #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE                 256
+    #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR                6
     #define MOUSE_BOTDETECT_MOVE_DELAY_LIMIT                    5
 
 #endif
