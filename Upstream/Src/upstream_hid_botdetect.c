@@ -13,6 +13,8 @@
 #include "upstream_hid_botdetect.h"
 #include "upstream_hid.h"
 #include "build_config.h"
+#include "usbd_hid.h"
+#include "math.h"
 
 
 
@@ -26,6 +28,7 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 #if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
     uint32_t            LastKeyDownTime = 0;
     KeyTimerLogTypeDef  KeyTimerLog[KEYBOARD_BOTDETECT_MAX_ACTIVE_KEYS] = {0};
+    uint8_t             OldKeyboardInData[HID_KEYBOARD_INPUT_DATA_LEN]  = {0};
 
     uint8_t             KeyDelayFastBinDrainDivideCount     = 0;
     uint8_t             KeyDelaySlowBinDrainDivideCount     = 0;
@@ -35,33 +38,37 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
     uint8_t             KeyDelaySlowBinArray[KEYBOARD_BOTDETECT_SLOW_BIN_COUNT]     = {0};
     uint8_t             KeyDowntimeFastBinArray[KEYBOARD_BOTDETECT_FAST_BIN_COUNT]  = {0};
     uint8_t             KeyDowntimeSlowBinArray[KEYBOARD_BOTDETECT_SLOW_BIN_COUNT]  = {0};
-    uint8_t             OldKeyboardInData[HID_KEYBOARD_INPUT_DATA_LEN]              = {0};
 
     //Debug:
 //    uint8_t             KeyDelayFastBinArrayPeak;
 //    uint8_t             KeyDelaySlowBinArrayPeak;
 //    uint8_t             KeyDowntimeFastBinArrayPeak;
 //    uint8_t             KeyDowntimeSlowBinArrayPeak;
+
+    static uint32_t     Upstream_HID_BotDetectKeyboard_RolloverCheck(uint8_t* keyboardInData);
+    static void         Upstream_HID_BotDetectKeyboard_DoLockout(void);
+    static void         Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode);
+    static void         Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode);
 #endif
 
 
 
 //Variables specific to mouse bot detection:
 #if defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED)
+    uint32_t                    LastMouseMoveTime = 0;
+    MouseVelocityHistoryTypeDef MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
 
+    uint8_t                     SameVelocityCounter = 0;
+    //Debug:
+//    uint8_t                     SameVelocityCounterMax = 0;
+
+    static void         Upstream_HID_BotDetectMouse_DoLockout(void);
 #endif
 
 
 
 //Code specific to keyboard bot detection:
 #if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
-
-static uint32_t Upstream_HID_BotDetectKeyboard_RolloverCheck(uint8_t* keyboardInData);
-static void     Upstream_HID_BotDetectKeyboard_DoLockout(void);
-static void     Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode);
-static void     Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode);
-
-
 
 //Checks if received keyboard data is from a real human.
 //This is not entirely bulletproof as an attacking device may randomize its keypresses.
@@ -131,7 +138,6 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
             Upstream_HID_BotDetectKeyboard_DoLockout();
             break;
         }
-
         //Debug:
 //        if (KeyDelayFastBinArray[i]    > KeyDelayFastBinArrayPeak)    KeyDelayFastBinArrayPeak = KeyDelayFastBinArray[i];
 //        if (KeyDowntimeFastBinArray[i] > KeyDowntimeFastBinArrayPeak) KeyDowntimeFastBinArrayPeak = KeyDowntimeFastBinArray[i];
@@ -144,7 +150,6 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
             Upstream_HID_BotDetectKeyboard_DoLockout();
             break;
         }
-
         //Debug:
 //        if (KeyDelaySlowBinArray[i]    > KeyDelaySlowBinArrayPeak)    KeyDelaySlowBinArrayPeak = KeyDelaySlowBinArray[i];
 //        if (KeyDowntimeSlowBinArray[i] > KeyDowntimeSlowBinArrayPeak) KeyDowntimeSlowBinArrayPeak = KeyDowntimeSlowBinArray[i];
@@ -345,31 +350,140 @@ static void Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode)
 //Called by Systick_Handler every 1ms, at high interrupt priority.
 void Upstream_HID_BotDetect_Systick(void)
 {
-//Keyboard-specific stuff:
-#if defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)
+#if (defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)) || \
+    (defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED))
+
     //Check if temporary lockout has expired
     if (LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE)
     {
-        if (TemporaryLockoutTimeMs++ > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS)
+        if (TemporaryLockoutTimeMs++ > BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS)
         {
             LockoutState = LOCKOUT_STATE_TEMPORARY_FLASHING;
         }
     }
     else if (LockoutState == LOCKOUT_STATE_TEMPORARY_FLASHING)
     {
-        if (TemporaryLockoutTimeMs++ > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_FLASH_TIME_MS)
+        if (TemporaryLockoutTimeMs++ > BOTDETECT_TEMPORARY_LOCKOUT_FLASH_TIME_MS)
         {
             LED_SetState(LED_STATUS_OFF);
             LockoutState = LOCKOUT_STATE_INACTIVE;
         }
     }
 #endif
-
-
-#if defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED)
-
-#endif
 }
 
 
 
+//Code specific to mouse bot detection:
+#if defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED)
+
+void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
+{
+    uint32_t i;
+    uint32_t now = HAL_GetTick();
+    uint32_t moveDelay;
+    uint32_t velocity;
+    uint32_t newAverageVelocity;
+    uint32_t oldAverageVelocity;
+    int8_t mouseX;
+    int8_t mouseY;
+
+    mouseX = mouseInData[1];
+    mouseY = mouseInData[2];
+    velocity = (sqrtf(((int32_t)mouseX * mouseX) +
+                      ((int32_t)mouseY * mouseY))) * 8;             //Multiply floating-point sqrt result to avoid integer rounding
+
+    moveDelay = ((now - LastMouseMoveTime) + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;    //Number of poll intervals since last movement
+    if (moveDelay > MOUSE_BOTDETECT_MOVE_DELAY_LIMIT) moveDelay = MOUSE_BOTDETECT_MOVE_DELAY_LIMIT;
+
+    if ((velocity != 0) && (moveDelay != 0))
+    {
+        LastMouseMoveTime = now;
+        for (i = (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE - 1); i > 0; i--)   //Shuffle down history data
+        {
+            MouseVelocityHistory[i] = MouseVelocityHistory[i - 1];
+        }
+        MouseVelocityHistory[0].moveDelay = moveDelay;                      //Store latest data at head
+        MouseVelocityHistory[0].velocity = velocity;
+
+        if (MouseVelocityHistory[(MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE - 1)].velocity > 0)
+        {
+            moveDelay = 0;                                                  //Calculate new and old average velocities
+            velocity = 0;
+            for (i = 0; i < (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE / 2); i++)
+            {
+                moveDelay += MouseVelocityHistory[i].moveDelay;
+                velocity  += MouseVelocityHistory[i].velocity;
+            }
+            newAverageVelocity = (velocity * 8) / moveDelay;               //Multiply velocity up to avoid rounding errors on divide
+
+            moveDelay = 0;
+            velocity = 0;
+            for (i = (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE / 2); i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
+            {
+                moveDelay += MouseVelocityHistory[i].moveDelay;
+                velocity  += MouseVelocityHistory[i].velocity;
+            }
+            oldAverageVelocity = (velocity * 8) / moveDelay;               //Multiply velocity up to avoid rounding errors on divide
+            if (newAverageVelocity == oldAverageVelocity)
+            {
+                SameVelocityCounter++;
+                if (SameVelocityCounter > MOUSE_BOTDETECT_TEMPORARY_LOCKOUT_VELOCITY_THRESHOLD)
+                {
+                    Upstream_HID_BotDetectMouse_DoLockout();
+                }
+
+                //Debug:
+//                if (SameVelocityCounter > SameVelocityCounterMax) SameVelocityCounterMax = SameVelocityCounter;
+            }
+            else
+            {
+                SameVelocityCounter = 0;
+            }
+        }
+    }
+    else
+    {
+        mouseInData[1] = 0;             //If we don't want to process this event, makes sure no movement data gets through
+        mouseInData[2] = 0;
+    }
+
+    //Host receives no data if we are locked
+    if ((LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE) ||
+        (LockoutState == LOCKOUT_STATE_PERMANENT_ACTIVE))
+    {
+        for (i = 0; i < HID_MOUSE_INPUT_DATA_LEN; i++)
+        {
+            mouseInData[i] = 0;
+        }
+    }
+}
+
+
+static void Upstream_HID_BotDetectMouse_DoLockout(void)
+{
+    uint32_t i;
+
+    if (LockoutState == LOCKOUT_STATE_PERMANENT_ACTIVE) return;
+
+    //Are we already in warning state? -> activate permanent lockout
+    if ((LockoutState == LOCKOUT_STATE_TEMPORARY_ACTIVE) ||
+        (LockoutState == LOCKOUT_STATE_TEMPORARY_FLASHING))
+    {
+        LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        return;
+    }
+
+    //Otherwise, reset counters and give warning
+    for (i = 0; i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
+    {
+        MouseVelocityHistory[i].velocity = 0;
+    }
+    SameVelocityCounter = 0;
+
+    TemporaryLockoutTimeMs = 0;
+    LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
+    LED_SetState(LED_STATUS_FLASH_BOTDETECT);
+}
+
+#endif

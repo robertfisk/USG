@@ -268,7 +268,7 @@ static HAL_StatusTypeDef Downstream_HID_GetNextReportItem(void)
     ReportDataPointer += itemLength;
     return HAL_OK;
 }
-#endif
+#endif  //#ifdef CONFIG_MOUSE_ENABLED
 
 
 
@@ -305,7 +305,7 @@ void Downstream_HID_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         Downstream_PacketProcessor_NotifyDisconnectReplyRequired();
         return;
     }
-#endif
+#endif  //#ifdef CONFIG_KEYBOARD_ENABLED
 
     //else:
     Downstream_PacketProcessor_FreakOut();
@@ -402,7 +402,7 @@ static uint8_t Downstream_HID_Mouse_Extract8BitValue(HID_HandleTypeDef* hidHandl
     if (readData > INT8_MAX) readData = INT8_MAX;
     return (int8_t)readData;
 }
-#endif
+#endif  //#ifdef CONFIG_MOUSE_ENABLED
 
 
 #ifdef CONFIG_KEYBOARD_ENABLED
@@ -425,7 +425,7 @@ static void Downstream_HID_Keyboard_ExtractDataFromReport(DownstreamPacketTypeDe
         packetToSend->Data[i] = readData;
     }
 }
-#endif
+#endif  //#ifdef CONFIG_KEYBOARD_ENABLED
 
 
 
