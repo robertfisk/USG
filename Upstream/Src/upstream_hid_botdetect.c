@@ -384,6 +384,7 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     uint32_t moveDelay;
     uint32_t velocity;
     uint32_t newAverageVelocity;
+    uint32_t newAverageVelocityMatchError;
     uint32_t oldAverageVelocity;
     int8_t mouseX;
     int8_t mouseY;
@@ -391,7 +392,7 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     mouseX = mouseInData[1];
     mouseY = mouseInData[2];
     velocity = (sqrtf(((int32_t)mouseX * mouseX) +
-                      ((int32_t)mouseY * mouseY))) * 8;             //Multiply floating-point sqrt result to avoid integer rounding
+                      ((int32_t)mouseY * mouseY))) * 10;        //Multiply floating-point sqrt result to avoid integer rounding errors
 
     moveDelay = ((now - LastMouseMoveTime) + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;    //Number of poll intervals since last movement
     if (moveDelay > MOUSE_BOTDETECT_MOVE_DELAY_LIMIT) moveDelay = MOUSE_BOTDETECT_MOVE_DELAY_LIMIT;
@@ -425,7 +426,10 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
                 velocity  += MouseVelocityHistory[i].velocity;
             }
             oldAverageVelocity = (velocity * 8) / moveDelay;               //Multiply velocity up to avoid rounding errors on divide
-            if (newAverageVelocity == oldAverageVelocity)
+
+            newAverageVelocityMatchError = (newAverageVelocity * MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR) / MOUSE_BOTDETECT_VELOCITY_MATCH_BASE;
+            if (((newAverageVelocity + newAverageVelocityMatchError) >= oldAverageVelocity) &&
+                ((newAverageVelocity - newAverageVelocityMatchError) <= oldAverageVelocity))
             {
                 SameVelocityCounter++;
                 if (SameVelocityCounter > MOUSE_BOTDETECT_TEMPORARY_LOCKOUT_VELOCITY_THRESHOLD)
