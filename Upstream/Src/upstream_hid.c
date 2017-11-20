@@ -167,7 +167,9 @@ static void Upstream_HID_ReceiveInterruptReportCallback(UpstreamPacketTypeDef* r
                 }
             }
 
-            //Other mouse sanity checks & stuff go here...
+#ifdef CONFIG_MOUSE_BOT_DETECT_ENABLED
+            Upstream_HID_BotDetectMouse(receivedPacket->Data);
+#endif
         }
         else
 #endif

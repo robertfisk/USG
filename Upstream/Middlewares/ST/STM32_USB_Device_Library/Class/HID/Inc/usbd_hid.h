@@ -64,7 +64,6 @@
 
 #define HID_HS_BINTERVAL               0x07
 #define HID_FS_BINTERVAL               0x0A
-#define HID_POLLING_INTERVAL           0x0A
 
 #define HID_REQ_SET_PROTOCOL          0x0B
 #define HID_REQ_GET_PROTOCOL          0x03
