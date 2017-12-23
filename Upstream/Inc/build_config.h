@@ -32,7 +32,7 @@
 
     #define KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS                10      //10ms per bin
     #define KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS                20      //20ms per bin
-    #define KEYBOARD_BOTDETECT_FAST_BIN_COUNT                   25      //25 bins at 10ms = 250ms fast coverage
+    #define KEYBOARD_BOTDETECT_FAST_BIN_COUNT                   30      //30 bins at 10ms = 300ms fast coverage
     #define KEYBOARD_BOTDETECT_SLOW_BIN_COUNT                   50      //50 bins at 20ms = 1 sec slow coverage, wrapped
 
     #define KEYBOARD_BOTDETECT_FAST_BIN_DRAIN_DIVIDER           2
