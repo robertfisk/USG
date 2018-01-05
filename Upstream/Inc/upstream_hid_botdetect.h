@@ -38,12 +38,6 @@ typedef struct
 }
 KeyTimerLogTypeDef;
 
-typedef struct
-{
-    uint8_t  moveDelay;
-    uint16_t velocity;
-}
-MouseVelocityHistoryTypeDef;
 
 
 void Upstream_HID_BotDetect_Systick(void);
