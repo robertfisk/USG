@@ -55,14 +55,25 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 
 //Variables specific to mouse bot detection:
 #if defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED)
-    uint32_t                    LastMouseMoveTime = 0;
-    MouseVelocityHistoryTypeDef MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
+    uint32_t    LastMouseMoveTime = 0;
 
-    uint8_t                     SameVelocityCounter = 0;
+    //Acceleration event timing stuff
+    uint32_t    AccelerationEventStartTime;
+    uint32_t    PreviousRawVelocity             = 0;
+    int8_t      AccelerationEventPolarityActive = 0;
+
+    //Constant acceleration detection stuff
+    uint16_t    MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
+    int32_t     PreviousSmoothedAcceleration = 0;
+    uint8_t     ConstantAccelerationCounter  = 0;
+
+
     //Debug:
-//    uint8_t                     SameVelocityCounterMax = 0;
+    uint8_t     ConstantAccelerationCounterMax = 0;
 
-    static void         Upstream_HID_BotDetectMouse_DoLockout(void);
+    static void Upstream_HID_BotDetectMouse_AccelEventStart(int32_t rawAcceleration);
+    static void Upstream_HID_BotDetectMouse_AccelEventStop(uint32_t accelStopTime);
+    static void Upstream_HID_BotDetectMouse_DoLockout(void);
 #endif
 
 
@@ -132,8 +143,8 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
     //Check for evidence of bot typing
     for (i = 0; i < KEYBOARD_BOTDETECT_FAST_BIN_COUNT; i++)
     {
-        if ((KeyDelayFastBinArray[i]    > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD) ||
-            (KeyDowntimeFastBinArray[i] > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD))
+        if ((KeyDelayFastBinArray[i]    > KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD) ||
+            (KeyDowntimeFastBinArray[i] > KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD))
         {
             Upstream_HID_BotDetectKeyboard_DoLockout();
             break;
@@ -144,8 +155,8 @@ void Upstream_HID_BotDetectKeyboard(uint8_t* keyboardInData)
     }
     for (i = 0; i < KEYBOARD_BOTDETECT_SLOW_BIN_COUNT; i++)
     {
-        if ((KeyDelaySlowBinArray[i]    > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD) ||
-            (KeyDowntimeSlowBinArray[i] > KEYBOARD_BOTDETECT_TEMPORARY_LOCKOUT_BIN_THRESHOLD))
+        if ((KeyDelaySlowBinArray[i]    > KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD) ||
+            (KeyDowntimeSlowBinArray[i] > KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD))
         {
             Upstream_HID_BotDetectKeyboard_DoLockout();
             break;
@@ -294,7 +305,6 @@ static void Upstream_HID_BotDetectKeyboard_KeyDown(uint8_t keyCode)
 
 
 
-
 static void Upstream_HID_BotDetectKeyboard_KeyUp(uint8_t keyCode)
 {
     uint32_t i;
@@ -383,67 +393,104 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     uint32_t now = HAL_GetTick();
     uint32_t moveDelay;
     uint32_t velocity;
-    uint32_t newAverageVelocity;
-    uint32_t newAverageVelocityMatchError;
-    uint32_t oldAverageVelocity;
-    int8_t mouseX;
-    int8_t mouseY;
+    int8_t  mouseX;
+    int8_t  mouseY;
+
+    //Acceleration event timing stuff
+    int32_t rawAcceleration;
+
+    //Constant acceleration detection stuff
+    uint32_t newSmoothedVelocity;
+    uint32_t oldSmoothedVelocity;
+    int32_t  newSmoothedAcceleration;
+    int32_t  smoothedAccelerationMatchError;
+
 
     mouseX = mouseInData[1];
     mouseY = mouseInData[2];
     velocity = (sqrtf(((int32_t)mouseX * mouseX) +
-                      ((int32_t)mouseY * mouseY))) * 10;        //Multiply floating-point sqrt result to avoid integer rounding errors
+                      ((int32_t)mouseY * mouseY))) * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER;   //Multiply floating-point sqrt result to avoid integer rounding errors
+    moveDelay = ((int32_t)(now - LastMouseMoveTime) + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;    //Number of poll intervals since last movement
 
-    moveDelay = ((now - LastMouseMoveTime) + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;    //Number of poll intervals since last movement
-    if (moveDelay > MOUSE_BOTDETECT_MOVE_DELAY_LIMIT) moveDelay = MOUSE_BOTDETECT_MOVE_DELAY_LIMIT;
 
-    if ((velocity != 0) && (moveDelay != 0))
+    //Look for unrealistically short acceleration events
+    if (moveDelay > MOUSE_BOTDETECT_MOVE_DELAY_LIMIT)                   //Did the mouse stop moving?
+    {
+        moveDelay = MOUSE_BOTDETECT_MOVE_DELAY_LIMIT;
+        PreviousRawVelocity = 0;
+        if (AccelerationEventPolarityActive != 0)
+        {
+            Upstream_HID_BotDetectMouse_AccelEventStop(LastMouseMoveTime);
+        }
+    }
+
+    rawAcceleration = velocity - PreviousRawVelocity;
+    PreviousRawVelocity = velocity;
+    velocity = velocity / moveDelay;
+    if (AccelerationEventPolarityActive == 0)
+    {
+        if (abs(rawAcceleration) > MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD)
+        {
+            Upstream_HID_BotDetectMouse_AccelEventStart(rawAcceleration);
+        }
+    }
+    else
+    {
+        //Acceleration event in progress
+        if (((AccelerationEventPolarityActive ==  1) && (rawAcceleration < -MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD)) ||
+            ((AccelerationEventPolarityActive == -1) && (rawAcceleration >  MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD)))
+        {
+            Upstream_HID_BotDetectMouse_AccelEventStop(now);                        //Polarity has changed, so stop and re-start a new event
+            Upstream_HID_BotDetectMouse_AccelEventStart(rawAcceleration);
+        }
+    }
+
+
+    //Look for periods of constant acceleration
+    if (velocity != 0)
     {
         LastMouseMoveTime = now;
         for (i = (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE - 1); i > 0; i--)   //Shuffle down history data
         {
             MouseVelocityHistory[i] = MouseVelocityHistory[i - 1];
         }
-        MouseVelocityHistory[0].moveDelay = moveDelay;                      //Store latest data at head
-        MouseVelocityHistory[0].velocity = velocity;
+        MouseVelocityHistory[0] = velocity;                                 //Store latest data at head
 
-        if (MouseVelocityHistory[(MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE - 1)].velocity > 0)
+        if (MouseVelocityHistory[(MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE - 1)] > 0)
         {
-            moveDelay = 0;                                                  //Calculate new and old average velocities
-            velocity = 0;
+            velocity = 0;                                                   //Calculate new and old average velocities
             for (i = 0; i < (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE / 2); i++)
             {
-                moveDelay += MouseVelocityHistory[i].moveDelay;
-                velocity  += MouseVelocityHistory[i].velocity;
+                velocity  += MouseVelocityHistory[i];
             }
-            newAverageVelocity = (velocity * 8) / moveDelay;               //Multiply velocity up to avoid rounding errors on divide
+            newSmoothedVelocity = (velocity * 8) / (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE / 2);     //Multiply velocity up to avoid rounding errors on divide
 
-            moveDelay = 0;
             velocity = 0;
             for (i = (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE / 2); i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
             {
-                moveDelay += MouseVelocityHistory[i].moveDelay;
-                velocity  += MouseVelocityHistory[i].velocity;
+                velocity  += MouseVelocityHistory[i];
             }
-            oldAverageVelocity = (velocity * 8) / moveDelay;               //Multiply velocity up to avoid rounding errors on divide
+            oldSmoothedVelocity = (velocity * 8) / (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE / 2);     //Multiply velocity up to avoid rounding errors on divide
 
-            newAverageVelocityMatchError = (newAverageVelocity * MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR) / MOUSE_BOTDETECT_VELOCITY_MATCH_BASE;
-            if (((newAverageVelocity + newAverageVelocityMatchError) >= oldAverageVelocity) &&
-                ((newAverageVelocity - newAverageVelocityMatchError) <= oldAverageVelocity))
+            newSmoothedAcceleration = newSmoothedVelocity - oldSmoothedVelocity;
+            smoothedAccelerationMatchError = (oldSmoothedVelocity * MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR) / MOUSE_BOTDETECT_VELOCITY_MATCH_BASE;
+            if (((PreviousSmoothedAcceleration + smoothedAccelerationMatchError) >= newSmoothedAcceleration) &&
+                ((PreviousSmoothedAcceleration - smoothedAccelerationMatchError) <= newSmoothedAcceleration))
             {
-                SameVelocityCounter++;
-                if (SameVelocityCounter > MOUSE_BOTDETECT_TEMPORARY_LOCKOUT_VELOCITY_THRESHOLD)
-                {
-                    Upstream_HID_BotDetectMouse_DoLockout();
-                }
+                ConstantAccelerationCounter++;
+//                if (ConstantAccelerationCounter > MOUSE_BOTDETECT_TEMPORARY_LOCKOUT_VELOCITY_THRESHOLD)
+//                {
+//                    Upstream_HID_BotDetectMouse_DoLockout();
+//                }
 
                 //Debug:
-//                if (SameVelocityCounter > SameVelocityCounterMax) SameVelocityCounterMax = SameVelocityCounter;
+                if (ConstantAccelerationCounter > ConstantAccelerationCounterMax) ConstantAccelerationCounterMax = ConstantAccelerationCounter;
             }
             else
             {
-                SameVelocityCounter = 0;
+                ConstantAccelerationCounter = 0;
             }
+            PreviousSmoothedAcceleration = newSmoothedAcceleration;
         }
     }
     else
@@ -464,6 +511,32 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
 }
 
 
+static void Upstream_HID_BotDetectMouse_AccelEventStart(int32_t rawAcceleration)
+{
+    AccelerationEventStartTime = HAL_GetTick();
+    if (rawAcceleration > 0)
+    {
+        AccelerationEventPolarityActive = 1;
+    }
+    else
+    {
+        AccelerationEventPolarityActive = -1;
+    }
+}
+
+
+
+static void Upstream_HID_BotDetectMouse_AccelEventStop(uint32_t accelStopTime)
+{
+    if ((accelStopTime - AccelerationEventStartTime) < MOUSE_BOTDETECT_LOCKOUT_MINIMUM_ACCEL_TIME_MS)
+    {
+        Upstream_HID_BotDetectMouse_DoLockout();
+    }
+    AccelerationEventPolarityActive = 0;
+}
+
+
+
 static void Upstream_HID_BotDetectMouse_DoLockout(void)
 {
     uint32_t i;
@@ -481,9 +554,9 @@ static void Upstream_HID_BotDetectMouse_DoLockout(void)
     //Otherwise, reset counters and give warning
     for (i = 0; i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
     {
-        MouseVelocityHistory[i].velocity = 0;
+        MouseVelocityHistory[i] = 0;
     }
-    SameVelocityCounter = 0;
+    ConstantAccelerationCounter = 0;
 
     TemporaryLockoutTimeMs = 0;
     LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
