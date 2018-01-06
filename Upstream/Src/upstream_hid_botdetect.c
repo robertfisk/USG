@@ -57,22 +57,18 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 #if defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED)
     uint32_t    LastMouseMoveTime = 0;
 
-    //Acceleration event timing stuff
-    uint32_t    AccelerationEventStartTime;
-    uint32_t    PreviousRawVelocity             = 0;
-    int8_t      AccelerationEventPolarityActive = 0;
+    //Jump detection stuff
+    uint32_t    LastMouseMoveBeginTime;
+    uint8_t     MouseIsMoving                   = 0;
 
     //Constant acceleration detection stuff
     uint16_t    MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
-    int32_t     PreviousSmoothedAcceleration = 0;
-    uint8_t     ConstantAccelerationCounter  = 0;
-
+    int32_t     PreviousSmoothedAcceleration    = 0;
+    uint8_t     ConstantAccelerationCounter     = 0;
 
     //Debug:
-    uint8_t     ConstantAccelerationCounterMax = 0;
+    uint8_t     ConstantAccelerationCounterMax  = 0;
 
-    static void Upstream_HID_BotDetectMouse_AccelEventStart(int32_t rawAcceleration);
-    static void Upstream_HID_BotDetectMouse_AccelEventStop(uint32_t accelStopTime);
     static void Upstream_HID_BotDetectMouse_DoLockout(void);
 #endif
 
@@ -391,13 +387,10 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
 {
     uint32_t i;
     uint32_t now = HAL_GetTick();
-    uint32_t moveDelay;
+    uint32_t moveDelayPeriods;
     uint32_t velocity;
     int8_t  mouseX;
     int8_t  mouseY;
-
-    //Acceleration event timing stuff
-    int32_t rawAcceleration;
 
     //Constant acceleration detection stuff
     uint32_t newSmoothedVelocity;
@@ -409,47 +402,37 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     mouseX = mouseInData[1];
     mouseY = mouseInData[2];
     velocity = (sqrtf(((int32_t)mouseX * mouseX) +
-                      ((int32_t)mouseY * mouseY))) * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER;   //Multiply floating-point sqrt result to avoid integer rounding errors
-    moveDelay = ((int32_t)(now - LastMouseMoveTime) + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;    //Number of poll intervals since last movement
+                      ((int32_t)mouseY * mouseY))) * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER;       //Multiply floating-point sqrt result to avoid integer rounding errors
+    moveDelayPeriods = (now - LastMouseMoveTime + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;   //Number of poll intervals since last movement
 
 
-    //Look for unrealistically short acceleration events
-    if (moveDelay > MOUSE_BOTDETECT_MOVE_DELAY_LIMIT)                   //Did the mouse stop moving?
+    if (moveDelayPeriods > MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS)       //Did the mouse stop moving?
     {
-        moveDelay = MOUSE_BOTDETECT_MOVE_DELAY_LIMIT;
-        PreviousRawVelocity = 0;
-        if (AccelerationEventPolarityActive != 0)
+        moveDelayPeriods = MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS;
+        if (MouseIsMoving)                                              //Jump detection
         {
-            Upstream_HID_BotDetectMouse_AccelEventStop(LastMouseMoveTime);
+            MouseIsMoving = 0;
+            if (((LastMouseMoveTime - LastMouseMoveBeginTime + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL) < MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS)
+            {
+                Upstream_HID_BotDetectMouse_DoLockout();
+            }
         }
     }
-
-    rawAcceleration = velocity - PreviousRawVelocity;
-    PreviousRawVelocity = velocity;
-    velocity = velocity / moveDelay;
-    if (AccelerationEventPolarityActive == 0)
-    {
-        if (abs(rawAcceleration) > MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD)
-        {
-            Upstream_HID_BotDetectMouse_AccelEventStart(rawAcceleration);
-        }
-    }
-    else
-    {
-        //Acceleration event in progress
-        if (((AccelerationEventPolarityActive ==  1) && (rawAcceleration < -MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD)) ||
-            ((AccelerationEventPolarityActive == -1) && (rawAcceleration >  MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD)))
-        {
-            Upstream_HID_BotDetectMouse_AccelEventStop(now);                        //Polarity has changed, so stop and re-start a new event
-            Upstream_HID_BotDetectMouse_AccelEventStart(rawAcceleration);
-        }
-    }
+    velocity = velocity / moveDelayPeriods;
 
 
-    //Look for periods of constant acceleration
     if (velocity != 0)
     {
         LastMouseMoveTime = now;
+
+        //Jump detection
+        if ((MouseIsMoving == 0) && (velocity > MOUSE_BOTDETECT_MOVEMENT_VELOCITY_THRESHOLD))
+        {
+            MouseIsMoving = 1;
+            LastMouseMoveBeginTime = now;
+        }
+
+        //Look for periods of constant acceleration
         for (i = (MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE - 1); i > 0; i--)   //Shuffle down history data
         {
             MouseVelocityHistory[i] = MouseVelocityHistory[i - 1];
@@ -508,31 +491,6 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
             mouseInData[i] = 0;
         }
     }
-}
-
-
-static void Upstream_HID_BotDetectMouse_AccelEventStart(int32_t rawAcceleration)
-{
-    AccelerationEventStartTime = HAL_GetTick();
-    if (rawAcceleration > 0)
-    {
-        AccelerationEventPolarityActive = 1;
-    }
-    else
-    {
-        AccelerationEventPolarityActive = -1;
-    }
-}
-
-
-
-static void Upstream_HID_BotDetectMouse_AccelEventStop(uint32_t accelStopTime)
-{
-    if ((accelStopTime - AccelerationEventStartTime) < MOUSE_BOTDETECT_LOCKOUT_MINIMUM_ACCEL_TIME_MS)
-    {
-        Upstream_HID_BotDetectMouse_DoLockout();
-    }
-    AccelerationEventPolarityActive = 0;
 }
 
 
