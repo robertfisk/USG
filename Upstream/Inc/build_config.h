@@ -43,18 +43,17 @@
 #ifdef CONFIG_MOUSE_BOT_DETECT_ENABLED
     //-----------------------------------------------------------
     //Adjust this threshold first to tune mouse bot detection. Lower values = more sensitive
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_THRESHOLD    20
-    #define MOUSE_BOTDETECT_LOCKOUT_MINIMUM_ACCEL_TIME_MS       200
+    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT        20
+    //???????
     //-----------------------------------------------------------
 
     #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER                 10
     #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE               12
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE                 256
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR                6
-    #define MOUSE_BOTDETECT_MOVE_DELAY_LIMIT                    5
 
-    #define MOUSE_BOTDETECT_ACCEL_EVENT_THRESHOLD               (4 * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)
-
+    #define MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS               5
+    #define MOUSE_BOTDETECT_MOVEMENT_VELOCITY_THRESHOLD         (5 * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)
 #endif
 
 //Configuration common to all bot detectors
