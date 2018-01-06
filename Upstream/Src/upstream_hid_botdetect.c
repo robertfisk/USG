@@ -387,7 +387,6 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
 {
     uint32_t i;
     uint32_t now = HAL_GetTick();
-    uint32_t moveDelayPeriods;
     uint32_t velocity;
     int8_t  mouseX;
     int8_t  mouseY;
@@ -403,29 +402,26 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     mouseY = mouseInData[2];
     velocity = (sqrtf(((int32_t)mouseX * mouseX) +
                       ((int32_t)mouseY * mouseY))) * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER;       //Multiply floating-point sqrt result to avoid integer rounding errors
-    moveDelayPeriods = (now - LastMouseMoveTime + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL;   //Number of poll intervals since last movement
 
 
-    if (moveDelayPeriods > MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS)       //Did the mouse stop moving?
+    //Jump detection
+    if (MouseIsMoving)
     {
-        moveDelayPeriods = MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS;
-        if (MouseIsMoving)                                              //Jump detection
+        if ((now - LastMouseMoveTime) > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))       //Did the mouse stop moving?
         {
             MouseIsMoving = 0;
-            if (((LastMouseMoveTime - LastMouseMoveBeginTime + (HID_FS_BINTERVAL / 2)) / HID_FS_BINTERVAL) < MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS)
+            if ((LastMouseMoveTime - LastMouseMoveBeginTime) < ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
             {
                 Upstream_HID_BotDetectMouse_DoLockout();
             }
         }
     }
-    velocity = velocity / moveDelayPeriods;
 
 
     if (velocity != 0)
     {
-        LastMouseMoveTime = now;
-
         //Jump detection
+        LastMouseMoveTime = now;
         if ((MouseIsMoving == 0) && (velocity > MOUSE_BOTDETECT_MOVEMENT_VELOCITY_THRESHOLD))
         {
             MouseIsMoving = 1;
