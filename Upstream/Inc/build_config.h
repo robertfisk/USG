@@ -43,8 +43,8 @@
 #ifdef CONFIG_MOUSE_BOT_DETECT_ENABLED
     //-----------------------------------------------------------
     //Adjust these thresholds first to tune mouse bot detection. Lower values = more sensitive
-    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT    30      //20 is ok for most mice. But some weird mice generate longer sequences.
+    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20      //Varies by mouse. Most short jumps are <= 10
+    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT    30      //20 is ok for most mice. But some mice (or users!) generate longer sequences.
     //-----------------------------------------------------------
 
     #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER             10
