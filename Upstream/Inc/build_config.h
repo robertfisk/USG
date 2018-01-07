@@ -41,15 +41,14 @@
 
 //Configure mouse bot detection here:
 #ifdef CONFIG_MOUSE_BOT_DETECT_ENABLED
-    #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER             10
-    #define MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS           5
-
     //-----------------------------------------------------------
     //Adjust these thresholds first to tune mouse bot detection. Lower values = more sensitive
-    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         (20 * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT    20      //20 is ok for most mice. But some weird mice generate longer sequences.
-    #define MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD    4
+    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20
+    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT    30      //20 is ok for most mice. But some weird mice generate longer sequences.
     //-----------------------------------------------------------
+
+    #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER             10
+    #define MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS           5
 
     //Jump detection stuff
     #define MOUSE_BOTDETECT_JUMP_MINIMUM_TIME               4
@@ -58,11 +57,6 @@
     #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE           12
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE             256
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR            6
-
-    //Jiggle detection stuff
-    #define MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS             20      //20ms per bin
-    #define MOUSE_BOTDETECT_JIGGLE_BIN_COUNT                50      //50 bins at 20ms = 1 sec coverage, wrapped
-    #define MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER              4
 #endif
 
 
