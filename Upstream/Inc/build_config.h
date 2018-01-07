@@ -27,39 +27,49 @@
 #ifdef CONFIG_KEYBOARD_BOT_DETECT_ENABLED
     //-----------------------------------------------------------
     //Adjust this threshold first to tune keyboard bot detection. Lower values = more sensitive
-    #define KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD            4
+    #define KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD        4       //4 is a good setting for the paranoid. 5 is good for the average user who doesn't want to encounter a rare false-positive.
     //-----------------------------------------------------------
 
-    #define KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS                10      //10ms per bin
-    #define KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS                20      //20ms per bin
-    #define KEYBOARD_BOTDETECT_FAST_BIN_COUNT                   30      //30 bins at 10ms = 300ms fast coverage
-    #define KEYBOARD_BOTDETECT_SLOW_BIN_COUNT                   50      //50 bins at 20ms = 1 sec slow coverage, wrapped
-
-    #define KEYBOARD_BOTDETECT_FAST_BIN_DRAIN_DIVIDER           2
-    #define KEYBOARD_BOTDETECT_SLOW_BIN_DRAIN_DIVIDER           4
+    #define KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS            10      //10ms per bin
+    #define KEYBOARD_BOTDETECT_SLOW_BIN_WIDTH_MS            20      //20ms per bin
+    #define KEYBOARD_BOTDETECT_FAST_BIN_COUNT               30      //30 bins at 10ms = 300ms fast coverage
+    #define KEYBOARD_BOTDETECT_SLOW_BIN_COUNT               50      //50 bins at 20ms = 1 sec slow coverage, wrapped
+    #define KEYBOARD_BOTDETECT_FAST_BIN_DRAIN_DIVIDER       2
+    #define KEYBOARD_BOTDETECT_SLOW_BIN_DRAIN_DIVIDER       4
 #endif
+
 
 //Configure mouse bot detection here:
 #ifdef CONFIG_MOUSE_BOT_DETECT_ENABLED
+    #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER             10
+    #define MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS           5
+
     //-----------------------------------------------------------
-    //Adjust this threshold first to tune mouse bot detection. Lower values = more sensitive
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT        10
-    //???????
+    //Adjust these thresholds first to tune mouse bot detection. Lower values = more sensitive
+    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         (20 * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)
+    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT    20      //20 is ok for most mice. But some weird mice generate longer sequences.
+    #define MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD    4
     //-----------------------------------------------------------
 
-    #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER                 10
-    #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE               12
-    #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE                 256
-    #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR                6
+    //Jump detection stuff
+    #define MOUSE_BOTDETECT_JUMP_MINIMUM_TIME               4
 
-    #define MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS               5
-    #define MOUSE_BOTDETECT_MOVEMENT_VELOCITY_THRESHOLD         (10 * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)
+    //Constant acceleration detection stuff
+    #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE           12
+    #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE             256
+    #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR            6
+
+    //Jiggle detection stuff
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS             20      //20ms per bin
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_COUNT                50      //50 bins at 20ms = 1 sec coverage, wrapped
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER              4
 #endif
+
 
 //Configuration common to all bot detectors
 #if defined CONFIG_KEYBOARD_BOT_DETECT_ENABLED || defined CONFIG_MOUSE_BOT_DETECT_ENABLED
-    #define BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS                 4000
-    #define BOTDETECT_TEMPORARY_LOCKOUT_FLASH_TIME_MS           60000   //Flash fault LED for 60 seconds after temporary lockout
+    #define BOTDETECT_TEMPORARY_LOCKOUT_TIME_MS             4000    //Lock keyboard/mouse for 4 seconds as a first warning
+    #define BOTDETECT_TEMPORARY_LOCKOUT_FLASH_TIME_MS       60000   //Flash fault LED for 60 seconds after warning lockout
 #endif
 
 
