@@ -63,10 +63,11 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
     //Constant acceleration detection stuff
     uint16_t    MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
     int32_t     PreviousSmoothedAcceleration    = 0;
-    uint8_t     ConstantAccelerationCounter     = 0;
+    int8_t      ConstantAccelerationCounter     = 0;
 
     //Debug:
-//    uint8_t     ConstantAccelerationCounterMax  = 0;
+//    int8_t     ConstantAccelerationCounterMax   = 0;
+//    int8_t     ConstantAccelerationCounterMin   = 0;
 
     static void Upstream_HID_BotDetectMouse_DoLockout(void);
 #endif
@@ -406,6 +407,9 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     //Did the mouse stop moving?
     if ((now - LastMouseMoveTime) > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
     {
+        //Constant acceleration detection
+        ConstantAccelerationCounter = 0;
+
         //Jump detection
         if (MouseIsMoving)
         {
@@ -457,19 +461,20 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
                 ((PreviousSmoothedAcceleration - smoothedAccelerationMatchError) <= newSmoothedAcceleration))
             {
                 ConstantAccelerationCounter++;
-                if (ConstantAccelerationCounter > MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_COUNT)
+                if (ConstantAccelerationCounter > MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_LIMIT)
                 {
                     Upstream_HID_BotDetectMouse_DoLockout();
                 }
-
-                //Debug:
-//                if (ConstantAccelerationCounter > ConstantAccelerationCounterMax) ConstantAccelerationCounterMax = ConstantAccelerationCounter;
             }
             else
             {
-                ConstantAccelerationCounter = 0;
+                if (ConstantAccelerationCounter > -MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_CREDIT) ConstantAccelerationCounter--;
             }
             PreviousSmoothedAcceleration = newSmoothedAcceleration;
+
+            //Debug:
+//            if (ConstantAccelerationCounter > ConstantAccelerationCounterMax) ConstantAccelerationCounterMax = ConstantAccelerationCounter;
+//            if (ConstantAccelerationCounter < ConstantAccelerationCounterMin) ConstantAccelerationCounterMin = ConstantAccelerationCounter;
         }
     }
     else
