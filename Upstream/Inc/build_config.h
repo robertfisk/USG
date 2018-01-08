@@ -27,7 +27,7 @@
 #ifdef CONFIG_KEYBOARD_BOT_DETECT_ENABLED
     //-----------------------------------------------------------
     //Adjust this threshold first to tune keyboard bot detection. Lower values = more sensitive
-    #define KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD        4       //4 is a good setting for the paranoid. 5 is good for the average user who doesn't want to encounter a rare false-positive.
+    #define KEYBOARD_BOTDETECT_LOCKOUT_BIN_THRESHOLD        5       //4 is a good setting for the paranoid. 5 is good for the average user who doesn't want to encounter a rare false-positive.
     //-----------------------------------------------------------
 
     #define KEYBOARD_BOTDETECT_FAST_BIN_WIDTH_MS            10      //10ms per bin
