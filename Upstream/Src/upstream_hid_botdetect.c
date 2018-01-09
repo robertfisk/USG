@@ -407,7 +407,11 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     //Did the mouse stop moving?
     if ((now - LastMouseMoveTime) > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
     {
-        //Constant acceleration detection
+        //Reset constant acceleration detection state
+        for (i = 0; i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
+        {
+            MouseVelocityHistory[i] = 0;
+        }
         ConstantAccelerationCounter = 0;
 
         //Jump detection
