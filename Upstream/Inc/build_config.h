@@ -44,7 +44,7 @@
     //-----------------------------------------------------------
     //Adjust these thresholds first to tune mouse bot detection. Lower values = more sensitive
     #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20      //Varies by mouse. Most short jumps are <= 10 velocity
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_LIMIT    30      //10 is ok for most mice. But some mice (or users!) generate longer sequences.
+    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_LIMIT    20      //10 is ok for most mice. But some mice (or users!) generate longer sequences.
     #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_CREDIT   40      //Non-constant-acceleration movements can build a credit that will be used before hitting the ACCEL_COUNT limit above. Handy for mice or users that exhibit constant velocity characteristics mid-movement.
     //-----------------------------------------------------------
 
