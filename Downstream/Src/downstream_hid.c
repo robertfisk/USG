@@ -152,6 +152,10 @@ static HAL_StatusTypeDef Downstream_HID_Mouse_ParseReportDescriptor(void)
             currentReportCount = ItemData;
             break;
 
+        case HID_ITEM_REPORT_ID:
+            currentReportBitIndex += 8;         //Rudimentary support for a single report ID
+            break;
+
         case HID_ITEM_INPUT:
             switch (currentUsagePage)
             {
