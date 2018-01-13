@@ -65,9 +65,14 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
     int32_t     PreviousSmoothedAcceleration    = 0;
     int8_t      ConstantAccelerationCounter     = 0;
 
+    //Jiggle detection stuff
+    uint8_t     MouseStopIntervalBinDrainDivideCount    = 0;
+    uint8_t     MouseStopIntervalBinArray[MOUSE_BOTDETECT_JIGGLE_BIN_COUNT] = {0};
+
     //Debug:
 //    int8_t     ConstantAccelerationCounterMax   = 0;
-//    int8_t     ConstantAccelerationCounterMin   = 0;
+//    int8_t      ConstantAccelerationCounterMin  = 0;
+//    uint8_t     MouseStopIntervalBinArrayPeak   = 0;
 
     static void Upstream_HID_BotDetectMouse_DoLockout(void);
 #endif
@@ -387,6 +392,7 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
 {
     uint32_t i;
     uint32_t now = HAL_GetTick();
+    uint32_t moveDelay;
     uint32_t velocity;
     int8_t  mouseX;
     int8_t  mouseY;
@@ -402,17 +408,49 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     mouseY = mouseInData[2];
     velocity = (sqrtf(((int32_t)mouseX * mouseX) +
                       ((int32_t)mouseY * mouseY))) * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER;       //Multiply floating-point sqrt result to avoid integer rounding errors
+    moveDelay = now - LastMouseMoveTime;
 
 
     //Did the mouse stop moving?
-    if ((now - LastMouseMoveTime) > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+    if (moveDelay > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
     {
-        //Reset constant acceleration detection state
-        for (i = 0; i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
+        //Is this the start of a new movement?
+        if (velocity != 0)
         {
-            MouseVelocityHistory[i] = 0;
+            //Reset constant acceleration detection state
+            for (i = 0; i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
+            {
+                MouseVelocityHistory[i] = 0;
+            }
+            ConstantAccelerationCounter = 0;
+
+
+            //Jiggle detection: add stopped time to jiggle bins
+            moveDelay = moveDelay % (MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS * MOUSE_BOTDETECT_JIGGLE_BIN_COUNT);   //Wrap stopped time into the array
+            MouseStopIntervalBinArray[(moveDelay / MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS)]++;
+            if (MouseStopIntervalBinArray[(moveDelay / MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS)] > MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD)
+            {
+                Upstream_HID_BotDetectMouse_DoLockout();
+            }
+
+            //Debug:
+//            if (MouseStopIntervalBinArray[(moveDelay / MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS)] > MouseStopIntervalBinArrayPeak)
+//            {
+//                MouseStopIntervalBinArrayPeak = MouseStopIntervalBinArray[(moveDelay / MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS)];
+//            }
+
+            //Drain jiggle bins at specified rate
+            MouseStopIntervalBinDrainDivideCount++;
+            if (MouseStopIntervalBinDrainDivideCount >= MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER)
+            {
+                MouseStopIntervalBinDrainDivideCount = 0;
+                for (i = 0; i < MOUSE_BOTDETECT_JIGGLE_BIN_COUNT; i++)
+                {
+                    if (MouseStopIntervalBinArray[i] > 0) MouseStopIntervalBinArray[i]--;
+                }
+            }
         }
-        ConstantAccelerationCounter = 0;
+
 
         //Jump detection
         if (MouseIsMoving)
@@ -520,6 +558,11 @@ static void Upstream_HID_BotDetectMouse_DoLockout(void)
         MouseVelocityHistory[i] = 0;
     }
     ConstantAccelerationCounter = 0;
+
+    for (i = 0; i < MOUSE_BOTDETECT_JIGGLE_BIN_COUNT; i++)
+    {
+        MouseStopIntervalBinArray[i] = 0;
+    }
 
     TemporaryLockoutTimeMs = 0;
     LockoutState = LOCKOUT_STATE_TEMPORARY_ACTIVE;
