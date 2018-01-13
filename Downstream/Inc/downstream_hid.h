@@ -51,6 +51,7 @@
 
 #define HID_ITEM_REPORT_SIZE        0x74        //'global' report size
 #define HID_ITEM_REPORT_COUNT       0x94        //'global' report count
+#define HID_ITEM_REPORT_ID          0x84
 
 #define HID_ITEM_INPUT              0x80        //'main' input
 #define HID_ITEM_INPUT_ABS          0x02
