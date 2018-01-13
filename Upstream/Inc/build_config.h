@@ -45,7 +45,8 @@
     //Adjust these thresholds first to tune mouse bot detection. Lower values = more sensitive
     #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20      //Varies by mouse. Most short jumps are <= 10 velocity
     #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_LIMIT    20      //10 is ok for most mice. But some mice (or users!) generate longer sequences.
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_CREDIT   40      //Non-constant-acceleration movements can build a credit that will be used before hitting the ACCEL_COUNT limit above. Handy for mice or users that exhibit constant velocity characteristics mid-movement.
+    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_CREDIT   60      //Non-constant-acceleration movements can build a credit that will be used before hitting the ACCEL_COUNT limit above. Handy for mice or users that exhibit constant velocity characteristics mid-movement.
+    #define MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD    4
     //-----------------------------------------------------------
 
     #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER             10
@@ -58,6 +59,11 @@
     #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE           12
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE             256
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR            6
+
+    //Jiggle detection stuff
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS             20      //20ms per bin
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_COUNT                50      //50 bins at 20ms = 1 sec coverage, wrapped
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER              4
 #endif
 
 
