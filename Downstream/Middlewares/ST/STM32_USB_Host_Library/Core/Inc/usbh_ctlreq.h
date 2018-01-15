@@ -102,7 +102,8 @@ USBH_StatusTypeDef USBH_CtlReq     (USBH_HandleTypeDef *phost,
 
 USBH_StatusTypeDef USBH_GetDescriptor(USBH_HandleTypeDef *phost,                                
                                uint8_t  req_type,
-                               uint16_t value_idx, 
+                               uint16_t type_idx,
+                               uint16_t value,
                                uint8_t* buff, 
                                uint16_t length );
 

@@ -123,7 +123,8 @@ USBH_StatusTypeDef USBH_Get_DevDesc(USBH_HandleTypeDef *phost, uint16_t length)
 
   if((status = USBH_GetDescriptor(phost,
                                   USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,                          
-                                  USB_DESC_DEVICE, 
+                                  USB_DESC_DEVICE,
+                                  0,
                                   phost->device.Data,
                                   length)) == USBH_OK)
   {
@@ -166,7 +167,8 @@ USBH_StatusTypeDef USBH_Get_CfgDesc(USBH_HandleTypeDef *phost,
 #endif  
   if((status = USBH_GetDescriptor(phost,
                                   USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,                          
-                                  USB_DESC_CONFIGURATION, 
+                                  USB_DESC_CONFIGURATION,
+                                  0,
                                   pData,
                                   length)) == USBH_OK)
   {
@@ -204,7 +206,8 @@ USBH_StatusTypeDef USBH_Get_StringDesc(USBH_HandleTypeDef *phost,
 
   if((status = USBH_GetDescriptor(phost,
                                   USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,                                    
-                                  USB_DESC_STRING | string_index, 
+                                  USB_DESC_STRING | string_index,
+                                  0x0409,
                                   phost->device.Data,
                                   length)) == USBH_OK)
   {
@@ -227,7 +230,8 @@ USBH_StatusTypeDef USBH_Get_StringDesc(USBH_HandleTypeDef *phost,
   */
 USBH_StatusTypeDef USBH_GetDescriptor(USBH_HandleTypeDef *phost,                          
                                uint8_t  req_type,
-                               uint16_t value_idx, 
+                               uint16_t type_idx,
+                               uint16_t value,
                                uint8_t* buff, 
                                uint16_t length )
 { 
@@ -235,16 +239,8 @@ USBH_StatusTypeDef USBH_GetDescriptor(USBH_HandleTypeDef *phost,
   {
     phost->Control.setup.b.bmRequestType = USB_D2H | req_type;
     phost->Control.setup.b.bRequest = USB_REQ_GET_DESCRIPTOR;
-    phost->Control.setup.b.wValue.w = value_idx;
-    
-    if ((value_idx & 0xff00) == USB_DESC_STRING)
-    {
-      phost->Control.setup.b.wIndex.w = 0x0409;
-    }
-    else
-    {
-      phost->Control.setup.b.wIndex.w = 0;
-    }
+    phost->Control.setup.b.wValue.w = type_idx;
+    phost->Control.setup.b.wIndex.w = value;
     phost->Control.setup.b.wLength.w = length; 
   }
   return USBH_CtlReq(phost, buff , length );     
