@@ -55,10 +55,11 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
 
 //Variables specific to mouse bot detection:
 #if defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED)
-    //Jump detection stuff
     uint32_t    LastMouseMoveTime               = 0;
-    uint32_t    LastMouseMoveBeginTime;
-    uint8_t     MouseIsMoving                   = 0;
+
+    //Jump detection stuff
+    uint32_t    JumpLastMouseMoveBeginTime;
+    uint8_t     JumpMouseIsMoving               = 0;
 
     //Constant acceleration detection stuff
     uint16_t    MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
@@ -411,20 +412,27 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     moveDelay = now - LastMouseMoveTime;
 
 
-    //Did the mouse stop moving?
-    if (moveDelay > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+    //Reset constant acceleration detection state after a few seconds of inactivity
+    if (moveDelay > MOUSE_BOTDETECT_VELOCITY_RESET_TIMEOUT_MS)
     {
         //Is this the start of a new movement?
         if (velocity != 0)
         {
-            //Reset constant acceleration detection state
             for (i = 0; i < MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE; i++)
             {
                 MouseVelocityHistory[i] = 0;
             }
             ConstantAccelerationCounter = 0;
+        }
+    }
 
 
+    //Did the mouse stop moving briefly?
+    if (moveDelay > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+    {
+        //Is this the start of a new movement?
+        if (velocity != 0)
+        {
             //Jiggle detection: add stopped time to jiggle bins
             moveDelay = moveDelay % (MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS * MOUSE_BOTDETECT_JIGGLE_BIN_COUNT);   //Wrap stopped time into the array
             MouseStopIntervalBinArray[(moveDelay / MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS)]++;
@@ -451,14 +459,16 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
             }
         }
 
-
-        //Jump detection
-        if (MouseIsMoving)
+        //Jump detection: was a movement in progress?
+        if (JumpMouseIsMoving)
         {
-            MouseIsMoving = 0;
-            if ((LastMouseMoveTime - LastMouseMoveBeginTime) < ((MOUSE_BOTDETECT_JUMP_MINIMUM_TIME * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+            JumpMouseIsMoving = 0;
+            if ((LastMouseMoveTime - JumpLastMouseMoveBeginTime) < ((MOUSE_BOTDETECT_JUMP_MINIMUM_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
             {
-                Upstream_HID_BotDetectMouse_DoLockout();
+                if (ConstantAccelerationCounter >= 0)           //Ignore jumps if ConstantAccelerationCounter is negative -> a human is using the mouse
+                {
+                    Upstream_HID_BotDetectMouse_DoLockout();
+                }
             }
         }
     }
@@ -468,10 +478,10 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     {
         //Jump detection
         LastMouseMoveTime = now;
-        if ((MouseIsMoving == 0) && (velocity > (MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)))
+        if ((JumpMouseIsMoving == 0) && (velocity > (MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)))
         {
-            MouseIsMoving = 1;
-            LastMouseMoveBeginTime = now;
+            JumpMouseIsMoving = 1;
+            JumpLastMouseMoveBeginTime = now;
         }
 
         //Constant acceleration detection
