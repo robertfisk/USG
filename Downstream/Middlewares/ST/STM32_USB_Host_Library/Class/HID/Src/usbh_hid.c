@@ -141,44 +141,30 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
 {	
   uint8_t max_ep;
   uint8_t num = 0;
-  uint8_t interface;
+  uint8_t interface = 0xFF;
   
-  USBH_StatusTypeDef status = USBH_FAIL ;
   HID_HandleTypeDef *HID_Handle;
+
   
-  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFF);
+#ifdef CONFIG_MOUSE_ENABLED
+  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_MOUSE_BOOT_CODE);        //Search for mouse interfaces first
+#endif
+#ifdef CONFIG_KEYBOARD_ENABLED
+  if (interface == 0xFF)
+  {
+      interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_KEYBRD_BOOT_CODE);
+  }
+#endif
   
   if(interface == 0xFF) /* No Valid Interface */
   {
-    status = USBH_FAIL;  
-    USBH_DbgLog ("Cannot Find the interface for %s class.", phost->pActiveClass->Name);         
+    USBH_DbgLog ("Cannot Find the interface for %s class.", phost->pActiveClass->Name);
+    return USBH_FAIL;
   }
-  else
-  {
+
     USBH_SelectInterface (phost, interface);
     phost->pActiveClass->pData = (HID_HandleTypeDef *)USBH_malloc (sizeof(HID_HandleTypeDef));
     HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData; 
-    HID_Handle->state = HID_ERROR;
-    
-    /*Decode Bootclass Protocol: Mouse or Keyboard*/
-#ifdef CONFIG_KEYBOARD_ENABLED
-    if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol == HID_KEYBRD_BOOT_CODE)
-    {
-      USBH_UsrLog ("KeyBoard device found!"); 
-    }
-    else
-#endif
-#ifdef CONFIG_MOUSE_ENABLED
-    if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol == HID_MOUSE_BOOT_CODE)
-    {
-      USBH_UsrLog ("Mouse device found!");         
-    }
-    else
-#endif
-    {
-      USBH_UsrLog ("Protocol not supported.");  
-      return USBH_FAIL;
-    }
     
     HID_Handle->state     = HID_INIT;
     HID_Handle->ctl_state = HID_REQ_INIT; 
@@ -245,9 +231,7 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
       }
       
     }  
-    status = USBH_OK;
-  }
-  return status;
+    return USBH_OK;
 }
 
 /**
@@ -488,7 +472,8 @@ USBH_StatusTypeDef USBH_HID_GetHIDReportDescriptor (USBH_HandleTypeDef *phost,
 
   status = USBH_GetDescriptor(phost,
                               USB_REQ_RECIPIENT_INTERFACE | USB_REQ_TYPE_STANDARD,                                  
-                              USB_DESC_HID_REPORT, 
+                              USB_DESC_HID_REPORT,
+                              phost->device.current_interface,
                               phost->device.Data,
                               length);
   
@@ -524,6 +509,7 @@ USBH_StatusTypeDef USBH_HID_GetHIDDescriptor (USBH_HandleTypeDef *phost,
   status = USBH_GetDescriptor( phost,
                               USB_REQ_RECIPIENT_INTERFACE | USB_REQ_TYPE_STANDARD,                                  
                               USB_DESC_HID,
+                              phost->device.current_interface,
                               phost->device.Data,
                               length);
  
