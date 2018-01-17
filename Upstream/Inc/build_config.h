@@ -41,30 +41,28 @@
 
 //Configure mouse bot detection here:
 #ifdef CONFIG_MOUSE_BOT_DETECT_ENABLED
-    //-----------------------------------------------------------
-    //Adjust these thresholds first to tune mouse bot detection. Lower values = more sensitive
-    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20      //Varies by mouse. Most short jumps are <= 10 velocity
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_LIMIT    30      //10 is ok for most mice. But some mice (or users!) generate longer sequences.
-    #define MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_CREDIT   80      //Non-constant-acceleration movements can build a credit that will be used before hitting the ACCEL_COUNT limit above. Handy for mice or users that exhibit constant velocity characteristics mid-movement.
-    #define MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD    4
-    //-----------------------------------------------------------
-
     #define MOUSE_BOTDETECT_VELOCITY_MULTIPLIER             10
-    #define MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS           5
 
     //Jump detection stuff
-    #define MOUSE_BOTDETECT_JUMP_MINIMUM_PERIODS            4
+    #define MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD         20      //Varies by mouse. Most short jumps are <= 10 velocity
+    #define MOUSE_BOTDETECT_JUMP_PERIODS                    4
 
     //Constant acceleration detection stuff
-    #define MOUSE_BOTDETECT_VELOCITY_RESET_TIMEOUT_MS       4000
+    #define MOUSE_BOTDETECT_CONSTANT_ACCEL_LOCKOUT          100     //Lock when constant acceleration counter reaches this number
+    #define MOUSE_BOTDETECT_CONSTANT_ACCEL_STOP             10      //Block mouse movements when counter is above this value
+    #define MOUSE_BOTDETECT_CONSTANT_ACCEL_CREDIT           100     //Non-constant-acceleration movements can build a credit that will be used before hitting the limits above. Handy for mice or users that exhibit constant velocity characteristics mid-movement.
+    #define MOUSE_BOTDETECT_VELOCITY_RESET_TIMEOUT_MS       3000    //Reset constant acceleration counter when mouse stops for this time
+
     #define MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE           12
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_BASE             256
     #define MOUSE_BOTDETECT_VELOCITY_MATCH_ERROR            6
 
     //Jiggle detection stuff
+    #define MOUSE_BOTDETECT_JIGGLE_STOP_PERIODS             10
     #define MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS             20      //20ms per bin
     #define MOUSE_BOTDETECT_JIGGLE_BIN_COUNT                50      //50 bins at 20ms = 1 sec coverage, wrapped
     #define MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER              4
+    #define MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD    4
 #endif
 
 

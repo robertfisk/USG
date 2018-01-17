@@ -64,7 +64,7 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
     //Constant acceleration detection stuff
     uint16_t    MouseVelocityHistory[MOUSE_BOTDETECT_VELOCITY_HISTORY_SIZE] = {0};
     int32_t     PreviousSmoothedAcceleration    = 0;
-    int8_t      ConstantAccelerationCounter     = 0;
+    int32_t     ConstantAccelerationCounter     = 0;
 
     //Jiggle detection stuff
     uint8_t     MouseStopIntervalBinDrainDivideCount    = 0;
@@ -427,8 +427,8 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     }
 
 
-    //Did the mouse stop moving briefly?
-    if (moveDelay > ((MOUSE_BOTDETECT_MOVEMENT_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+    //Jiggle detection: did the mouse stop moving?
+    if (moveDelay > ((MOUSE_BOTDETECT_JIGGLE_STOP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
     {
         //Is this the start of a new movement?
         if (velocity != 0)
@@ -458,12 +458,17 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
                 }
             }
         }
+    }
 
-        //Jump detection: was a movement in progress?
+
+    //Jump detection: did the mouse stop moving briefly?
+    if (moveDelay > ((MOUSE_BOTDETECT_JUMP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+    {
+        //Was a movement in progress?
         if (JumpMouseIsMoving)
         {
             JumpMouseIsMoving = 0;
-            if ((LastMouseMoveTime - JumpLastMouseMoveBeginTime) < ((MOUSE_BOTDETECT_JUMP_MINIMUM_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+            if ((LastMouseMoveTime - JumpLastMouseMoveBeginTime) < ((MOUSE_BOTDETECT_JUMP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
             {
                 if (ConstantAccelerationCounter >= 0)           //Ignore jumps if ConstantAccelerationCounter is negative -> a human is using the mouse
                 {
@@ -513,14 +518,19 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
                 ((PreviousSmoothedAcceleration - smoothedAccelerationMatchError) <= newSmoothedAcceleration))
             {
                 ConstantAccelerationCounter++;
-                if (ConstantAccelerationCounter > MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_LIMIT)
+                if (ConstantAccelerationCounter > MOUSE_BOTDETECT_CONSTANT_ACCEL_LOCKOUT)
                 {
                     Upstream_HID_BotDetectMouse_DoLockout();
+                }
+                else if (ConstantAccelerationCounter >= MOUSE_BOTDETECT_CONSTANT_ACCEL_STOP)        //Stop mouse movement if it looks suspiciously constant
+                {
+                    mouseInData[1] = 0;
+                    mouseInData[2] = 0;
                 }
             }
             else
             {
-                if (ConstantAccelerationCounter > -MOUSE_BOTDETECT_LOCKOUT_CONSTANT_ACCEL_CREDIT) ConstantAccelerationCounter--;
+                if (ConstantAccelerationCounter > -MOUSE_BOTDETECT_CONSTANT_ACCEL_CREDIT) ConstantAccelerationCounter--;
             }
             PreviousSmoothedAcceleration = newSmoothedAcceleration;
 
