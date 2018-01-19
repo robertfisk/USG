@@ -48,7 +48,7 @@
     #define MOUSE_BOTDETECT_JUMP_PERIODS                    4
 
     //Constant acceleration detection stuff
-    #define MOUSE_BOTDETECT_CONSTANT_ACCEL_LOCKOUT          100     //Lock when constant acceleration counter reaches this number
+    #define MOUSE_BOTDETECT_CONSTANT_ACCEL_LOCKOUT          300     //Lock when constant acceleration counter reaches this number
     #define MOUSE_BOTDETECT_CONSTANT_ACCEL_STOP             10      //Block mouse movements when counter is above this value
     #define MOUSE_BOTDETECT_CONSTANT_ACCEL_CREDIT           100     //Non-constant-acceleration movements can build a credit that will be used before hitting the limits above. Handy for mice or users that exhibit constant velocity characteristics mid-movement.
     #define MOUSE_BOTDETECT_VELOCITY_RESET_TIMEOUT_MS       3000    //Reset constant acceleration counter when mouse stops for this time
