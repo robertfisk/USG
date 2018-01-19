@@ -58,7 +58,7 @@ volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
     uint32_t    LastMouseMoveTime               = 0;
 
     //Jump detection stuff
-    uint32_t    JumpLastMouseMoveBeginTime;
+    uint32_t    FirstMouseMoveTime              = 0;
     uint8_t     JumpMouseIsMoving               = 0;
 
     //Constant acceleration detection stuff
@@ -464,16 +464,13 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     //Jump detection: did the mouse stop moving briefly?
     if (moveDelay > ((MOUSE_BOTDETECT_JUMP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
     {
-        //Was a movement in progress?
-        if (JumpMouseIsMoving)
+        FirstMouseMoveTime = 0;
+        if (JumpMouseIsMoving)              //Was a significant movement in progress?
         {
             JumpMouseIsMoving = 0;
-            if ((LastMouseMoveTime - JumpLastMouseMoveBeginTime) < ((MOUSE_BOTDETECT_JUMP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
+            if ((LastMouseMoveTime - FirstMouseMoveTime) < ((MOUSE_BOTDETECT_JUMP_PERIODS * HID_FS_BINTERVAL) - (HID_FS_BINTERVAL / 2)))
             {
-                if (ConstantAccelerationCounter >= 0)           //Ignore jumps if ConstantAccelerationCounter is negative -> a human is using the mouse
-                {
-                    Upstream_HID_BotDetectMouse_DoLockout();
-                }
+                Upstream_HID_BotDetectMouse_DoLockout();
             }
         }
     }
@@ -483,10 +480,13 @@ void Upstream_HID_BotDetectMouse(uint8_t* mouseInData)
     {
         //Jump detection
         LastMouseMoveTime = now;
-        if ((JumpMouseIsMoving == 0) && (velocity > (MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER)))
+        if (FirstMouseMoveTime == 0)
+        {
+            FirstMouseMoveTime = now;
+        }
+        if (velocity > (MOUSE_BOTDETECT_JUMP_VELOCITY_THRESHOLD * MOUSE_BOTDETECT_VELOCITY_MULTIPLIER))
         {
             JumpMouseIsMoving = 1;
-            JumpLastMouseMoveBeginTime = now;
         }
 
         //Constant acceleration detection
