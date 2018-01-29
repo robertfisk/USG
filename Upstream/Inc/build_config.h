@@ -61,7 +61,7 @@
     #define MOUSE_BOTDETECT_JIGGLE_STOP_PERIODS             10
     #define MOUSE_BOTDETECT_JIGGLE_BIN_WIDTH_MS             20      //20ms per bin
     #define MOUSE_BOTDETECT_JIGGLE_BIN_COUNT                50      //50 bins at 20ms = 1 sec coverage, wrapped
-    #define MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER              4
+    #define MOUSE_BOTDETECT_JIGGLE_BIN_DIVIDER              3
     #define MOUSE_BOTDETECT_LOCKOUT_JIGGLE_BIN_THRESHOLD    4
 #endif
 
