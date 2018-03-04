@@ -65,6 +65,7 @@
 
 #define HID_MIN_POLL                                10
 #define HID_MAX_REPORT_SIZE                         8
+#define HID_REPORT_BUFFER_SIZE                      64
 #define HID_MAX_USAGE                               10
 #define HID_MAX_NBR_REPORT_FMT                      10
 //#define HID_QUEUE_SIZE                              10
@@ -234,7 +235,7 @@ typedef struct _HID_Process
   uint8_t              Protocol;
   HID_DescTypeDef      HID_Desc;
   TransactionCompleteCallbackTypeDef   ReportCallback;
-  uint8_t              Data[HID_MAX_REPORT_SIZE];
+  uint8_t              Data[HID_REPORT_BUFFER_SIZE];
 }
 HID_HandleTypeDef;
 

@@ -173,15 +173,8 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
     HID_Handle->poll      = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].Ep_Desc[0].bInterval;
     HID_Handle->Protocol  = phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol;
     
-    if (HID_Handle->poll  < HID_MIN_POLL) 
-    {
-      HID_Handle->poll = HID_MIN_POLL;
-    }
-    
-    if (HID_Handle->length > HID_MAX_REPORT_SIZE)
-    {
-        return USBH_FAIL;
-    }
+    if (HID_Handle->poll  < HID_MIN_POLL) HID_Handle->poll = HID_MIN_POLL;
+    if (HID_Handle->length > HID_REPORT_BUFFER_SIZE) return USBH_FAIL;          //Some mechanical keyboards need to send > 8 byte packets
 
     /* Check fo available number of endpoints */
     /* Find the number of EPs in the Interface Descriptor */      
