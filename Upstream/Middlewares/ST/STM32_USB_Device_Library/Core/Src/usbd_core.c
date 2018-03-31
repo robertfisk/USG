@@ -475,11 +475,11 @@ USBD_StatusTypeDef USBD_SetSpeed(USBD_HandleTypeDef  *pdev, USBD_SpeedTypeDef sp
 
 USBD_StatusTypeDef USBD_Suspend(USBD_HandleTypeDef  *pdev)
 {
-  pdev->dev_old_state =  pdev->dev_state;
-  pdev->dev_state  = USBD_STATE_SUSPENDED;
-
-  if (pdev->dev_old_state > USBD_STATE_DEFAULT)
+  if ((pdev->dev_state > USBD_STATE_DEFAULT) &&
+      (pdev->dev_state < USBD_STATE_SUSPENDED))
   {
+      pdev->dev_old_state = pdev->dev_state;
+      pdev->dev_state = USBD_STATE_SUSPENDED;
       Upstream_StateMachine_Suspend();
   }
   return USBD_OK;

@@ -248,7 +248,7 @@ void Upstream_StateMachine_DeviceDisconnected(void)
 //Suspend event activated by our host
 void Upstream_StateMachine_Suspend(void)
 {
-    if (UpstreamState >= STATE_ERROR)
+    if (UpstreamState >= STATE_SUSPENDED)       //Ignore when already suspended, or in error state
     {
         return;
     }
