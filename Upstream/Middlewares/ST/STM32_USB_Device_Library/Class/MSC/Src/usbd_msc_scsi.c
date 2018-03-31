@@ -101,6 +101,7 @@ static void SCSI_ReadFormatCapacity(void);
 static void SCSI_ReadCapacity10(void);
 static void SCSI_RequestSense (void);
 static void SCSI_StartStopUnit(void);
+static void SCSI_AllowMediumRemoval(void);
 static void SCSI_ModeSense6 (void);
 static void SCSI_ModeSense10 (void);
 static void SCSI_Write10(void);
@@ -171,7 +172,7 @@ void SCSI_ProcessCmd(USBD_HandleTypeDef  *pdev,
     return;
     
   case SCSI_ALLOW_MEDIUM_REMOVAL:
-    SCSI_StartStopUnit();
+      SCSI_AllowMediumRemoval();
     return;
     
   case SCSI_MODE_SENSE6:
@@ -546,9 +547,22 @@ void SCSI_SenseCode(USBD_HandleTypeDef  *pdev, uint8_t lun, uint8_t sKey, uint8_
 */
 static void SCSI_StartStopUnit(void)
 {
+    if ((SCSI_ProcessCmd_params[4] & START_STOP_DATA_MASK) == START_STOP_DATA_EJECT_STOP_MOTOR)
+    {
+        USBD_RequestStop(SCSI_ProcessCmd_pdev);               //Host is signalling us to disconnect
+    }
+
   SCSI_ProcessCmd_hmsc->bot_data_length = 0;
   SCSI_ProcessCmd_callback(0);
 }
+
+
+static void SCSI_AllowMediumRemoval(void)
+{
+  SCSI_ProcessCmd_hmsc->bot_data_length = 0;
+  SCSI_ProcessCmd_callback(0);
+}
+
 
 /**
 * @brief  SCSI_Read10
