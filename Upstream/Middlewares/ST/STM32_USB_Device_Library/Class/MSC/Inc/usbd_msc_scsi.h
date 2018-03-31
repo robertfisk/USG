@@ -117,6 +117,10 @@
 #define STANDARD_INQUIRY_DATA_LEN                   0x24
 #define BLKVFY                                      0x04
 
+#define START_STOP_DATA_MASK                        0x03
+#define START_STOP_DATA_EJECT_STOP_MOTOR            0x02
+
+
 extern  uint8_t Page00_Inquiry_Data[];
 extern  uint8_t Standard_Inquiry_Data[];
 extern  uint8_t Standard_Inquiry_Data2[];

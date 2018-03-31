@@ -121,6 +121,8 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev, USBD_DescriptorsTypeDef *
   /* Initialize low level driver */
   USBD_LL_Init(pdev);
   
+  pdev->usbCoreStatus = USB_STATUS_STOP;
+
   return USBD_OK; 
 }
 
@@ -184,10 +186,11 @@ USBD_StatusTypeDef  USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeD
   */
 USBD_StatusTypeDef  USBD_Start  (USBD_HandleTypeDef *pdev)
 {
-  
   /* Start the low level driver  */
   USBD_LL_Start(pdev); 
   
+  pdev->usbCoreStatus = USB_STATUS_START;
+
   return USBD_OK;  
 }
 
@@ -205,8 +208,22 @@ USBD_StatusTypeDef  USBD_Stop   (USBD_HandleTypeDef *pdev)
   /* Stop the low level driver  */
   USBD_LL_Stop(pdev); 
   
+  pdev->usbCoreStatus = USB_STATUS_STOP;
+
   return USBD_OK;  
 }
+
+
+USBD_StatusTypeDef USBD_RequestStop(USBD_HandleTypeDef *pdev)
+{
+    if (pdev->usbCoreStatus == USB_STATUS_START)
+    {
+        pdev->usbCoreStatus = USB_STATUS_REQUEST_EJECT;
+        pdev->usbRequestEjectTime = HAL_GetTick() + 5;          //Allow > 1ms to transmit the SCSI eject reply before disconnecting
+    }
+    return USBD_OK;
+}
+
 
 /**
 * @brief  USBD_RunTestMode 
@@ -216,6 +233,8 @@ USBD_StatusTypeDef  USBD_Stop   (USBD_HandleTypeDef *pdev)
 */
 USBD_StatusTypeDef  USBD_RunTestMode (USBD_HandleTypeDef  *pdev) 
 {
+  UNUSED(pdev);
+
   return USBD_OK;
 }
 
@@ -500,6 +519,14 @@ USBD_StatusTypeDef USBD_SOF(USBD_HandleTypeDef  *pdev)
       pdev->pClass->SOF(pdev);
     }
   }
+
+  if (pdev->usbCoreStatus == USB_STATUS_REQUEST_EJECT)
+  {
+      if ((int32_t)(HAL_GetTick() - pdev->usbRequestEjectTime) >= 0)
+      {
+          USBD_Stop(pdev);
+      }
+  }
   return USBD_OK;
 }
 
@@ -511,6 +538,8 @@ USBD_StatusTypeDef USBD_SOF(USBD_HandleTypeDef  *pdev)
 */
 USBD_StatusTypeDef USBD_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum)
 {
+  UNUSED(pdev);
+
   return USBD_OK;
 }
 
@@ -522,6 +551,8 @@ USBD_StatusTypeDef USBD_IsoINIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum
 */
 USBD_StatusTypeDef USBD_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnum)
 {
+  UNUSED(pdev);
+
   return USBD_OK;
 }
 
@@ -533,6 +564,8 @@ USBD_StatusTypeDef USBD_IsoOUTIncomplete(USBD_HandleTypeDef  *pdev, uint8_t epnu
 */
 USBD_StatusTypeDef USBD_DevConnected(USBD_HandleTypeDef  *pdev)
 {
+  UNUSED(pdev);
+
   return USBD_OK;
 }
 

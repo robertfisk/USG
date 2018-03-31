@@ -222,18 +222,29 @@ typedef struct
   uint32_t                maxpacket;   
 } USBD_EndpointTypeDef;
 
+
+typedef enum
+{
+    USB_STATUS_STOP,
+    USB_STATUS_START,
+    USB_STATUS_REQUEST_EJECT
+} UsbCoreStatusTypeDef;
+
+
 /* USB Device handle structure */
 typedef struct _USBD_HandleTypeDef
 {
-  uint8_t                 id;
   uint32_t                dev_config;
   uint32_t                dev_default_config;
-  uint32_t                dev_config_status; 
+  uint32_t                dev_config_status;
   USBD_SpeedTypeDef       dev_speed; 
   USBD_EndpointTypeDef    ep_in[15];
   USBD_EndpointTypeDef    ep_out[15];  
   uint32_t                ep0_state;  
-  uint32_t                ep0_data_len;     
+  uint32_t                ep0_data_len;
+  uint32_t                usbRequestEjectTime;
+  uint8_t                 id;
+  uint8_t                 usbCoreStatus;
   uint8_t                 dev_state;
   uint8_t                 dev_old_state;
   uint8_t                 dev_address;

@@ -92,6 +92,7 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev, USBD_DescriptorsTypeDef *
 USBD_ClassTypeDef* USBD_DeInit(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_Start  (USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_Stop   (USBD_HandleTypeDef *pdev);
+USBD_StatusTypeDef USBD_RequestStop(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeDef *pclass);
 
 USBD_StatusTypeDef USBD_RunTestMode (USBD_HandleTypeDef  *pdev); 
