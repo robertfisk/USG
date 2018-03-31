@@ -147,12 +147,12 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
 
   
 #ifdef CONFIG_MOUSE_ENABLED
-  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_MOUSE_BOOT_CODE);        //Search for mouse interfaces first
+  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_MOUSE_PROTOCOL);        //Search for mouse interfaces first
 #endif
 #ifdef CONFIG_KEYBOARD_ENABLED
   if (interface == 0xFF)
   {
-      interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_KEYBRD_BOOT_CODE);
+      interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_KEYBRD_PROTOCOL);
   }
 #endif
   
@@ -315,7 +315,7 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
     //Mouse in 'report' mode,
     //Keyboard in 'boot' mode
     if (USBH_HID_SetProtocol(phost,
-                             (HID_Handle->Protocol == HID_MOUSE_BOOT_CODE ? 1 : 0)) == USBH_OK)
+                             (HID_Handle->Protocol == HID_MOUSE_PROTOCOL ? 1 : 0)) == USBH_OK)
     {
       HID_Handle->ctl_state = HID_REQ_IDLE;
       
@@ -681,12 +681,12 @@ HID_TypeTypeDef USBH_HID_GetDeviceType(USBH_HandleTypeDef *phost)
   {
     
     if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol \
-      == HID_KEYBRD_BOOT_CODE)
+      == HID_KEYBRD_PROTOCOL)
     {
       type = HID_KEYBOARD;  
     }
     else if(phost->device.CfgDesc.Itf_Desc[phost->device.current_interface].bInterfaceProtocol \
-      == HID_MOUSE_BOOT_CODE)		  
+      == HID_MOUSE_PROTOCOL)		  
     {
       type=  HID_MOUSE;  
     }

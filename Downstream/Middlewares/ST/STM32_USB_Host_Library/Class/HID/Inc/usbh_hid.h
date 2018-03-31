@@ -263,8 +263,8 @@ HID_HandleTypeDef;
 
 /* Interface Descriptor field values for HID Boot Protocol */
 #define HID_BOOT_CODE                                  0x01    
-#define HID_KEYBRD_BOOT_CODE                           0x01
-#define HID_MOUSE_BOOT_CODE                            0x02
+#define HID_KEYBRD_PROTOCOL                            0x01
+#define HID_MOUSE_PROTOCOL                             0x02
 
 
 /**

@@ -55,7 +55,7 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
     HID_HandleTypeDef* HID_Handle =  (HID_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
 #ifdef CONFIG_MOUSE_ENABLED
-    if (HID_Handle->Protocol == HID_MOUSE_BOOT_CODE)
+    if (HID_Handle->Protocol == HID_MOUSE_PROTOCOL)
     {
         if (Downstream_HID_Mouse_ParseReportDescriptor() == HAL_OK)
         {
@@ -64,7 +64,7 @@ InterfaceCommandClassTypeDef Downstream_HID_ApproveConnectedDevice(void)
     }
 #endif
 #ifdef CONFIG_KEYBOARD_ENABLED
-    if (HID_Handle->Protocol == HID_KEYBRD_BOOT_CODE)
+    if (HID_Handle->Protocol == HID_KEYBRD_PROTOCOL)
     {
             return COMMAND_CLASS_HID_KEYBOARD;          //success!
     }
