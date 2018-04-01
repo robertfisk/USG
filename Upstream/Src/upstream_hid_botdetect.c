@@ -19,9 +19,9 @@
 
 
 //Variables common between keyboard and mouse bot detection:
-uint32_t                        TemporaryLockoutTimeMs;
 volatile LockoutStateTypeDef    LockoutState = LOCKOUT_STATE_INACTIVE;
-
+uint32_t                        TemporaryLockoutTimeMs;
+uint8_t                         TemporaryLockoutCount = 0;
 
 
 //Variables specific to keyboard bot detection:
@@ -198,6 +198,14 @@ static void Upstream_HID_BotDetectKeyboard_DoLockout(void)
         (LockoutState == LOCKOUT_STATE_TEMPORARY_FLASHING))
     {
         LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        return;
+    }
+
+    //Three (temporary) strikes -> you're out!
+    if (++TemporaryLockoutCount >= 3)
+    {
+        LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
         return;
     }
 
@@ -569,6 +577,14 @@ static void Upstream_HID_BotDetectMouse_DoLockout(void)
         (LockoutState == LOCKOUT_STATE_TEMPORARY_FLASHING))
     {
         LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        return;
+    }
+
+    //Three (temporary) strikes -> you're out!
+    if (++TemporaryLockoutCount >= 3)
+    {
+        LockoutState = LOCKOUT_STATE_PERMANENT_ACTIVE;
+        LED_SetState(LED_STATUS_FLASH_BOTDETECT);
         return;
     }
 
