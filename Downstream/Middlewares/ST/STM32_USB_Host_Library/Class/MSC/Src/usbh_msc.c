@@ -300,6 +300,10 @@ static USBH_StatusTypeDef USBH_MSC_ClassRequest(USBH_HandleTypeDef *phost)
       MSC_Handle->max_lun = (uint8_t )(MSC_Handle->max_lun) + 1;
       USBH_UsrLog ("Number of supported LUN: %lu", (int32_t)(MSC_Handle->max_lun));
       
+      if (MSC_Handle->max_lun > MAX_SUPPORTED_LUN)
+      {
+          MSC_Handle->max_lun = MAX_SUPPORTED_LUN;
+      }
       for(i = 0; i < MSC_Handle->max_lun; i++)
       {
         MSC_Handle->unit[i].prev_ready_state = USBH_FAIL;
