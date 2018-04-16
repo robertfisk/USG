@@ -24,6 +24,7 @@ typedef enum
     STATE_WAIT_DEVICE,
     STATE_DEVICE_ACTIVE,
     STATE_SUSPENDED,
+    STATE_DISCONNECTING,
     STATE_ERROR
 } UpstreamStateTypeDef;
 
@@ -46,6 +47,7 @@ void Upstream_StateMachine_DeviceDisconnected(void);
 void Upstream_StateMachine_Suspend(void);
 void Upstream_StateMachine_CheckResume(void);
 void Upstream_StateMachine_Wakeup(void);
+void Upstream_StateMachine_RegisterDisconnect(void);
 
 
 

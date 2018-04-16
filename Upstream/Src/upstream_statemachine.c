@@ -79,19 +79,21 @@ void Upstream_StateMachine_SetErrorState(void)
 
 InterfaceCommandClassTypeDef Upstream_StateMachine_CheckActiveClass(void)
 {
-    if (UpstreamState == STATE_ERROR)
+    if ((UpstreamState == STATE_ERROR) ||
+        (UpstreamState == STATE_DISCONNECTING))
     {
         return COMMAND_CLASS_ERROR;
     }
 
-    if ((UpstreamState != STATE_DEVICE_ACTIVE) &&
-        (UpstreamState != STATE_SUSPENDED))
+    if ((UpstreamState == STATE_DEVICE_ACTIVE) ||
+        (UpstreamState == STATE_SUSPENDED))
     {
-        UPSTREAM_STATEMACHINE_FREAKOUT;
-        return COMMAND_CLASS_INTERFACE;
+        return ConfiguredDeviceClass;
     }
 
-    return ConfiguredDeviceClass;
+    //else:
+    UPSTREAM_STATEMACHINE_FREAKOUT;
+    return COMMAND_CLASS_INTERFACE;
 }
 
 
@@ -293,3 +295,16 @@ void Upstream_StateMachine_Wakeup(void)
     USBD_Start(&hUsbDeviceFS);
 }
 
+
+//Host sends a SCSI motor stop command, so we shouldn't process any more commands.
+void Upstream_StateMachine_RegisterDisconnect(void)
+{
+    if ((UpstreamState != STATE_DEVICE_ACTIVE) &&
+        (UpstreamState != STATE_SUSPENDED))
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
+    UpstreamState = STATE_DISCONNECTING;
+}
