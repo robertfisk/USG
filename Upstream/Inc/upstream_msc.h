@@ -36,7 +36,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
                                           uint32_t writeBlockCount);
 HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packetToSend,
                                                    uint32_t dataLength8);
-
+void              Upstream_MSC_RegisterDisconnect(void);
 
 
 #endif /* INC_UPSTREAM_MSC_H_ */

@@ -379,13 +379,12 @@ uint8_t  USBD_MSC_DeInit (USBD_HandleTypeDef *pdev,
   USBD_LL_CloseEP(pdev,
                   MSC_EPIN_ADDR);
   
-  
-    /* De-Init the BOT layer */
-  MSC_BOT_DeInit(pdev);
-  
-  /* Free MSC Class Resources */
   if(pdev->pClassData != NULL)
   {
+    /* De-Init the BOT layer */
+    MSC_BOT_DeInit(pdev);
+  
+    /* Free MSC Class Resources */
     USBD_free(pdev->pClassData);
     pdev->pClassData  = NULL; 
   }

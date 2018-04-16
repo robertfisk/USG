@@ -550,6 +550,7 @@ static void SCSI_StartStopUnit(void)
     if ((SCSI_ProcessCmd_params[4] & START_STOP_DATA_MASK) == START_STOP_DATA_EJECT_STOP_MOTOR)
     {
         USBD_RequestStop(SCSI_ProcessCmd_pdev);               //Host is signalling us to disconnect
+        Upstream_MSC_RegisterDisconnect();
     }
 
   SCSI_ProcessCmd_hmsc->bot_data_length = 0;

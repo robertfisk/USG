@@ -369,7 +369,15 @@ HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packet
     packetToSend->Command = COMMAND_MSC_WRITE;
     return Upstream_TransmitPacket(packetToSend);
 }
-#endif
+#endif  //#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
+
+
+
+void Upstream_MSC_RegisterDisconnect(void)
+{
+    Upstream_StateMachine_RegisterDisconnect();
+}
+
 
 #endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 
