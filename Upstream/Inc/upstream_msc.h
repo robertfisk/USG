@@ -13,7 +13,13 @@
 #define INC_UPSTREAM_MSC_H_
 
 
-#include <upstream_spi.h>
+#include "upstream_spi.h"
+
+
+#define MSC_MINIMUM_BLOCK_COUNT     16              //I'm feeling arbitrary...
+#define MSC_SUPPORTED_BLOCK_SIZE    512
+#define MSC_MINIMUM_DATA_UNIT       MSC_SUPPORTED_BLOCK_SIZE
+
 
 
 typedef void (*UpstreamMSCCallbackTypeDef)(HAL_StatusTypeDef result);

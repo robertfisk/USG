@@ -65,7 +65,7 @@ void Upstream_MSC_TestReadyFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        //Upstream_ReleasePacket(freePacket);					/////////!!!!!!!!!!!!!???????????
+        //Upstream_PacketManager will free the packet when the transfer is done
         if (Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback) != HAL_OK)
         {
             TestReadyCallback(HAL_ERROR);
@@ -131,15 +131,15 @@ HAL_StatusTypeDef Upstream_MSC_GetCapacity(UpstreamMSCCallbackUintPacketTypeDef 
         return Upstream_ReceivePacket(Upstream_MSC_GetCapacityReplyCallback);
     }
     //else:
-    Upstream_ReleasePacket(freePacket); ////////?????????
+    Upstream_ReleasePacket(freePacket);
     return HAL_ERROR;
 }
 
 
 void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
 {
-    uint32_t uint1;
-    uint32_t uint2;
+    uint32_t block_count;
+    uint32_t block_size;
 
     if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
     {
@@ -159,9 +159,17 @@ void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPacket)
         return;
     }
 
-    uint1 = *(uint32_t*)&(replyPacket->Data[0]);
-    uint2 = *(uint32_t*)&(replyPacket->Data[4]);
-    GetCapacityCallback(replyPacket, uint1, uint2);     //usb_msc_scsi will use this packet, so don't release now
+    block_count = *(uint32_t*)&(replyPacket->Data[0]);
+    block_size = *(uint32_t*)&(replyPacket->Data[4]);
+
+    if ((block_count < MSC_MINIMUM_BLOCK_COUNT) ||
+        (block_size != MSC_SUPPORTED_BLOCK_SIZE))
+    {
+        Upstream_ReleasePacket(replyPacket);
+        GetCapacityCallback(NULL, 0, 0);
+        return;
+    }
+    GetCapacityCallback(replyPacket, block_count, block_size);     //usb_msc_scsi will use this packet, so don't release now
 }
 
 
@@ -239,7 +247,7 @@ HAL_StatusTypeDef Upstream_MSC_GetStreamDataPacket(UpstreamMSCCallbackPacketType
 
 void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket)
 {
-    uint16_t dataLength8;
+    uint32_t dataLength8;
 
     ReadStreamBusy = 0;
 
@@ -263,7 +271,7 @@ void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket
     dataLength8 = (replyPacket->Length16 - UPSTREAM_PACKET_HEADER_LEN_16) * 2;
 
     if (((replyPacket->CommandClass & COMMAND_CLASS_DATA_FLAG) == 0) ||     //Any 'command' reply (as opposed to 'data' reply) is an automatic fail here
-         (replyPacket->Length16 <= UPSTREAM_PACKET_HEADER_LEN_16) ||        //Should be at least one data byte in the reply.
+         (dataLength8 != MSC_MINIMUM_DATA_UNIT) ||                          //Should only receive integer units of MSC block size
          (dataLength8 > ByteCount))                                         //No more data than expected transfer length
     {
         GetStreamDataCallback(NULL, 0);
