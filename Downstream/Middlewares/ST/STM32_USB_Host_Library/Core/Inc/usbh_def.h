@@ -187,10 +187,10 @@
 #endif /* USBH_MAX_PIPES_NBR */
 
 #define USBH_DEVICE_ADDRESS_DEFAULT                     0
-#define USBH_MAX_ERROR_COUNT                            2
+#define USBH_MAX_ERROR_COUNT                            10
 #define USBH_DEVICE_ADDRESS                             1
 
-#define USBH_CTRL_TRANSACTION_TIMEOUT_MS                100
+#define USBH_CTRL_TRANSACTION_TIMEOUT_MS                200
 
 
 /**
