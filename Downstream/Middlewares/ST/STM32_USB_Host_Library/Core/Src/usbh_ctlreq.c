@@ -826,7 +826,7 @@ static USBH_StatusTypeDef USBH_HandleControl (USBH_HandleTypeDef *phost)
     if (++ phost->Control.errorcount <= USBH_MAX_ERROR_COUNT)
     {
       /* try to recover control */
-      USBH_LL_Stop(phost);
+//      USBH_LL_Stop(phost);
          
       /* Do the transmission again, starting from SETUP Packet */
       phost->Control.state = CTRL_SETUP; 
