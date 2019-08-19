@@ -453,10 +453,10 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
           if((MSC_Handle->unit[MSC_Handle->current_lun].sense.key == SCSI_SENSE_KEY_UNIT_ATTENTION) ||
              (MSC_Handle->unit[MSC_Handle->current_lun].sense.key == SCSI_SENSE_KEY_NOT_READY) )   
           {
-            
-            if((phost->Timer - MSC_Handle->timeout) < 10000)
+            if((HAL_GetTick() - MSC_Handle->timeout) < MSC_STARTUP_TIMEOUT_MS)
             {
-              MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_TEST_UNIT_READY;
+              MSC_Handle->retry_timeout = HAL_GetTick();
+              MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_REQUEST_SENSE_WAIT_RETRY;
               break;
             }        
           }
@@ -477,7 +477,14 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
           MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_IDLE;
           MSC_Handle->unit[MSC_Handle->current_lun].error = MSC_ERROR;   
         }
-        break;  
+        break;
+
+      case MSC_REQUEST_SENSE_WAIT_RETRY:
+          if ((HAL_GetTick() - MSC_Handle->retry_timeout) > MSC_STARTUP_RETRY_TIME_MS)
+          {
+              MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_TEST_UNIT_READY;
+          }
+          break;
     
       case MSC_UNRECOVERED_ERROR: 
         MSC_Handle->current_lun++;

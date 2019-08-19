@@ -52,6 +52,7 @@ typedef enum
   MSC_READ_CAPACITY10,
   MSC_READ_INQUIRY,
   MSC_REQUEST_SENSE,
+  MSC_REQUEST_SENSE_WAIT_RETRY,
   MSC_READ,
   MSC_WRITE,
   MSC_UNRECOVERED_ERROR,  
@@ -118,6 +119,7 @@ typedef struct _MSC_Process
   uint16_t                  current_lun;
   uint16_t                  rw_lun;
   uint32_t                  timeout;
+  uint32_t                  retry_timeout;
   MSC_RdWrCompleteCallback  RdWrCompleteCallback;
 }
 MSC_HandleTypeDef; 
@@ -145,6 +147,10 @@ MSC_HandleTypeDef;
 /* Interface Descriptor field values for MSC Protocol */
 #define MSC_BOT                                        0x50 
 #define MSC_TRANSPARENT                                0x06
+
+#define MSC_STARTUP_TIMEOUT_MS          15000
+#define MSC_STARTUP_RETRY_TIME_MS       100
+
 /**
   * @}
   */ 
