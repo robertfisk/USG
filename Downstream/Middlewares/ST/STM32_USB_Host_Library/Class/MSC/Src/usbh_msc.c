@@ -277,12 +277,22 @@ static USBH_StatusTypeDef USBH_MSC_ClassRequest(USBH_HandleTypeDef *phost)
 {   
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;  
   USBH_StatusTypeDef status = USBH_BUSY;
-  uint8_t i;
   
   /* Switch MSC REQ state machine */
   switch (MSC_Handle->req_state)
   {
   case MSC_REQ_IDLE:
+      MSC_Handle->timeout = HAL_GetTick();
+      MSC_Handle->req_state = MSC_REQ_STARTUP_DELAY;
+      break;
+
+  case MSC_REQ_STARTUP_DELAY:
+      if ((HAL_GetTick() - MSC_Handle->timeout) > MSC_SAMSUNG_STARTUP_DELAY_MS)
+      {
+          MSC_Handle->req_state = MSC_REQ_GET_MAX_LUN;
+      }
+      break;
+
   case MSC_REQ_GET_MAX_LUN:   
     /* Issue GetMaxLUN request */
     status = USBH_MSC_BOT_REQ_GetMaxLUN(phost, (uint8_t *)&MSC_Handle->max_lun);
@@ -304,11 +314,7 @@ static USBH_StatusTypeDef USBH_MSC_ClassRequest(USBH_HandleTypeDef *phost)
       {
           MSC_Handle->max_lun = MAX_SUPPORTED_LUN;
       }
-      for(i = 0; i < MSC_Handle->max_lun; i++)
-      {
-        MSC_Handle->unit[i].prev_ready_state = USBH_FAIL;
-        MSC_Handle->unit[i].state_changed = 0;
-      }
+      MSC_Handle->req_state = MSC_REQ_IDLE;
     }
     break;
     
@@ -355,6 +361,7 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
         USBH_UsrLog ("LUN #%d: ", MSC_Handle->current_lun);
         MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_READ_INQUIRY;
         MSC_Handle->timeout = phost->Timer;
+        //Fallthrough
         
       case MSC_READ_INQUIRY:
         scsi_status = USBH_MSC_SCSI_Inquiry(phost, MSC_Handle->current_lun, &MSC_Handle->unit[MSC_Handle->current_lun].inquiry);
@@ -752,7 +759,7 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
   MSC_Handle->unit[lun].state = MSC_READ;
   MSC_Handle->rw_lun = lun;
   MSC_Handle->RdWrCompleteCallback = callback;
-  MSC_Handle->timeout = phost->Timer + MSC_TIMEOUT_FIXED;
+  MSC_Handle->timeout = HAL_GetTick() + MSC_TIMEOUT_FIXED_MS;
 
   USBH_MSC_SCSI_Read(phost,
                      lun,
@@ -794,7 +801,7 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
   MSC_Handle->unit[lun].state = MSC_WRITE;
   MSC_Handle->rw_lun = lun;
   MSC_Handle->RdWrCompleteCallback = callback;
-  MSC_Handle->timeout = phost->Timer + MSC_TIMEOUT_FIXED;
+  MSC_Handle->timeout = HAL_GetTick() + MSC_TIMEOUT_FIXED_MS;
 
   USBH_MSC_SCSI_Write(phost,
                      lun,
