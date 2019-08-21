@@ -72,8 +72,9 @@ MSC_ErrorTypeDef;
 typedef enum
 {
   MSC_REQ_IDLE = 0,
-  MSC_REQ_RESET,                
-  MSC_REQ_GET_MAX_LUN,  
+  MSC_REQ_STARTUP_DELAY,
+  MSC_REQ_GET_MAX_LUN,
+  MSC_REQ_RESET,
   MSC_REQ_ERROR,  
 }
 MSC_ReqStateTypeDef;
@@ -138,8 +139,8 @@ MSC_HandleTypeDef;
 #define USB_REQ_BOT_RESET                0xFF
 #define USB_REQ_GET_MAX_LUN              0xFE
 
-//#define MSC_TIMEOUT_FRAMES_PER_BLOCK    1000
-#define MSC_TIMEOUT_FIXED               10000    //Some flash drives take 2 seconds to write a single block!
+#define MSC_TIMEOUT_FIXED_MS            10000       //Some flash drives take 2 seconds to write a single block!
+#define MSC_SAMSUNG_STARTUP_DELAY_MS    100         //Samsung FIT Plus 32GB USB 3.1 flash drive was here
 
 
 /* MSC Class Codes */
