@@ -56,7 +56,7 @@ typedef enum
   MSC_READ,
   MSC_WRITE,
   MSC_UNRECOVERED_ERROR,  
-  MSC_PERIODIC_CHECK,    
+  MSC_START_STOP,
 }
 MSC_StateTypeDef;
 
@@ -99,7 +99,7 @@ typedef struct
 MSC_LUNTypeDef; 
 
 
-typedef void (*MSC_RdWrCompleteCallback)(USBH_StatusTypeDef result);
+typedef void (*MSC_CmdCompleteCallback)(USBH_StatusTypeDef result);
 
 /* Structure for MSC process */
 typedef struct _MSC_Process
@@ -121,7 +121,7 @@ typedef struct _MSC_Process
   uint16_t                  rw_lun;
   uint32_t                  timeout;
   uint32_t                  retry_timeout;
-  MSC_RdWrCompleteCallback  RdWrCompleteCallback;
+  MSC_CmdCompleteCallback   CmdCompleteCallback;
 }
 MSC_HandleTypeDef; 
 
@@ -151,6 +151,9 @@ MSC_HandleTypeDef;
 
 #define MSC_STARTUP_TIMEOUT_MS          15000
 #define MSC_STARTUP_RETRY_TIME_MS       100
+
+#define MSC_START_STOP_EJECT_FLAG       0
+#define MSC_START_STOP_LOAD_FLAG        1
 
 /**
   * @}
@@ -183,7 +186,9 @@ uint8_t            USBH_MSC_IsReady (USBH_HandleTypeDef *phost);
 /* APIs for LUN */
 int8_t             USBH_MSC_GetMaxLUN (USBH_HandleTypeDef *phost);
 
-uint8_t            USBH_MSC_UnitIsReady (USBH_HandleTypeDef *phost, uint8_t lun);
+uint8_t            USBH_MSC_UnitIsReady (USBH_HandleTypeDef *phost,
+                                         uint8_t lun,
+                                         MSC_CmdCompleteCallback callback);
 
 USBH_StatusTypeDef USBH_MSC_GetLUNInfo(USBH_HandleTypeDef *phost, uint8_t lun, MSC_LUNTypeDef *info);
                                  
@@ -191,13 +196,19 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-                                     MSC_RdWrCompleteCallback callback);
+                                     MSC_CmdCompleteCallback callback);
 
 USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-                                     MSC_RdWrCompleteCallback callback);
+                                     MSC_CmdCompleteCallback callback);
+
+USBH_StatusTypeDef USBH_MSC_StartStopUnit(USBH_HandleTypeDef *phost,
+                                          uint8_t lun,
+                                          uint8_t startStop,
+                                          MSC_CmdCompleteCallback callback);
+
 /**
   * @}
   */ 

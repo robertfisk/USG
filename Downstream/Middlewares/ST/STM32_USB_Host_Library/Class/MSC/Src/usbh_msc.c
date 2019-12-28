@@ -201,7 +201,7 @@ static USBH_StatusTypeDef USBH_MSC_InterfaceInit (USBH_HandleTypeDef *phost)
     MSC_Handle->req_state = MSC_REQ_IDLE;
     MSC_Handle->OutPipe = USBH_AllocPipe(phost, MSC_Handle->OutEp);
     MSC_Handle->InPipe = USBH_AllocPipe(phost, MSC_Handle->InEp);
-    MSC_Handle->RdWrCompleteCallback = NULL;
+    MSC_Handle->CmdCompleteCallback = NULL;
 
     USBH_MSC_BOT_Init(phost);
     
@@ -346,6 +346,7 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
   USBH_StatusTypeDef scsi_status = USBH_BUSY ;  
   USBH_StatusTypeDef ready_status = USBH_BUSY ;
   
+
   switch (MSC_Handle->state)
   {
   case MSC_INIT:
@@ -360,7 +361,7 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
       case MSC_INIT:
         USBH_UsrLog ("LUN #%d: ", MSC_Handle->current_lun);
         MSC_Handle->unit[MSC_Handle->current_lun].state = MSC_READ_INQUIRY;
-        MSC_Handle->timeout = phost->Timer;
+        MSC_Handle->timeout = HAL_GetTick();
         //Fallthrough
         
       case MSC_READ_INQUIRY:
@@ -519,7 +520,7 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
 #endif
   case MSC_READ:
     error = USBH_MSC_RdWrProcess(phost, MSC_Handle->rw_lun);
-    if(((int32_t)(phost->Timer - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
+    if(((int32_t)(HAL_GetTick() - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
     {
         error = USBH_FAIL;
     }
@@ -527,13 +528,56 @@ static USBH_StatusTypeDef USBH_MSC_Process(USBH_HandleTypeDef *phost)
     if (error != USBH_BUSY)
     {
         MSC_Handle->state = MSC_IDLE;
-        if (MSC_Handle->RdWrCompleteCallback != NULL)
+        if (MSC_Handle->CmdCompleteCallback != NULL)
         {
-            MSC_Handle->RdWrCompleteCallback(error);
-            MSC_Handle->RdWrCompleteCallback = NULL;
+            MSC_Handle->CmdCompleteCallback(error);
+            MSC_Handle->CmdCompleteCallback = NULL;
         }
     }
     break;
+
+  case MSC_TEST_UNIT_READY:
+      error = USBH_MSC_SCSI_TestUnitReady(phost, MSC_Handle->rw_lun);
+
+      if (((int32_t)(HAL_GetTick() - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
+      {
+          error = USBH_FAIL;
+      }
+      if (error != USBH_BUSY)
+      {
+          MSC_Handle->state = MSC_IDLE;
+          if (error == USBH_OK)
+          {
+              MSC_Handle->unit[MSC_Handle->current_lun].error = MSC_OK;
+          }
+          else
+          {
+              MSC_Handle->unit[MSC_Handle->current_lun].error = MSC_NOT_READY;
+          }
+          if (MSC_Handle->CmdCompleteCallback != NULL)
+          {
+              MSC_Handle->CmdCompleteCallback(error);
+              MSC_Handle->CmdCompleteCallback = NULL;
+          }
+      }
+      break;
+
+  case MSC_START_STOP:
+      error = USBH_MSC_SCSI_StartStopUnit(phost, MSC_Handle->rw_lun, 0);
+
+      if((error != USBH_BUSY) ||
+         ((int32_t)(HAL_GetTick() - MSC_Handle->timeout) > 0) || (phost->device.is_connected == 0))
+      {
+          MSC_Handle->state = MSC_IDLE;
+          error = USBH_OK;
+
+          if (MSC_Handle->CmdCompleteCallback != NULL)
+          {
+              MSC_Handle->CmdCompleteCallback(USBH_OK);
+              MSC_Handle->CmdCompleteCallback = NULL;
+          }
+      }
+      break;
 
   default:
     break; 
@@ -651,26 +695,6 @@ static USBH_StatusTypeDef USBH_MSC_RdWrProcess(USBH_HandleTypeDef *phost, uint8_
 
 
 /**
-  * @brief  USBH_MSC_IsReady 
-  *         The function check if the MSC function is ready
-  * @param  phost: Host handle
-  * @retval USBH Status
-  */
-uint8_t  USBH_MSC_IsReady (USBH_HandleTypeDef *phost)
-{
-    MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;  
-    
-  if(phost->gState == HOST_CLASS)
-  {
-    return (MSC_Handle->state == MSC_IDLE);
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-/**
   * @brief  USBH_MSC_GetMaxLUN 
   *         The function return the Max LUN supported
   * @param  phost: Host handle
@@ -694,18 +718,25 @@ int8_t  USBH_MSC_GetMaxLUN (USBH_HandleTypeDef *phost)
   * @param  lun: logical Unit Number
   * @retval Lun status (0: not ready / 1: ready)
   */
-uint8_t  USBH_MSC_UnitIsReady (USBH_HandleTypeDef *phost, uint8_t lun)
+uint8_t  USBH_MSC_UnitIsReady (USBH_HandleTypeDef *phost,
+                               uint8_t lun,
+                               MSC_CmdCompleteCallback callback)
 {
-  MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;  
+    MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
   
-  if(phost->gState == HOST_CLASS)
-  {
-    return (MSC_Handle->unit[lun].error == MSC_OK);
-  }
-  else
-  {
-    return 0;
-  }
+    if ((phost->device.is_connected == 0) ||
+        (phost->gState != HOST_CLASS) ||
+        (MSC_Handle->state != MSC_IDLE))
+    {
+        return USBH_FAIL;
+    }
+
+    MSC_Handle->state = MSC_TEST_UNIT_READY;
+    MSC_Handle->rw_lun = lun;
+    MSC_Handle->CmdCompleteCallback = callback;
+    MSC_Handle->timeout = HAL_GetTick() + MSC_TIMEOUT_FIXED_MS;
+
+    return USBH_MSC_SCSI_TestUnitReady(phost, lun);
 }
       
 /**
@@ -743,7 +774,7 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-                                     MSC_RdWrCompleteCallback callback)
+                                     MSC_CmdCompleteCallback callback)
 {
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;   
   
@@ -758,14 +789,13 @@ USBH_StatusTypeDef USBH_MSC_Read(USBH_HandleTypeDef *phost,
   MSC_Handle->state = MSC_READ;
   MSC_Handle->unit[lun].state = MSC_READ;
   MSC_Handle->rw_lun = lun;
-  MSC_Handle->RdWrCompleteCallback = callback;
+  MSC_Handle->CmdCompleteCallback = callback;
   MSC_Handle->timeout = HAL_GetTick() + MSC_TIMEOUT_FIXED_MS;
 
-  USBH_MSC_SCSI_Read(phost,
-                     lun,
-                     address,
-                     length);
-  return USBH_OK;
+  return USBH_MSC_SCSI_Read(phost,
+                            lun,
+                            address,
+                            length);
 }
 
 
@@ -785,7 +815,7 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
                                      uint8_t lun,
                                      uint32_t address,
                                      uint32_t length,
-                                     MSC_RdWrCompleteCallback callback)
+                                     MSC_CmdCompleteCallback callback)
 {
   MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;   
   
@@ -800,16 +830,42 @@ USBH_StatusTypeDef USBH_MSC_Write(USBH_HandleTypeDef *phost,
   MSC_Handle->state = MSC_WRITE;
   MSC_Handle->unit[lun].state = MSC_WRITE;
   MSC_Handle->rw_lun = lun;
-  MSC_Handle->RdWrCompleteCallback = callback;
+  MSC_Handle->CmdCompleteCallback = callback;
   MSC_Handle->timeout = HAL_GetTick() + MSC_TIMEOUT_FIXED_MS;
 
-  USBH_MSC_SCSI_Write(phost,
-                     lun,
-                     address,
-                     length);
-  return USBH_OK;
+  return USBH_MSC_SCSI_Write(phost,
+                             lun,
+                             address,
+                             length);
 }
 #endif  //#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
+
+
+
+USBH_StatusTypeDef USBH_MSC_StartStopUnit(USBH_HandleTypeDef *phost,
+                                          uint8_t lun,
+                                          uint8_t startStop,
+                                          MSC_CmdCompleteCallback callback)
+{
+  MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
+
+  if ((phost->device.is_connected == 0) ||
+      (phost->gState != HOST_CLASS) ||
+      (MSC_Handle->state != MSC_IDLE))
+  {
+    return  USBH_FAIL;
+  }
+
+  MSC_Handle->state = MSC_START_STOP;
+  MSC_Handle->rw_lun = lun;
+  MSC_Handle->timeout = HAL_GetTick() + MSC_TIMEOUT_FIXED_MS;
+  MSC_Handle->CmdCompleteCallback = callback;
+
+  return USBH_MSC_SCSI_StartStopUnit(phost,
+                                     lun,
+                                     startStop);
+}
+
 
 #endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 

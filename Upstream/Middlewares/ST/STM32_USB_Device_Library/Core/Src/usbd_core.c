@@ -214,17 +214,6 @@ USBD_StatusTypeDef  USBD_Stop   (USBD_HandleTypeDef *pdev)
 }
 
 
-USBD_StatusTypeDef USBD_RequestStop(USBD_HandleTypeDef *pdev)
-{
-    if (pdev->usbCoreStatus == USB_STATUS_START)
-    {
-        pdev->usbCoreStatus = USB_STATUS_REQUEST_EJECT;
-        pdev->usbRequestEjectTime = HAL_GetTick() + 5;          //Allow > 1ms to transmit the SCSI eject reply before disconnecting
-    }
-    return USBD_OK;
-}
-
-
 /**
 * @brief  USBD_RunTestMode 
 *         Launch test mode process
@@ -520,13 +509,6 @@ USBD_StatusTypeDef USBD_SOF(USBD_HandleTypeDef  *pdev)
     }
   }
 
-  if (pdev->usbCoreStatus == USB_STATUS_REQUEST_EJECT)
-  {
-      if ((int32_t)(HAL_GetTick() - pdev->usbRequestEjectTime) >= 0)
-      {
-          USBD_Stop(pdev);
-      }
-  }
   return USBD_OK;
 }
 

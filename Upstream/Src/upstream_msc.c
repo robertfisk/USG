@@ -23,6 +23,9 @@
 
 //Stuff we need to save for our callbacks to use:
 UpstreamMSCCallbackTypeDef              TestReadyCallback;
+UpstreamMSCCallbackTypeDef              BeginReadCallback;
+UpstreamMSCCallbackTypeDef              BeginWriteCallback;
+UpstreamMSCCallbackTypeDef              DisconnectCallback;
 UpstreamMSCCallbackUintPacketTypeDef    GetCapacityCallback;
 UpstreamMSCCallbackPacketTypeDef        GetStreamDataCallback;
 uint64_t                                BlockStart;
@@ -39,7 +42,8 @@ static void Upstream_MSC_GetCapacityReplyCallback(UpstreamPacketTypeDef* replyPa
 static void Upstream_MSC_GetStreamDataPacketCallback(UpstreamPacketTypeDef* replyPacket);
 static void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket);
 static void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket);
-static void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket);
+static void Upstream_MSC_RequestDisconnectFreePacketCallback(UpstreamPacketTypeDef* freePacket);
+static void Upstream_MSC_RequestDisconnectReplyCallback(UpstreamPacketTypeDef* replyPacket);
 
 
 
@@ -190,13 +194,13 @@ HAL_StatusTypeDef Upstream_MSC_BeginRead(UpstreamMSCCallbackTypeDef callback,
     ReadStreamPacket = NULL;            //Prepare for GetStreamDataPacket's use
     ReadStreamBusy = 0;
 
-    TestReadyCallback = callback;
+    BeginReadCallback = callback;
     return Upstream_GetFreePacket(Upstream_MSC_BeginReadFreePacketCallback);
 }
 
 
 
-void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket)
+static void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 {
     freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16 + ((4 * 3) / 2);
     freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
@@ -206,16 +210,13 @@ void Upstream_MSC_BeginReadFreePacketCallback(UpstreamPacketTypeDef* freePacket)
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        if (Upstream_ReceivePacket(Upstream_MSC_TestReadyReplyCallback) != HAL_OK)  //Re-use TestReadyReplyCallback because it does exactly what we want!
-        {
-            TestReadyCallback(HAL_ERROR);
-        }
+        BeginReadCallback(HAL_OK);
         return;
     }
 
     //else:
     Upstream_ReleasePacket(freePacket);
-    TestReadyCallback(HAL_ERROR);
+    BeginReadCallback(HAL_ERROR);
 }
 
 
@@ -299,7 +300,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
 
     BlockStart = writeBlockStart;
     BlockCount = writeBlockCount;
-    TestReadyCallback = callback;
+    BeginWriteCallback = callback;
     return Upstream_GetFreePacket(Upstream_MSC_BeginWriteFreePacketCallback);
 }
 
@@ -315,46 +316,13 @@ void Upstream_MSC_BeginWriteFreePacketCallback(UpstreamPacketTypeDef* freePacket
 
     if (Upstream_TransmitPacket(freePacket) == HAL_OK)
     {
-        if (Upstream_ReceivePacket(Upstream_MSC_BeginWriteReplyCallback) != HAL_OK)
-        {
-            TestReadyCallback(HAL_ERROR);
-        }
+        BeginWriteCallback(HAL_OK);
         return;
     }
 
     //else:
     Upstream_ReleasePacket(freePacket);
-    TestReadyCallback(HAL_ERROR);
-}
-
-
-
-void Upstream_MSC_BeginWriteReplyCallback(UpstreamPacketTypeDef* replyPacket)
-{
-    uint8_t tempResult;
-
-    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE)
-    {
-        return;
-    }
-
-    if (replyPacket == NULL)
-    {
-        TestReadyCallback(HAL_ERROR);
-        return;
-    }
-
-    if ((replyPacket->Length16 != (UPSTREAM_PACKET_HEADER_LEN_16 + 1)) ||
-        ((replyPacket->Data[0] != HAL_OK) && (replyPacket->Data[0] != HAL_BUSY)))
-    {
-        Upstream_ReleasePacket(replyPacket);
-        TestReadyCallback(HAL_ERROR);
-        return;
-    }
-
-    tempResult = replyPacket->Data[0];
-    Upstream_ReleasePacket(replyPacket);
-    TestReadyCallback(tempResult);
+    BeginWriteCallback(HAL_ERROR);
 }
 
 
@@ -381,10 +349,48 @@ HAL_StatusTypeDef Upstream_MSC_PutStreamDataPacket(UpstreamPacketTypeDef* packet
 
 
 
-void Upstream_MSC_RegisterDisconnect(void)
+HAL_StatusTypeDef Upstream_MSC_RequestDisconnect(UpstreamMSCCallbackTypeDef callback)
 {
-    Upstream_StateMachine_RegisterDisconnect();
+    if (Upstream_StateMachine_CheckActiveClass() != COMMAND_CLASS_MASS_STORAGE) return HAL_ERROR;
+
+    DisconnectCallback = callback;
+    return Upstream_GetFreePacket(Upstream_MSC_RequestDisconnectFreePacketCallback);
 }
+
+
+
+static void Upstream_MSC_RequestDisconnectFreePacketCallback(UpstreamPacketTypeDef* freePacket)
+{
+    freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
+    freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
+    freePacket->Command = COMMAND_MSC_DISCONNECT;
+
+    if (Upstream_TransmitPacket(freePacket) == HAL_OK)
+    {
+        //Upstream_PacketManager will free the packet when the transfer is done
+        if (Upstream_ReceivePacket(Upstream_MSC_RequestDisconnectReplyCallback) != HAL_OK)
+        {
+            DisconnectCallback(HAL_ERROR);
+        }
+        return;
+    }
+
+    //else:
+    Upstream_ReleasePacket(freePacket);
+    DisconnectCallback(HAL_ERROR);
+}
+
+
+
+static void Upstream_MSC_RequestDisconnectReplyCallback(UpstreamPacketTypeDef* replyPacket)
+{
+    //Acknowledge the SCSI Stop command to host now.
+    //We will disconnect from host when Downstream replies with COMMAND_ERROR_DEVICE_DISCONNECTED.
+
+    Upstream_ReleasePacket(replyPacket);
+    DisconnectCallback(HAL_OK);
+}
+
 
 
 #endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
