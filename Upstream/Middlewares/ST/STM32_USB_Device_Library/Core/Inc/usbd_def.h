@@ -226,8 +226,7 @@ typedef struct
 typedef enum
 {
     USB_STATUS_STOP,
-    USB_STATUS_START,
-    USB_STATUS_REQUEST_EJECT
+    USB_STATUS_START
 } UsbCoreStatusTypeDef;
 
 

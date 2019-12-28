@@ -79,8 +79,7 @@ void Upstream_StateMachine_SetErrorState(void)
 
 InterfaceCommandClassTypeDef Upstream_StateMachine_CheckActiveClass(void)
 {
-    if ((UpstreamState == STATE_ERROR) ||
-        (UpstreamState == STATE_DISCONNECTING))
+    if (UpstreamState == STATE_ERROR)
     {
         return COMMAND_CLASS_ERROR;
     }
@@ -296,15 +295,3 @@ void Upstream_StateMachine_Wakeup(void)
 }
 
 
-//Host sends a SCSI motor stop command, so we shouldn't process any more commands.
-void Upstream_StateMachine_RegisterDisconnect(void)
-{
-    if ((UpstreamState != STATE_DEVICE_ACTIVE) &&
-        (UpstreamState != STATE_SUSPENDED))
-    {
-        UPSTREAM_STATEMACHINE_FREAKOUT;
-        return;
-    }
-
-    UpstreamState = STATE_DISCONNECTING;
-}

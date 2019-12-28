@@ -93,12 +93,14 @@ typedef struct
 #define OPCODE_READ10                     0x28
 #define OPCODE_WRITE10                    0x2A
 #define OPCODE_REQUEST_SENSE              0x03
-#define OPCODE_INQUIRY                    0x12    
+#define OPCODE_INQUIRY                    0x12
+#define OPCODE_START_STOP_UNIT            0x1B
 
 #define DATA_LEN_MODE_TEST_UNIT_READY        0
 #define DATA_LEN_READ_CAPACITY10             8
 #define DATA_LEN_INQUIRY                    36  
-#define DATA_LEN_REQUEST_SENSE              14       
+#define DATA_LEN_REQUEST_SENSE              14
+#define DATA_LEN_START_STOP_UNIT            0
 
 #define CBW_CB_LENGTH                       16
 #define CBW_LENGTH                          10    
@@ -195,6 +197,9 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
                                      uint32_t address,
                                      uint32_t length);
 
+USBH_StatusTypeDef USBH_MSC_SCSI_StartStopUnit (USBH_HandleTypeDef *phost,
+                                                uint8_t lun,
+                                                uint8_t startStop);
 
 /**
   * @}

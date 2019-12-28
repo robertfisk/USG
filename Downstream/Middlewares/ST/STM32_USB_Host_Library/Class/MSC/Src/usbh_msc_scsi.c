@@ -110,35 +110,23 @@
 USBH_StatusTypeDef USBH_MSC_SCSI_TestUnitReady (USBH_HandleTypeDef *phost, 
                                                 uint8_t lun)
 {
-  USBH_StatusTypeDef    error = USBH_FAIL ;
-  MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
-  
-  switch(MSC_Handle->hbot.cmd_state)
-  {
-  case BOT_CMD_SEND:  
+    MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
     
-    /*Prepare the CBW and relevent field*/
-    MSC_Handle->hbot.cbw.field.DataTransferLength = DATA_LEN_MODE_TEST_UNIT_READY;     
-    MSC_Handle->hbot.cbw.field.Flags = USB_EP_DIR_OUT;
-    MSC_Handle->hbot.cbw.field.CBLength = CBW_LENGTH;
+    if (MSC_Handle->hbot.cmd_state == BOT_CMD_SEND)
+    {
+        /*Prepare the CBW and relevent field*/
+        MSC_Handle->hbot.cbw.field.DataTransferLength = DATA_LEN_MODE_TEST_UNIT_READY;
+        MSC_Handle->hbot.cbw.field.Flags = USB_EP_DIR_OUT;
+        MSC_Handle->hbot.cbw.field.CBLength = CBW_LENGTH;
+
+        USBH_memset(MSC_Handle->hbot.cbw.field.CB, 0, CBW_CB_LENGTH);
+        MSC_Handle->hbot.cbw.field.CB[0]  = OPCODE_TEST_UNIT_READY;
+
+        MSC_Handle->hbot.state = BOT_SEND_CBW;
+        MSC_Handle->hbot.cmd_state = BOT_CMD_WAIT;
+    }
     
-    USBH_memset(MSC_Handle->hbot.cbw.field.CB, 0, CBW_CB_LENGTH);
-    MSC_Handle->hbot.cbw.field.CB[0]  = OPCODE_TEST_UNIT_READY; 
-    
-    MSC_Handle->hbot.state = BOT_SEND_CBW;
-    MSC_Handle->hbot.cmd_state = BOT_CMD_WAIT;
-    error = USBH_BUSY; 
-    break;
-    
-  case BOT_CMD_WAIT: 
-    error = USBH_MSC_BOT_Process(phost, lun);
-    break;
-    
-  default:
-    break;
-  }
-  
-  return error;
+    return USBH_MSC_BOT_Process(phost, lun);
 }
 
 /**
@@ -430,6 +418,32 @@ USBH_StatusTypeDef USBH_MSC_SCSI_Read(USBH_HandleTypeDef *phost,
   
   return error;
 }
+
+
+USBH_StatusTypeDef USBH_MSC_SCSI_StartStopUnit(USBH_HandleTypeDef *phost,
+                                               uint8_t lun,
+                                               uint8_t startStop)
+{
+    MSC_HandleTypeDef *MSC_Handle =  (MSC_HandleTypeDef *) phost->pActiveClass->pData;
+
+    if (MSC_Handle->hbot.cmd_state == BOT_CMD_SEND)
+    {
+        /*Prepare the CBW and relevent field*/
+        MSC_Handle->hbot.cbw.field.DataTransferLength = DATA_LEN_START_STOP_UNIT;
+        MSC_Handle->hbot.cbw.field.Flags = USB_EP_DIR_OUT;
+        MSC_Handle->hbot.cbw.field.CBLength = CBW_LENGTH;
+
+        USBH_memset(MSC_Handle->hbot.cbw.field.CB, 0, CBW_CB_LENGTH);
+        MSC_Handle->hbot.cbw.field.CB[0] = OPCODE_START_STOP_UNIT;
+        MSC_Handle->hbot.cbw.field.CB[4] = 0x02 | (startStop & 0x01);         //LOEJ = 1, START = 0 for eject, START = 1 for load
+
+        MSC_Handle->hbot.state = BOT_SEND_CBW;
+        MSC_Handle->hbot.cmd_state = BOT_CMD_WAIT;
+    }
+
+    return USBH_MSC_BOT_Process(phost, lun);
+}
+
 
 #endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 

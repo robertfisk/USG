@@ -30,12 +30,15 @@ DownstreamPacketTypeDef*            ReadStreamPacket;
 uint8_t                             ReadStreamBusy;
 
 
-void Downstream_MSC_PacketProcessor_TestUnitReady(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket);
-void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef result);
-void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_TestUnitReady(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_TestUnitReadyCallback(USBH_StatusTypeDef result);
+static void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef result);
+static void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_Disconnect(DownstreamPacketTypeDef* receivedPacket);
+static void Downstream_MSC_PacketProcessor_DisconnectCallback(USBH_StatusTypeDef result);
 
 
 //High-level checks on the connected device. We don't want some weirdly
@@ -86,6 +89,10 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         break;
 #endif
 
+    case COMMAND_MSC_DISCONNECT:
+        Downstream_MSC_PacketProcessor_Disconnect(receivedPacket);
+        break;
+
     default:
         Downstream_PacketProcessor_FreakOut();
     }
@@ -93,22 +100,42 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 }
 
 
-void Downstream_MSC_PacketProcessor_TestUnitReady(DownstreamPacketTypeDef* receivedPacket)
+static void Downstream_MSC_PacketProcessor_TestUnitReady(DownstreamPacketTypeDef* receivedPacket)
 {
-    if (USBH_MSC_UnitIsReady(&hUsbHostFS, MSC_FIXED_LUN))
+    Downstream_ReleasePacket(receivedPacket);
+
+    if (USBH_MSC_UnitIsReady(&hUsbHostFS,
+                             MSC_FIXED_LUN,
+                             Downstream_MSC_PacketProcessor_TestUnitReadyCallback) != USBH_BUSY)
     {
-        receivedPacket->Data[0] = HAL_OK;
+        Downstream_MSC_PacketProcessor_TestUnitReadyCallback(USBH_FAIL);
     }
-    else
-    {
-        receivedPacket->Data[0] = HAL_ERROR;
-    }
-    receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
-    Downstream_PacketProcessor_ClassReply(receivedPacket);
 }
 
 
-void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receivedPacket)
+static void Downstream_MSC_PacketProcessor_TestUnitReadyCallback(USBH_StatusTypeDef result)
+{
+    DownstreamPacketTypeDef* freePacket;
+
+    freePacket = Downstream_GetFreePacketImmediately();
+    freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
+    freePacket->Command = COMMAND_MSC_TEST_UNIT_READY;
+    freePacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
+
+    if (result == USBH_OK)
+    {
+        freePacket->Data[0] = HAL_OK;
+    }
+    else
+    {
+        freePacket->Data[0] = HAL_ERROR;
+    }
+    Downstream_PacketProcessor_ClassReply(freePacket);
+}
+
+
+
+static void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receivedPacket)
 {
     MSC_HandleTypeDef* MSC_Handle =  (MSC_HandleTypeDef*)hUsbHostFS.pActiveClass->pData;
 
@@ -120,7 +147,7 @@ void Downstream_MSC_PacketProcessor_GetCapacity(DownstreamPacketTypeDef* receive
 
 
 
-void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedPacket)
+static void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedPacket)
 {
     uint64_t readBlockAddress;
     uint32_t readBlockCount;
@@ -146,22 +173,22 @@ void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* receivedP
 
     receivedPacket->Data[0] = HAL_ERROR;
     receivedPacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16 + 1;
-    if (USBH_MSC_UnitIsReady(&hUsbHostFS, MSC_FIXED_LUN))
+    if (USBH_MSC_Read(&hUsbHostFS,
+                      MSC_FIXED_LUN,
+                      (uint32_t)readBlockAddress,
+                      readBlockCount,
+                      Downstream_MSC_PacketProcessor_RdWrCompleteCallback) == USBH_BUSY)
     {
-        if (USBH_MSC_Read(&hUsbHostFS,
-                          MSC_FIXED_LUN,
-                          (uint32_t)readBlockAddress,
-                          readBlockCount,
-                          Downstream_MSC_PacketProcessor_RdWrCompleteCallback) == USBH_OK)
-        {
-            receivedPacket->Data[0] = HAL_OK;
-        }
+        Downstream_ReleasePacket(receivedPacket);
+        return;
     }
-    Downstream_TransmitPacket(receivedPacket);
+
+    //Fail:
+    Downstream_PacketProcessor_ClassReply(receivedPacket);
 }
 
 
-void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef result)
+static void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef result)
 {
     if (result != USBH_OK)
     {
@@ -172,8 +199,9 @@ void Downstream_MSC_PacketProcessor_RdWrCompleteCallback(USBH_StatusTypeDef resu
 }
 
 
+
 #ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
-void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket)
+static void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* receivedPacket)
 {
     uint64_t writeBlockAddress;
     uint32_t writeBlockCount;
@@ -206,18 +234,18 @@ void Downstream_MSC_PacketProcessor_BeginWrite(DownstreamPacketTypeDef* received
 
     //Our host stack has no way to detect if write-protection is enabled.
     //So currently we can't return HAL_BUSY to Upstream in this situation.
-    if (USBH_MSC_UnitIsReady(&hUsbHostFS, MSC_FIXED_LUN))
+    if (USBH_MSC_Write(&hUsbHostFS,
+                       MSC_FIXED_LUN,
+                       (uint32_t)writeBlockAddress,
+                       writeBlockCount,
+                       Downstream_MSC_PacketProcessor_RdWrCompleteCallback) == USBH_BUSY)
     {
-        if (USBH_MSC_Write(&hUsbHostFS,
-                           MSC_FIXED_LUN,
-                           (uint32_t)writeBlockAddress,
-                           writeBlockCount,
-                           Downstream_MSC_PacketProcessor_RdWrCompleteCallback) == USBH_OK)
-        {
-            receivedPacket->Data[0] = HAL_OK;
-        }
+        Downstream_ReleasePacket(receivedPacket);
+        return;
     }
-    Downstream_TransmitPacket(receivedPacket);
+
+    //Fail:
+    Downstream_PacketProcessor_ClassReply(receivedPacket);
 }
 #endif
 
@@ -291,6 +319,34 @@ void Downstream_MSC_GetStreamDataPacketCallback(DownstreamPacketTypeDef* receive
 
 }
 #endif  //#ifdef CONFIG_MASS_STORAGE_WRITES_PERMITTED
+
+
+
+static void Downstream_MSC_PacketProcessor_Disconnect(DownstreamPacketTypeDef* receivedPacket)
+{
+    Downstream_ReleasePacket(receivedPacket);
+
+    USBH_MSC_StartStopUnit(&hUsbHostFS,
+                           MSC_FIXED_LUN,
+                           MSC_START_STOP_EJECT_FLAG,
+                           Downstream_MSC_PacketProcessor_DisconnectCallback);
+}
+
+
+
+static void Downstream_MSC_PacketProcessor_DisconnectCallback(USBH_StatusTypeDef result)
+{
+    DownstreamPacketTypeDef* freePacket;
+
+    if (result == USBH_OK)
+    {
+        freePacket = Downstream_GetFreePacketImmediately();
+        freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
+        freePacket->Command = COMMAND_MSC_DISCONNECT;
+        freePacket->Length16 = DOWNSTREAM_PACKET_HEADER_LEN_16;
+        Downstream_PacketProcessor_ClassReply(freePacket);
+    }
+}
 
 #endif  //#ifdef CONFIG_MASS_STORAGE_ENABLED
 

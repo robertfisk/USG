@@ -49,26 +49,27 @@ InterfaceCommandInterfaceTypeDef;
 
 typedef enum
 {
-    COMMAND_MSC_TEST_UNIT_READY,    //Returns HAL_StatusTypeDef result
-    COMMAND_MSC_GET_CAPACITY,       //Returns uint32_t blk_nbr, uint32_t blk_size
-    COMMAND_MSC_READ,               //Returns HAL_StatusTypeDef result, then data stream
-    COMMAND_MSC_WRITE,              //Returns HAL_OK, HAL_ERROR if medium not present, HAL_BUSY if write-protected result, then waits for data stream
+    COMMAND_MSC_TEST_UNIT_READY,        //Returns HAL_StatusTypeDef result
+    COMMAND_MSC_GET_CAPACITY,           //Returns uint32_t blk_nbr, uint32_t blk_size
+    COMMAND_MSC_READ,                   //Returns data stream or error packet
+    COMMAND_MSC_WRITE,                  //Waits for data stream or returns error packet
+    COMMAND_MSC_DISCONNECT              //Returns same packet after sending Stop command to device
 }
 InterfaceCommandMscTypeDef;
 
 
 typedef enum
 {
-    COMMAND_HID_GET_REPORT,			//Returns HID report from device
-    COMMAND_HID_SET_REPORT          //Sends HID report to device. Simple ack packet contains no data.
+    COMMAND_HID_GET_REPORT,			    //Returns HID report from device
+    COMMAND_HID_SET_REPORT              //Sends HID report to device. Simple ack packet contains no data.
 }
 InterfaceCommandHidTypeDef;
 
 
 typedef enum
 {
-    COMMAND_ERROR_GENERIC,
-    COMMAND_ERROR_DEVICE_DISCONNECTED,
+    COMMAND_ERROR_GENERIC,              //Something went wrong, time to FREAKOUT
+    COMMAND_ERROR_DEVICE_DISCONNECTED,  //Device unexpectedly disconnected
 }
 InterfaceCommandErrorTypeDef;
 
