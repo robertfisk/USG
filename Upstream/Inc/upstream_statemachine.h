@@ -46,6 +46,7 @@ void Upstream_StateMachine_DeviceDisconnected(void);
 void Upstream_StateMachine_Suspend(void);
 void Upstream_StateMachine_CheckResume(void);
 void Upstream_StateMachine_Wakeup(void);
+void Upstream_StateMachine_PollDeviceConnected(void);
 
 
 
