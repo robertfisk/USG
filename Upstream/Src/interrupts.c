@@ -42,6 +42,7 @@
 #include "build_config.h"
 #include "led.h"
 #include "upstream_hid_botdetect.h"
+#include "upstream_statemachine.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -63,6 +64,7 @@ void SysTick_Handler(void)
 {
   HAL_IncTick();
   LED_Tick();
+  Upstream_StateMachine_PollDeviceConnected();
 
 #if (defined (CONFIG_KEYBOARD_ENABLED) && defined (CONFIG_KEYBOARD_BOT_DETECT_ENABLED)) || \
     (defined (CONFIG_MOUSE_ENABLED) && defined (CONFIG_MOUSE_BOT_DETECT_ENABLED))

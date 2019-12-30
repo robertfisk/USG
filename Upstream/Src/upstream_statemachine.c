@@ -19,14 +19,18 @@
 #include "usbd_hid.h"
 #include "build_config.h"
 
+#define POLL_DEVICE_CONNECTED_TIMEOUT_MS    1000
+
 
 UpstreamStateTypeDef            UpstreamState           = STATE_TEST_INTERFACE;
 InterfaceCommandClassTypeDef    ConfiguredDeviceClass   = COMMAND_CLASS_INTERFACE;
+uint32_t                        PollDeviceConnectedTimer;
 
 
 void Upstream_StateMachine_TestInterfaceReplyCallback(UpstreamPacketTypeDef* replyPacket);
 void Upstream_StateMachine_NotifyDevice(UpstreamPacketTypeDef* freePacket);
 void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* replyPacket);
+void Upstream_StateMachine_PollDeviceConnectedReplyCallback(UpstreamPacketTypeDef* replyPacket);
 
 
 
@@ -259,6 +263,7 @@ void Upstream_StateMachine_Suspend(void)
         return;
     }
 
+    PollDeviceConnectedTimer = 0;
     UpstreamState = STATE_SUSPENDED;
 }
 
@@ -295,3 +300,47 @@ void Upstream_StateMachine_Wakeup(void)
 }
 
 
+//Called by Systick_Handler every 1ms, at high interrupt priority.
+void Upstream_StateMachine_PollDeviceConnected(void)
+{
+    UpstreamPacketTypeDef* freePacket;
+
+    if ((UpstreamState != STATE_SUSPENDED) ||
+        (ConfiguredDeviceClass != COMMAND_CLASS_MASS_STORAGE))
+    {
+        return;
+    }
+
+    if (++PollDeviceConnectedTimer >= POLL_DEVICE_CONNECTED_TIMEOUT_MS)
+    {
+        PollDeviceConnectedTimer = 0;
+        freePacket = Upstream_GetFreePacketImmediately();
+        if (freePacket == NULL)
+        {
+            UpstreamState = STATE_ERROR;
+            return;
+        }
+
+        freePacket->Length16 = UPSTREAM_PACKET_HEADER_LEN_16;
+        freePacket->CommandClass = COMMAND_CLASS_MASS_STORAGE;
+        freePacket->Command = COMMAND_MSC_POLL_DISCONNECT;
+        if (Upstream_TransmitPacket(freePacket) == HAL_OK)
+        {
+            Upstream_ReceivePacket(Upstream_StateMachine_PollDeviceConnectedReplyCallback);
+        }
+    }
+}
+
+
+void Upstream_StateMachine_PollDeviceConnectedReplyCallback(UpstreamPacketTypeDef* replyPacket)
+{
+    if ((UpstreamState != STATE_SUSPENDED) ||
+        (replyPacket == NULL))
+    {
+        UPSTREAM_STATEMACHINE_FREAKOUT;
+        return;
+    }
+
+    //Downstream device is still connected, so nothing to do here
+    Upstream_ReleasePacket(replyPacket);
+}
