@@ -51,7 +51,8 @@ typedef enum
     COMMAND_MSC_GET_CAPACITY,           //Returns uint32_t blk_nbr, uint32_t blk_size
     COMMAND_MSC_READ,                   //Returns data stream or error packet
     COMMAND_MSC_WRITE,                  //Waits for data stream or returns error packet
-    COMMAND_MSC_DISCONNECT              //Returns same packet after sending Stop command to device
+    COMMAND_MSC_DISCONNECT,             //Returns same packet after sending Stop command to device
+    COMMAND_MSC_POLL_DISCONNECT         //Returns same packet if device is still connected
 }
 InterfaceCommandMscTypeDef;
 

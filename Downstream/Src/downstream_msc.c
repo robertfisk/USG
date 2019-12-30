@@ -93,6 +93,10 @@ void Downstream_MSC_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         Downstream_MSC_PacketProcessor_Disconnect(receivedPacket);
         break;
 
+    case COMMAND_MSC_POLL_DISCONNECT:
+        Downstream_PacketProcessor_ClassReply(receivedPacket);          //Device is still connected, so send the packet straight back
+        break;
+
     default:
         Downstream_PacketProcessor_FreakOut();
     }
