@@ -354,7 +354,6 @@ uint8_t  USBD_MSC_Init (USBD_HandleTypeDef *pdev,
   {
     /* Init the BOT  layer */
     MSC_BOT_Init(pdev);
-    ((USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData)->bot_packet = NULL;
     ret = 0;
   }
   

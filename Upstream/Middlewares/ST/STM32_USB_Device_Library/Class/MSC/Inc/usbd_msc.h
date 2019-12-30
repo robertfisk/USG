@@ -85,6 +85,7 @@ typedef struct
   UpstreamPacketTypeDef*     bot_packet;            //Not NULL indicates we currently own an upstream packet buffer, and should free it when we are done.
   USBD_MSC_BOT_CBWTypeDef    cbw;
   USBD_MSC_BOT_CSWTypeDef    csw;
+  HAL_StatusTypeDef          last_test_unit_result;
   
   USBD_SCSI_SenseTypeDef   scsi_sense [SENSE_LIST_DEPTH];
   uint8_t                  scsi_sense_head;

@@ -49,6 +49,7 @@ void Downstream_InitStateMachine(void)
 }
 
 
+
 void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
 {
     if (DownstreamState >= STATE_ERROR)
@@ -57,34 +58,30 @@ void Downstream_PacketProcessor(DownstreamPacketTypeDef* receivedPacket)
         return;
     }
 
-    if (receivedPacket->CommandClass == COMMAND_CLASS_INTERFACE)
+    //Device not connected yet
+    if (DownstreamState != STATE_ACTIVE)
     {
-        if (DownstreamState > STATE_DEVICE_READY)
+        if (receivedPacket->CommandClass == COMMAND_CLASS_INTERFACE)
         {
-            DOWNSTREAM_STATEMACHINE_FREAKOUT;
-            return;
+            Downstream_PacketProcessor_Interface(receivedPacket);
         }
-        Downstream_PacketProcessor_Interface(receivedPacket);
+        else
+        {
+            //If we get a class-specific message when our device is disconnected,
+            //we need to tell Upstream of the fact (and not freak out).
+            Downstream_PacketProcessor_NotifyDisconnectReply(receivedPacket);
+        }
         return;
     }
 
-    //If we get a class-specific message when our device is disconnected,
-    //we need to tell Upstream of the fact (and not freak out).
-    if (DownstreamState == STATE_DEVICE_NOT_READY)
-    {
-        Downstream_PacketProcessor_NotifyDisconnectReply(receivedPacket);
-        return;
-    }
-
-    //We should only receive class-specific messages when we are in the Active state,
+    //Device is connected: expect only class-specific messages,
     //and only to our currently active device class.
-    if ((DownstreamState != STATE_ACTIVE) ||
-        (receivedPacket->CommandClass != ConfiguredDeviceClass))
+    if ((ConfiguredDeviceClass == COMMAND_CLASS_INTERFACE) ||
+        (ConfiguredDeviceClass != receivedPacket->CommandClass))
     {
         DOWNSTREAM_STATEMACHINE_FREAKOUT;
         return;
     }
-
 
     switch (ConfiguredDeviceClass)
     {

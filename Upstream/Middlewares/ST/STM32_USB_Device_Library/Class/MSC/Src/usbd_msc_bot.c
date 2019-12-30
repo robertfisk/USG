@@ -117,6 +117,8 @@ void MSC_BOT_Init (USBD_HandleTypeDef  *pdev)
     
   hmsc->bot_state  = USBD_BOT_IDLE;
   hmsc->bot_status = USBD_BOT_STATUS_NORMAL;
+  hmsc->bot_packet = NULL;
+  hmsc->last_test_unit_result = HAL_ERROR;
   
   hmsc->scsi_sense_tail = 0;
   hmsc->scsi_sense_head = 0;
@@ -173,6 +175,7 @@ void MSC_BOT_DeInit (USBD_HandleTypeDef  *pdev)
 void MSC_BOT_DataIn (USBD_HandleTypeDef  *pdev, 
                      uint8_t epnum)
 {
+  UNUSED(epnum);
   USBD_MSC_BOT_HandleTypeDef  *hmsc = (USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData;  
   
   switch (hmsc->bot_state)
@@ -214,6 +217,7 @@ void MSC_BOT_DataIn_Callback(int8_t result)
 void MSC_BOT_DataOut (USBD_HandleTypeDef  *pdev, 
                       uint8_t epnum)
 {
+  UNUSED(epnum);
   USBD_MSC_BOT_HandleTypeDef  *hmsc = (USBD_MSC_BOT_HandleTypeDef*)pdev->pClassData;
   
   switch (hmsc->bot_state)
