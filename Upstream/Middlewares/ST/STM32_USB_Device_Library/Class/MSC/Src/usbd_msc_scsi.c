@@ -258,6 +258,8 @@ static void SCSI_TestUnitReady(void)
 
 static void SCSI_TestUnitReadyCallback(HAL_StatusTypeDef result)
 {
+    SCSI_ProcessCmd_hmsc->last_test_unit_result = result;
+
     if (result != HAL_OK)
     {
         SCSI_SenseCode(SCSI_ProcessCmd_pdev,
@@ -553,6 +555,7 @@ static void SCSI_StartStopUnit(void)
 {
     if ((SCSI_ProcessCmd_params[4] & START_STOP_DATA_MASK) == START_STOP_DATA_EJECT_STOP_MOTOR)
     {
+        SCSI_ProcessCmd_hmsc->last_test_unit_result = HAL_ERROR;
         if (Upstream_MSC_RequestDisconnect(SCSI_StartStopUnitCallback) != HAL_OK)     //Host is signalling us to disconnect
         {
             SCSI_StartStopUnitCallback(HAL_ERROR);
@@ -606,11 +609,20 @@ static void SCSI_Read10(void)
             return;
         }
 
+        if (SCSI_ProcessCmd_hmsc->last_test_unit_result != HAL_OK)
+        {
+            SCSI_SenseCode(SCSI_ProcessCmd_pdev,
+                         SCSI_ProcessCmd_hmsc->cbw.bLUN,
+                         NOT_READY,
+                         MEDIUM_NOT_PRESENT);
+            SCSI_ProcessCmd_callback(-1);
+            return;
+        }
+
         SCSI_ProcessCmd_hmsc->scsi_blk_addr = (SCSI_ProcessCmd_params[2] << 24) | \
                                               (SCSI_ProcessCmd_params[3] << 16) | \
                                               (SCSI_ProcessCmd_params[4] <<  8) | \
                                               SCSI_ProcessCmd_params[5];
-
         SCSI_ProcessCmd_hmsc->scsi_blk_len =  (SCSI_ProcessCmd_params[7] <<  8) | \
                                               SCSI_ProcessCmd_params[8];
 
@@ -728,6 +740,16 @@ static void SCSI_Write10(void)
                            SCSI_ProcessCmd_hmsc->cbw.bLUN,
                            ILLEGAL_REQUEST,
                            INVALID_CDB);
+            SCSI_ProcessCmd_callback(-1);
+            return;
+        }
+
+        if (SCSI_ProcessCmd_hmsc->last_test_unit_result != HAL_OK)
+        {
+            SCSI_SenseCode(SCSI_ProcessCmd_pdev,
+                         SCSI_ProcessCmd_hmsc->cbw.bLUN,
+                         NOT_READY,
+                         MEDIUM_NOT_PRESENT);
             SCSI_ProcessCmd_callback(-1);
             return;
         }
