@@ -53,6 +53,10 @@
 #define USBH_ADDRESS_DEFAULT                     0
 #define USBH_ADDRESS_ASSIGNED                    1      
 #define USBH_MPS_DEFAULT                         0x40
+
+#define USBH_ATTACH_DELAY_MS                     200
+#define USBH_DETACH_DELAY_MS                     500
+
 /**
   * @}
   */ 
@@ -412,7 +416,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     {
       /* Wait for 200 ms after connection */
       phost->gState = HOST_DEV_WAIT_FOR_ATTACHMENT; 
-      USBH_Delay(200); 
+      USBH_Delay(USBH_ATTACH_DELAY_MS);
       USBH_LL_ResetPort(phost);
 #if (USBH_USE_OS == 1)
       osMessagePut ( phost->os_event, USBH_PORT_EVENT, 0);
@@ -587,8 +591,8 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     }
     break;       
 
-  case HOST_DEV_DISCONNECTED :
-    
+  case HOST_DEV_DISCONNECTED:
+    USBH_Delay(USBH_DETACH_DELAY_MS);
     DeInitStateMachine(phost);  
     
     /* Re-Initilaize Host for new Enumeration */
@@ -596,7 +600,7 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     {
       phost->pActiveClass->DeInit(phost); 
       phost->pActiveClass = NULL;
-    }     
+    }
     break;
     
   case HOST_ABORT_STATE:
