@@ -22,7 +22,8 @@ typedef enum
     LED_STATUS_OFF,
     LED_STATUS_FLASH_ERROR,
     LED_STATUS_FLASH_UNSUPPORTED,
-    LED_STATUS_FLASH_BOTDETECT
+    LED_STATUS_FLASH_BOTDETECT,
+    LED_STATUS_FLASH_READWRITE
 }
 LedStatusTypeDef;
 
@@ -36,8 +37,10 @@ void LED_Tick(void);
 
 #define LED_ERROR_BLINK_MS          100
 #define LED_UNSUPPORTED_BLINK_MS    500
-#define LED_BOTDETECT_BLINK_MS      100
-#define LED_BOTDETECT_OFF_MS        (1000 - (LED_BOTDETECT_BLINK_MS * 3))       //Two flashes, total period = 1 sec
+#define LED_BOTDETECT_ON_MS         100
+#define LED_BOTDETECT_OFF_MS        (1000 - (LED_BOTDETECT_ON_MS * 3))       //Two flashes, total period = 1 sec
+#define LED_READWRITE_ON_MS         10
+#define LED_READWRITE_OFF_MS        30
 
 
 

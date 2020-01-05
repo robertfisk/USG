@@ -298,6 +298,7 @@ HAL_StatusTypeDef Upstream_MSC_BeginWrite(UpstreamMSCCallbackTypeDef callback,
         return HAL_ERROR;
     }
 
+    LED_SetState(LED_STATUS_FLASH_READWRITE);
     BlockStart = writeBlockStart;
     BlockCount = writeBlockCount;
     BeginWriteCallback = callback;
