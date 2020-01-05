@@ -22,6 +22,9 @@
 #define CONFIG_MOUSE_ENABLED
 #define CONFIG_MOUSE_BOT_DETECT_ENABLED
 
+#define CONFIG_WRITE_FLASH_TIME_MS                          3000        //Enable write LED flashes for the specified length of time
+
+
 
 //Configure keyboard bot detection here:
 #ifdef CONFIG_KEYBOARD_BOT_DETECT_ENABLED

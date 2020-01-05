@@ -16,6 +16,7 @@
 #include "downstream_spi.h"
 #include "usbh_msc.h"
 #include "build_config.h"
+#include "led.h"
 
 
 #ifdef CONFIG_MASS_STORAGE_ENABLED
@@ -164,6 +165,7 @@ static void Downstream_MSC_PacketProcessor_BeginRead(DownstreamPacketTypeDef* re
         return;
     }
 
+    LED_SetState(LED_STATUS_FLASH_READWRITE);
     readBlockAddress = *(uint64_t*)&(receivedPacket->Data[0]);
     readBlockCount   = *(uint32_t*)&(receivedPacket->Data[8]);
     readByteCount    = readBlockCount * MSC_Handle->unit[MSC_FIXED_LUN].capacity.block_size;

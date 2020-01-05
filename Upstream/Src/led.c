@@ -14,6 +14,7 @@
 #include "board_config.h"
 
 uint32_t            FaultLedCounter;
+uint32_t            ReadWriteFlashEndTime;
 
 LedStatusTypeDef    FaultLedState;
 uint16_t            FaultLedOnMs;
@@ -27,15 +28,14 @@ uint8_t             FaultLedOutputState;
 void LED_Init(void)
 {
     FAULT_LED_ON;
+    ReadWriteFlashEndTime = 0;
     FaultLedState = LED_STATUS_STARTUP;
 }
 
 
 void LED_SetState(LedStatusTypeDef newState)
 {
-    FaultLedState = newState;
-
-    switch (FaultLedState)
+    switch (newState)
     {
     case LED_STATUS_OFF:
         FaultLedCounter = UINT32_MAX;
@@ -51,9 +51,25 @@ void LED_SetState(LedStatusTypeDef newState)
         break;
 
     case LED_STATUS_FLASH_BOTDETECT:
-        FaultLedOnMs = LED_BOTDETECT_BLINK_MS;
+        FaultLedOnMs = LED_BOTDETECT_ON_MS;
         FaultLedOffMs = LED_BOTDETECT_OFF_MS;
         FaultLedBlinkCount = 2;
+        break;
+
+    case LED_STATUS_FLASH_READWRITE:
+#ifdef CONFIG_WRITE_FLASH_TIME_MS
+        if (FaultLedState == LED_STATUS_OFF)
+        {
+            FaultLedOnMs = LED_READWRITE_ON_MS;
+            FaultLedOffMs = LED_READWRITE_OFF_MS;
+            FaultLedBlinkCount = 1;
+            ReadWriteFlashEndTime = HAL_GetTick() + CONFIG_WRITE_FLASH_TIME_MS;
+        }
+        else
+#endif
+        {
+            newState = FaultLedState;               //Don't override other active states
+        }
         break;
 
     default:
@@ -61,6 +77,8 @@ void LED_SetState(LedStatusTypeDef newState)
         FaultLedOffMs = LED_ERROR_BLINK_MS;
         FaultLedBlinkCount = 1;
     }
+
+    FaultLedState = newState;
 }
 
 
@@ -76,6 +94,17 @@ void LED_Tick(void)
         }
         return;
     }
+
+#ifdef CONFIG_WRITE_FLASH_TIME_MS
+    if (FaultLedState == LED_STATUS_FLASH_READWRITE)
+    {
+        if ((int32_t)(HAL_GetTick() - ReadWriteFlashEndTime) > 0)
+        {
+            LED_SetState(LED_STATUS_OFF);
+            return;
+        }
+    }
+#endif
 
     if (FaultLedOutputState)
     {

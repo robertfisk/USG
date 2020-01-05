@@ -19,5 +19,7 @@
 #define CONFIG_KEYBOARD_ENABLED
 #define CONFIG_MOUSE_ENABLED
 
+#define CONFIG_READ_FLASH_TIME_MS           3000        //Enable read LED flashes for the specified length of time
+
 
 #endif /* INC_BUILD_CONFIG_H_ */
