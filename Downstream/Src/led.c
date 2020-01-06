@@ -12,6 +12,7 @@
 
 #include "led.h"
 #include "board_config.h"
+#include "build_config.h"
 
 uint32_t            FaultLedCounter;
 uint32_t            ReadWriteFlashEndTime;
