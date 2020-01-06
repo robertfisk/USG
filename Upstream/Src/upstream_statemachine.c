@@ -76,7 +76,7 @@ void Upstream_StateMachine_SetErrorState(void)
     if ((ConfiguredDeviceClass > COMMAND_CLASS_INTERFACE) &&
         (ConfiguredDeviceClass < COMMAND_CLASS_ERROR))
     {
-        USBD_Stop(&hUsbDeviceFS);
+        USBD_DeInit(&hUsbDeviceFS);
     }
 }
 
@@ -228,6 +228,7 @@ void Upstream_StateMachine_NotifyDeviceReplyCallback(UpstreamPacketTypeDef* repl
 
     UpstreamState = STATE_DEVICE_ACTIVE;
     ConfiguredDeviceClass = newActiveClass;
+    USB_Device_Init();
     USBD_RegisterClass(&hUsbDeviceFS, newClassPointer);
     USBD_Start(&hUsbDeviceFS);
 
@@ -245,7 +246,7 @@ void Upstream_StateMachine_DeviceDisconnected(void)
         return;
     }
 
-    USBD_Stop(&hUsbDeviceFS);
+    USBD_DeInit(&hUsbDeviceFS);
     Upstream_GetFreePacket(Upstream_StateMachine_NotifyDevice);
 }
 
