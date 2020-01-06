@@ -190,6 +190,7 @@ USBD_StatusTypeDef  USBD_Start  (USBD_HandleTypeDef *pdev)
   USBD_LL_Start(pdev); 
   
   pdev->usbCoreStatus = USB_STATUS_START;
+  pdev->dev_state = USBD_STATE_DEFAULT;
 
   return USBD_OK;  
 }
