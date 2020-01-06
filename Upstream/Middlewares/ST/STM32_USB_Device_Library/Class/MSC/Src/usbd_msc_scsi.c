@@ -122,7 +122,8 @@ static void SCSI_Read10ReplyCallback(UpstreamPacketTypeDef* upstreamPacket,
 static void SCSI_Write10BeginCallback(HAL_StatusTypeDef result);
 static void SCSI_Write10FreePacketCallback(UpstreamPacketTypeDef* freePacket);
 static void SCSI_StartStopUnitCallback(HAL_StatusTypeDef result);
-
+static void SCSI_ModeSense6_FreePacketCallback(UpstreamPacketTypeDef* freePacket);
+static void SCSI_ModeSense10_FreePacketCallback(UpstreamPacketTypeDef* freePacket);
 
 
 /**
@@ -433,12 +434,16 @@ static void SCSI_ReadFormatCapacityCallback(UpstreamPacketTypeDef* upstreamPacke
 * @param  params: Command parameters
 * @retval status
 */
-static void SCSI_ModeSense6 (void)
+static void SCSI_ModeSense6(void)
+{
+    Upstream_GetFreePacket(SCSI_ModeSense6_FreePacketCallback);
+}
+
+
+static void SCSI_ModeSense6_FreePacketCallback(UpstreamPacketTypeDef* freePacket)
 {
     uint16_t len = 4;
-    UpstreamPacketTypeDef* freePacket;
 
-    freePacket = Upstream_GetFreePacketImmediately();
     SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
     SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
 
@@ -461,10 +466,14 @@ static void SCSI_ModeSense6 (void)
 */
 static void SCSI_ModeSense10(void)
 {
-    uint16_t len = 8;
-    UpstreamPacketTypeDef* freePacket;
+    Upstream_GetFreePacket(SCSI_ModeSense10_FreePacketCallback);
+}
 
-    freePacket = Upstream_GetFreePacketImmediately();
+
+static void SCSI_ModeSense10_FreePacketCallback(UpstreamPacketTypeDef* freePacket)
+{
+    uint16_t len = 8;
+
     SCSI_ProcessCmd_hmsc->bot_packet = freePacket;
     SCSI_ProcessCmd_hmsc->bot_data = freePacket->Data;
 

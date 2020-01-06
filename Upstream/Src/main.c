@@ -67,7 +67,6 @@ int main(void)
     /* Initialize all configured peripherals */
     GPIO_Init();
     LED_Init();
-    USB_Device_Init();
     Upstream_InitStateMachine();
 
     HAL_Delay(200);         //Delay executing WFI to avoid destroying JTAG access
